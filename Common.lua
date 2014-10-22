@@ -34,7 +34,7 @@ local pairs = pairs
 local require_ex = require("tektite_core.require_ex")
 local adaptive = require("tektite_core.table.adaptive")
 local sheet = require("corona_ui.utils.sheet")
-local tags = require_ex.Lazy("editor.Tags")
+local tags = require_ex.Lazy("s3_editor.Tags")
 
 -- Corona globals --
 local display = display

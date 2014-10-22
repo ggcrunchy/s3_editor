@@ -33,13 +33,13 @@ local min = math.min
 local button = require("corona_ui.widgets.button")
 local checkbox = require("corona_ui.widgets.checkbox")
 local color_picker = require("corona_ui.widgets.color_picker")
-local common = require("editor.Common")
-local common_ui = require("editor.CommonUI")
+local common = require("s3_editor.Common")
+local common_ui = require("s3_editor.CommonUI")
 local layout = require("corona_ui.utils.layout")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 local touch = require("corona_ui.utils.touch")
-local utils = require("editor.dialog.Utils")
+local utils = require("s3_editor.dialog.Utils")
 
 -- Corona globals --
 local display = display

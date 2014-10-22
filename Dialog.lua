@@ -27,14 +27,14 @@
 local pairs = pairs
 
 -- Method modules --
-local dialog_data = require("editor.dialog.Data")
-local dialog_items = require("editor.dialog.Items")
-local dialog_layout = require("editor.dialog.Layout")
-local dialog_methods = require("editor.dialog.Methods")
-local utils = require("editor.dialog.Utils")
+local dialog_data = require("s3_editor.dialog.Data")
+local dialog_items = require("s3_editor.dialog.Items")
+local dialog_layout = require("s3_editor.dialog.Layout")
+local dialog_methods = require("s3_editor.dialog.Methods")
+local utils = require("s3_editor.dialog.Utils")
 
 -- Modules --
-local common = require("editor.Common")
+local common = require("s3_editor.Common")
 
 -- Corona globals --
 local display = display

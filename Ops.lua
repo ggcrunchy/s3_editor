@@ -31,8 +31,8 @@ local ipairs = ipairs
 local write = io.write
 
 -- Modules --
-local common = require("editor.Common")
-local events = require("editor.Events")
+local common = require("s3_editor.Common")
+local events = require("s3_editor.Events")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
 local timers = require("corona_utils.timers")
@@ -158,7 +158,7 @@ end
 
 --- Quits the editor.
 function M.Quit ()
-	composer.gotoScene("scene.EditorSetup")
+	composer.gotoScene("s3_editor.scene.Setup")
 end
 
 --- Sets the current working name, which is used by @{Build} and @{Save} to assign levels

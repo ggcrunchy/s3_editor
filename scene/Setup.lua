@@ -36,7 +36,7 @@ local tonumber = tonumber
 -- Modules --
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
-local common_ui = require("editor.CommonUI")
+local common_ui = require("s3_editor.CommonUI")
 local editable_patterns = require("corona_ui.patterns.editable")
 local layout = require("corona_ui.utils.layout")
 local persistence = require("corona_utils.persistence")
@@ -86,7 +86,7 @@ function Scene:create ()
 		if err then
 			native.showAlert("Error!", err)
 		else
-			scenes.GoToScene{ name = "scene.MapEditor", params = { main = { cols, rows } } }
+			scenes.GoToScene{ name = "s3_editor.scene.Map", params = { main = { cols, rows } } }
 		end
 	end, "New Scene")
 
@@ -176,7 +176,7 @@ function Scene:show (event)
 
 					params.is_loading = level.name
 
-					scenes.GoToScene{ name = "scene.MapEditor", params = params }
+					scenes.GoToScene{ name = "s3_editor.scene.Map", params = params }
 				end, "Load Scene",
 
 				-- Delete Scene --

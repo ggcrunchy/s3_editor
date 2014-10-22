@@ -36,7 +36,7 @@ local yield = coroutine.yield
 local array_funcs = require("tektite_core.array.funcs")
 local coro = require("iterator_ops.coroutine")
 local str_utils = require("tektite_core.string")
-local tags = require("editor.Tags")
+local tags = require("s3_editor.Tags")
 local timers = require("corona_utils.timers")
 
 -- Classes --

@@ -29,7 +29,7 @@ local tonumber = tonumber
 local type = type
 
 -- Modules --
-local common = require("editor.Common")
+local common = require("s3_editor.Common")
 
 -- Exports --
 local M = {}
