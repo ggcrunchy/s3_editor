@@ -30,7 +30,7 @@ local remove = table.remove
 local type = type
 
 -- Modules --
-local utils = require("editor.dialog.Utils")
+local utils = require("s3_editor.dialog.Utils")
 
 -- Corona globals --
 local display = display

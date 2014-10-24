@@ -32,10 +32,10 @@ local min = math.min
 local pairs = pairs
 
 -- Modules --
-local common = require("editor.Common")
-local common_ui = require("editor.CommonUI")
+local common = require("s3_editor.Common")
+local common_ui = require("s3_editor.CommonUI")
 local grid2D = require("corona_ui.widgets.grid")
-local help = require("editor.Help")
+local help = require("s3_editor.Help")
 local str_utils = require("tektite_core.string")
 
 -- Corona globals --

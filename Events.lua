@@ -32,11 +32,11 @@ local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
-local common = require("editor.Common")
-local grid = require("editor.Grid")
-local links = require("editor.Links")
+local common = require("s3_editor.Common")
+local grid = require("s3_editor.Grid")
+local links = require("s3_editor.Links")
 local str_utils = require("tektite_core.string")
-local tags = require("editor.Tags")
+local tags = require("s3_editor.Tags")
 
 -- Cached module references --
 local _CheckForNameDups_

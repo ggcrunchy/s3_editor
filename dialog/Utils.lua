@@ -29,7 +29,7 @@ local rawget = rawget
 local type = type
 
 -- Modules --
-local common = require("editor.Common")
+local common = require("s3_editor.Common")
 
 -- Corona globals --
 local display = display

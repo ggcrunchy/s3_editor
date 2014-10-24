@@ -47,16 +47,16 @@ local pairs = pairs
 local require_ex = require("tektite_core.require_ex")
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
-local common = require("editor.Common")
-local common_ui = require("editor.CommonUI")
-local events = require("editor.Events")
-local grid = require("editor.Grid")
-local help = require("editor.Help")
-local ops = require("editor.Ops")
+local common = require("s3_editor.Common")
+local common_ui = require("s3_editor.CommonUI")
+local events = require("s3_editor.Events")
+local grid = require("s3_editor.Grid")
+local help = require("s3_editor.Help")
+local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
 local scenes = require("corona_utils.scenes")
 local tabs_patterns = require("corona_ui.patterns.tabs")
-local tags = require_ex.Lazy("editor.Tags")
+local tags = require_ex.Lazy("s3_editor.Tags")
 local timers = require("corona_utils.timers")
 
 -- Corona globals --
@@ -287,7 +287,7 @@ function Scene:show (event)
 
 			-- Bring up a help overlay --
 			function()
-				composer.showOverlay("overlay.Help", HelpOpts)
+				composer.showOverlay("s3_editor.overlay.Help", HelpOpts)
 			end, "Help"
 		) do
 			local button = button.Button(self.view, nil, 10, display.contentHeight - i * 65 - 5, 100, 50, func, text)

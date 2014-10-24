@@ -24,7 +24,7 @@
 --
 -- Modules --
 local editable_patterns = require("corona_ui.patterns.editable")
-local utils = require("editor.dialog.Utils")
+local utils = require("s3_editor.dialog.Utils")
 
 -- Corona globals --
 local display = display

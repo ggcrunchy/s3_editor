@@ -29,8 +29,8 @@ local ipairs = ipairs
 -- Modules --
 local require_ex = require("tektite_core.require_ex")
 local button = require("corona_ui.widgets.button")
-local common = require("editor.Common")
-local dialog_utils = require_ex.Lazy("editor.dialog.Utils")
+local common = require("s3_editor.Common")
+local dialog_utils = require_ex.Lazy("s3_editor.dialog.Utils")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
@@ -78,7 +78,7 @@ local LinkTouch = touch.TouchHelperFunc(function(_, link)
 	params.sub = link.m_sub
 	params.tags = link.m_tags
 end, nil, function()
-	composer.showOverlay("overlay.Link", OverlayArgs)
+	composer.showOverlay("s3_editor.overlay.Link", OverlayArgs)
 
 	local params = OverlayArgs.params
 
