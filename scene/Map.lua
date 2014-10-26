@@ -10,8 +10,9 @@
 --
 -- The editor is broken up into several "views", each isolating specific features of the
 -- level. The bulk of the editor logic is implemented in these views' modules, with common
--- building blocks in @{editor.Common} and @{editor.Dialog}. View-agnostic operations are
--- found in @{editor.Ops} and are used to implement various core behaviors in this scene.
+-- building blocks in @{s3_editor.Common} and @{s3_editor.Dialog}. View-agnostic operations
+-- are found in @{s3_editor.Ops} and are used to implement various core behaviors in this
+-- scene.
 --
 -- @todo Mention enter_menus; also load_level_wip, save_level_wip, level_wip_opened, level_wip_closed events...
 

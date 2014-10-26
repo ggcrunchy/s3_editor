@@ -35,7 +35,7 @@ local yield = coroutine.yield
 -- Modules --
 local array_funcs = require("tektite_core.array.funcs")
 local coro = require("iterator_ops.coroutine")
-local str_utils = require("tektite_core.string")
+local strings = require("tektite_core.var.strings")
 local tags = require("s3_editor.Tags")
 local timers = require("corona_utils.timers")
 
@@ -439,7 +439,7 @@ function M.LinkObjects (object1, object2, sub1, sub2)
 		local links = Links[key]
 
 		if not key then
-			key, links = str_utils.PairToKey(p1.id, p2.id), {}
+			key, links = strings.PairToKey(p1.id, p2.id), {}
 
 			Links[key], p1[p2.id], p2[p1.id] = links, key, key
 		end

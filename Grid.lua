@@ -36,7 +36,7 @@ local common = require("s3_editor.Common")
 local common_ui = require("s3_editor.CommonUI")
 local grid2D = require("corona_ui.widgets.grid")
 local help = require("s3_editor.Help")
-local str_utils = require("tektite_core.string")
+local strings = require("tektite_core.var.strings")
 
 -- Corona globals --
 local display = display
@@ -407,7 +407,7 @@ function M.ShowOrHide (items, func)
 	local redge, bedge = Col + VCols, Row + VRows
 
 	for k, v in pairs(items) do
-		local col, row = str_utils.KeyToPair(k)
+		local col, row = strings.KeyToPair(k)
 
 		func(v, col > Col and col <= redge and row > Row and row <= bedge)
 	end

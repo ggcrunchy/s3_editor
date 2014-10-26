@@ -50,7 +50,7 @@ local grid1D = require("corona_ui.widgets.grid_1D")
 local help = require("s3_editor.Help")
 local links = require("s3_editor.Links")
 local sheet = require("corona_ui.utils.sheet")
-local str_utils = require("tektite_core.string")
+local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 
 -- Corona globals --
@@ -143,7 +143,7 @@ local function ImageUpdate (canvas, tile, x, y, cw, ch, tile_images)
 end
 
 --- Common logic for the **PAINT** / **EDIT** / **ERASE** combination of grid operations.
--- @callable dialog_wrapper Cf. the result of @{editor.Dialog.DialogWrapper}.
+-- @callable dialog_wrapper Cf. the result of @{s3_editor.Dialog.DialogWrapper}.
 -- @tparam array|string types An array of strings denoting type.
 -- @string[opt=""] palette 
 -- @treturn GridView Editor grid view object.
@@ -163,7 +163,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 	--
 	local function Cell (event)
-		local key, which = str_utils.PairToKey(event.col, event.row), current and current:GetCurrent()
+		local key, which = strings.PairToKey(event.col, event.row), current and current:GetCurrent()
 		local cur, tile = values[key], tiles[key]
 		local canvas, cw, ch = event.target:GetCanvas(), event.target:GetCellDims()
 
@@ -214,7 +214,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 	--
 	local function ShowHide (event)
-		local key = str_utils.PairToKey(event.col, event.row)
+		local key = strings.PairToKey(event.col, event.row)
 
 		if values[key] then
 			tiles[key].isVisible = event.show

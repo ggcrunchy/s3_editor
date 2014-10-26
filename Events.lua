@@ -1,7 +1,7 @@
 --- Some operations, e.g. for persistence and verification, reused among editor events.
 --
 -- Many operations take an argument of type **GridView**. For an example of such an object,
--- see @{editor.GridViews.EditErase}.
+-- see @{s3_editor.GridViews.EditErase}.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -35,7 +35,7 @@ local pairs = pairs
 local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
 local links = require("s3_editor.Links")
-local str_utils = require("tektite_core.string")
+local strings = require("tektite_core.var.strings")
 local tags = require("s3_editor.Tags")
 
 -- Cached module references --
@@ -185,7 +185,7 @@ function M.LoadGroupOfValues_Grid (level, what, mod, grid_view)
 			_SetCurrentIndex_(current, types, entry.type)
 		end
 
-		cells:TouchCell(str_utils.KeyToPair(k))
+		cells:TouchCell(strings.KeyToPair(k))
 
 		_LoadValuesFromEntry_(level, mod, values[k], entry)
 	end
@@ -294,7 +294,7 @@ end
 --    handler(entry1, entry2, sub1, sub2)
 -- where _entry1_ and _sub1_ are the entry and sublink associated with the handler; _entry2_
 -- and _sub2_ comprise the target. At this point, all entries will have their final **uid**'s,
--- so this is the ideal time to bind everything as the application expects, e.g. via @{utils.Bind}.
+-- so this is the ideal time to bind everything as the application expects, e.g. via @{tektite_core.bind}.
 --
 -- Once finished, the editor state is storage-ready.
 -- @ptable level Saved level state. If present, the **links** table is read and processed;
@@ -450,7 +450,7 @@ function M.SaveValuesIntoEntry (level, mod, values, entry)
 		local list = level.links or {}
 
 		if not list[rep] then
-			values.uid = str_utils.NewName()
+			values.uid = strings.NewName()
 
 			list[#list + 1] = rep
 			list[rep] = #list

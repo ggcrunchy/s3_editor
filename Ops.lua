@@ -93,7 +93,7 @@ end
 -- same table as event; listeners can then mutate the table into game-ready form.
 --
 -- This table is then added, as a string, to the level database.
--- @see editor.Common.IsVerified, corona_utils.persistence.SaveLevel, GetLevelName, Verify
+-- @see s3_editor.Common.IsVerified, corona_utils.persistence.SaveLevel, GetLevelName, Verify
 function M.Build ()
 	M.Verify()
 
@@ -143,7 +143,7 @@ end
 --
 -- This table is then added, as a string, to the level database (as a WIP). If possible, this
 -- string is also sent to the clipboard.
--- @see editor.Common.IsDirty, corona_utils.persistence.SaveLevel, GetLevelName
+-- @see s3_editor.Common.IsDirty, corona_utils.persistence.SaveLevel, GetLevelName
 function M.Save ()
 	if common.IsDirty() then
 		GetLevelName(function()
@@ -192,7 +192,7 @@ end
 --
 -- Verification runs until a pass ends either: with errors (failure) or without a request
 -- for a follow-up pass (success). On success, the editor will be in the verified state.
--- @see editor.Common.IsVerified
+-- @see s3_editor.Common.IsVerified
 function M.Verify ()
 	if not common.IsVerified() then
 		local verify, done = { pass = 1 }
