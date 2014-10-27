@@ -139,7 +139,18 @@ end
 
 --
 local function ImageUpdate (canvas, tile, x, y, cw, ch, tile_images)
-	-- Like FrameUpdate, but "tile_images" is a filename
+	tile = tile or display.newImageRect(canvas, tile_images, cw, ch)
+
+	tile.x, tile.y = x, y
+
+	return tile
+end
+
+--- DOCME
+function M.ImageUpdate (grid, x, y, filename, tile)
+	local w, h = grid:GetCellDims()
+
+	return ImageUpdate(grid:GetCanvas(), tile, x, y, w, h, filename)
 end
 
 --- Common logic for the **PAINT** / **EDIT** / **ERASE** combination of grid operations.
