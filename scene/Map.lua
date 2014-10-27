@@ -262,7 +262,7 @@ function Scene:show (event)
 						if exists then
 							RestoreState = restore
 
-							scenes.GoToScene{ name = "scene.Level", params = data, no_effect = true }
+							scenes.GoToScene{ name = "scene.Level", params = data, effect = "none" }
 						else
 							native.showAlert("Error!", "Failed to launch test level")
 
