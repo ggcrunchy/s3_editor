@@ -322,7 +322,7 @@ function Scene:show (event)
 			local x, w = 0, TabW(1)
 
 			-- TODO: Hack!
-			common_ui.TabsHack(self.view, Tabs, shown, function() return TabW(x + 1), x end, 0, TabW(shown))
+			tabs_patterns.TabsHack(self.view, Tabs, shown, function() return TabW(x + 1), x end, 0, TabW(shown))
 			-- /TODO
 
 			local lscroll = common_ui.ScrollButton(self.view, "lscroll", 0, 0, function()
