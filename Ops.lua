@@ -35,6 +35,7 @@ local common = require("s3_editor.Common")
 local events = require("s3_editor.Events")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
+local scenes = require("corona_utils.scenes")
 local timers = require("corona_utils.timers")
 
 -- Corona globals --
@@ -133,6 +134,29 @@ function M.Init (view)
 	View = view
 end
 
+--- DOCME
+function M.ListenForQuickTest (key_name, scene_name)
+	scenes.SetListenFunc(function(what, key)
+		if what == "message:handles_key" then
+			if key.keyName == key_name and key.phase == "down" and key.isCtrlDown then
+				local exists, data = persistence.LevelExists("?TEST?")
+
+				if exists then
+					scenes.SetListenFunc(nil)
+					scenes.GoToScene{ name = scene_name, params = data, effect = "none" }
+				end
+			end
+
+			return true
+		end
+	end)
+end
+
+--- Quits the editor.
+function M.Quit ()
+	composer.gotoScene("s3_editor.scene.Setup")
+end
+
 --- Saves the work-in-progress level in the database under the working name.
 --
 -- If the editor state is not dirty, this is no-op.
@@ -154,11 +178,6 @@ function M.Save ()
 			return scene
 		end, true)
 	end
-end
-
---- Quits the editor.
-function M.Quit ()
-	composer.gotoScene("s3_editor.scene.Setup")
 end
 
 --- Sets the current working name, which is used by @{Build} and @{Save} to assign levels
