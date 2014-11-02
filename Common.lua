@@ -38,6 +38,7 @@ local tags = require_ex.Lazy("s3_editor.Tags")
 
 -- Corona globals --
 local display = display
+local Runtime = Runtime
 local transition = transition
 
 -- Exports --

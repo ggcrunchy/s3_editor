@@ -137,17 +137,13 @@ end
 --- DOCME
 function M.ListenForQuickTest (key_name, scene_name)
 	scenes.SetListenFunc(function(what, key)
-		if what == "message:handles_key" then
-			if key.keyName == key_name and key.phase == "down" and key.isCtrlDown then
-				local exists, data = persistence.LevelExists("?TEST?")
+		if what == "message:handles_key" and key.keyName == key_name and key.phase == "down" and key.isCtrlDown then
+			local exists, data = persistence.LevelExists("?TEST?")
 
-				if exists then
-					scenes.SetListenFunc(nil)
-					scenes.GoToScene{ name = scene_name, params = data, effect = "none" }
-				end
+			if exists then
+				scenes.SetListenFunc(nil)
+				scenes.GoToScene{ name = scene_name, params = data, effect = "none" }
 			end
-
-			return true
 		end
 	end)
 end

@@ -63,6 +63,7 @@ local timers = require("corona_utils.timers")
 -- Corona globals --
 local display = display
 local native = native
+local Runtime = Runtime
 local transition = transition
 
 -- Corona modules --
