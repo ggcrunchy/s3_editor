@@ -34,7 +34,10 @@ local pairs = pairs
 local require_ex = require("tektite_core.require_ex")
 local adaptive = require("tektite_core.table.adaptive")
 local sheet = require("corona_ui.utils.sheet")
-local tags = require_ex.Lazy("s3_editor.Tags")
+
+-- Classes --
+local Links = require("tektite_base_classes.Link.Links")
+local Tags = require("tektite_base_classes.Link.Tags")
 
 -- Corona globals --
 local display = display
@@ -132,6 +135,9 @@ function M.BindRepAndValues (rep, values)
 	return prev
 end
 
+-- --
+local SessionLinks
+
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
 	if Nets then
@@ -142,7 +148,7 @@ function M.CleanUp ()
 		Runtime:removeEventListener("enterFrame", WatchNets)
 	end
 
-	Buttons, Nets, RepToValues, ValuesToRep = nil
+	Buttons, Nets, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.
@@ -203,10 +209,16 @@ function M.GetDims ()
 end
 
 --- DOCME
+function M.GetLinks ()
+	return SessionLinks
+end
+
+--- DOCME
 function M.GetTag (etype, on_editor_event)
 	local tname = on_editor_event(etype, "get_tag")
+	local tag_db = SessionLinks:GetTagDatabase()
 
-	if tname and not tags.Exists(tname) then
+	if tname and not tag_db:Exists(tname) then
 		local topts, ret1, ret2 = on_editor_event(etype, "new_tag")
 
 		if topts == "sources_and_targets" then
@@ -224,7 +236,7 @@ function M.GetTag (etype, on_editor_event)
 		-- Others?
 		end
 
-		tags.New(tname, topts)
+		tag_db:New(tname, topts)
 	end
 
 	return tname
@@ -262,6 +274,9 @@ function M.Init (ncols, nrows)
 	end
 
 	RepToValues, ValuesToRep, IsDirty, IsVerified = {}, {}, false, false
+	SessionLinks = Links(Tags(), function(object)
+		return object.parent
+	end)
 end
 
 --

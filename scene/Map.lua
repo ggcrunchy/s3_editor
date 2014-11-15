@@ -45,7 +45,6 @@ local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
-local require_ex = require("tektite_core.require_ex")
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
@@ -55,9 +54,9 @@ local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
+local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
 local tabs_patterns = require("corona_ui.patterns.tabs")
-local tags = require_ex.Lazy("s3_editor.Tags")
 local timers = require("corona_utils.timers")
 
 -- Corona globals --
@@ -193,18 +192,6 @@ end
 function Scene:show (event)
 	if event.phase == "did" then
 		scenes.SetListenFunc(Listen)
-
-		--
-		if not CommonTagsLoaded then
-			for k, v in pairs{
-				event_source = "event_target",
-				event_target = "event_source"
-			} do
-				tags.ImpliesInterface(k, v)
-			end
-
-			CommonTagsLoaded = true
-		end
 
 		-- We may enter the scene one of two ways: from the editor setup menu, in which case
 		-- we use the provided scene parameters; or returning from a test, in which case we
@@ -352,6 +339,20 @@ function Scene:show (event)
 		help.Init()
 		grid.Init(self.view)
 		ops.Init(self.view)
+
+		--
+		if not CommonTagsLoaded then
+			local tags = common.GetLinks():GetTagDatabase()
+
+			for k, v in pairs{
+				event_source = "event_target",
+				event_target = "event_source"
+			} do
+				tags:ImpliesInterface(k, v)
+			end
+
+			CommonTagsLoaded = true
+		end
 
 		--
 		help.AddHelp("Common", {

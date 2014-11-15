@@ -33,9 +33,7 @@ local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
 local common_ui = require("s3_editor.CommonUI")
 local link_group = require("corona_ui.widgets.link_group")
-local links = require("s3_editor.Links")
 local table_view_patterns = require("corona_ui.patterns.table_view")
-local tags = require("s3_editor.Tags")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
@@ -224,10 +222,10 @@ end
 
 --
 local function Refresh (is_dirty)
-	local object = Box.m_object
+	local object, links = Box.m_object, common.GetLinks()
 
 	for _, item, str, sub in BoxItems() do
-		local can_link, why = links.CanLink(Rep, object, Sub, sub)
+		local can_link, why = links:CanLink(Rep, object, Sub, sub)
 		local text, alpha = SublinkText(sub)
 
 		if not can_link then
@@ -268,7 +266,7 @@ local function Connect (_, obj1, obj2, node)
 	-- One object is the rep, but the other will have some data and need some treatment.
 	local object, sub = Box.m_object, obj1.m_sub or obj2.m_sub
 
-	node.m_link = links.LinkObjects(Rep, object, Sub, sub)
+	node.m_link = common.GetLinks():LinkObjects(Rep, object, Sub, sub)
 
 	AddObject(object)
 	Refresh(true)
@@ -341,8 +339,10 @@ end
 
 --
 local function ConnectObjects (object, node)
+	local links = common.GetLinks()
+
 	for _, item, _, sub in BoxItems() do
-		for link in links.Links(object, sub) do
+		for link in links:Links(object, sub) do
 			local obj, osub = link:GetOtherObject(object)
 
 			if obj == Rep and osub == Sub then
@@ -356,14 +356,14 @@ end
 
 --
 local function CouldPass (object, sub)
-	local passed, _, is_cont = links.CanLink(Rep, object, Sub, sub)
+	local passed, _, is_cont = common.GetLinks():CanLink(Rep, object, Sub, sub)
 
 	return passed or not is_cont
 end
 
 --
 local function MayLink (object, tag)
-	for _, sub in tags.Sublinks(tag) do
+	for _, sub in common.GetLinks():GetTagDatabase():Sublinks(tag) do
 		if CouldPass(object, sub) then
 			return true
 		end
@@ -443,7 +443,9 @@ function SetCurrent (group, object, node)
 		--
 		Box.m_count = 0
 
-		for _, sub in tags.Sublinks(links.GetTag(object)) do
+		local links = common.GetLinks()
+
+		for _, sub in links:GetTagDatabase():Sublinks(links:GetTag(object)) do
 			if CouldPass(object, sub) then
 				AddToBox(object, sub, node)
 			end
@@ -532,21 +534,22 @@ function Overlay:show (event)
 	-- TODO: (optionally) add icon from one (both?) link objects into dialogs?
 	-- For that matter, link images...
 		--
-		local iter, set = tags.TagAndChildren, params.tags
+		local iter_method, links, set = "TagAndChildren", common.GetLinks(), params.tags
+		local tag_db = links:GetTagDatabase()
 
 		if params.interfaces then
-			iter, set = tags.Implementors, params.interfaces
+			iter_method, set = "Implementors", params.interfaces
 		elseif not params.tags then
-			iter = tags.Tags
+			iter_method = "Tags"
 		end
 
-		for _, name in iter(set) do
-			for object in links.Tagged(name) do
+		for _, name in tag_db[iter_method](tag_db, set) do
+			for object in links:Tagged(name) do
 				if object ~= Rep and MayLink(object, name) then
 					local name = ValuesName(object)
 
 					List[#List + 1] = {
-						text = ("%s%s"):format(links.GetTag(object), name and " (" .. name .. ")" or ""),
+						text = ("%s%s"):format(links:GetTag(object), name and " (" .. name .. ")" or ""),
 						object = object
 					}
 				end
@@ -566,7 +569,7 @@ function Overlay:show (event)
 
 		if has_links then
 			-- Make a note of whichever objects already link to the representative.
-			for link in links.Links(Rep, Sub) do
+			for link in common.GetLinks():Links(Rep, Sub) do
 				AddObject(link:GetOtherObject(Rep))
 			end
 

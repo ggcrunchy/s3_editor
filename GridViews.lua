@@ -48,7 +48,6 @@ local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
 local grid1D = require("corona_ui.widgets.grid_1D")
 local help = require("s3_editor.Help")
-local links = require("s3_editor.Links")
 local sheet = require("corona_ui.utils.sheet")
 local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
@@ -201,9 +200,9 @@ function M.EditErase (dialog_wrapper, types, palette)
 			values[key], tiles[key] = nil
 
 		--
-		elseif not same(tile, which, cur) then 
+		elseif not same(tile, which, cur) then
 			if tile then
-				links.RemoveTag(tile)
+				common.GetLinks():RemoveTag(tile)
 			end
 
 			local vtype = type(types) == "string" and types or types[which]
@@ -216,7 +215,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 			if tag then
 				common.BindRepAndValues(tiles[key], values[key])
-				links.SetTag(tiles[key], tag)
+				common.GetLinks():SetTag(tiles[key], tag)
 			end
 
 			common.Dirty()

@@ -34,9 +34,7 @@ local pairs = pairs
 -- Modules --
 local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
-local links = require("s3_editor.Links")
 local strings = require("tektite_core.var.strings")
-local tags = require("s3_editor.Tags")
 
 -- Cached module references --
 local _CheckForNameDups_
@@ -329,7 +327,7 @@ end
 function M.ResolveLinks_Load (level)
 	if level.links then
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
-			links.LinkObjects(obj1, obj2, sub1, sub2)
+			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)
 	end
 end
@@ -357,7 +355,8 @@ function M.ResolveLinks_Save (level)
 	local list = level.links
 
 	if list then
-		local new = {}
+		local new, links = {}, common.GetLinks()
+		local tag_db = links:GetTagDatabase()
 
 		for _, rep in ipairs(list) do
 			local entry = common.GetValuesFromRep(rep)
@@ -367,11 +366,11 @@ function M.ResolveLinks_Save (level)
 
 			entry.uid = nil
 
-			for _, sub in tags.Sublinks(links.GetTag(rep)) do
+			for _, sub in tag_db:Sublinks(links:GetTag(rep)) do
 				new[#new + 1] = "sub"
 				new[#new + 1] = sub
 
-				for link in links.Links(rep, sub) do
+				for link in links:Links(rep, sub) do
 					local obj, osub = link:GetOtherObject(rep)
 
 					new[#new + 1] = list[obj]
@@ -403,13 +402,14 @@ end
 
 -- Is the (represented) object linked to anything?
 local function HasAny (rep)
-	local tag = links.GetTag(rep)
+	local links = common.GetLinks()
+	local tag = links:GetTag(rep)
 
 	if tag then
-		local f, s, v0, reclaim = tags.Sublinks(tag)
+		local f, s, v0, reclaim = links:GetTagDatabase():Sublinks(tag)
 
 		for _, sub in f, s, v0 do
-			if links.HasLinks(rep, sub) then
+			if links:HasLinks(rep, sub) then
 				reclaim()
 
 				return true

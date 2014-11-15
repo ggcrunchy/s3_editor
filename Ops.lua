@@ -40,6 +40,7 @@ local timers = require("corona_utils.timers")
 
 -- Corona globals --
 local native = native
+local Runtime = Runtime
 local system = system
 
 -- Corona modules --
@@ -198,6 +199,7 @@ end
 -- One or more passes are run over the level data. On each pass, the **verify\_level\_wip**
 -- event is dispatched, with a table as event. The table has the following fields:
 --
+-- * **links**: Links for the current editor session, cf. @{s3_editor.Common.GetLinks}.
 -- * **pass**: Read-only **uint**. Starts at 1 and is incremented after each pass.
 -- * **needs\_another\_pass**: **bool**. Begins each pass as **false**. To request another
 -- pass, set it to true; a listener should never set it to false.
@@ -210,7 +212,7 @@ end
 -- @see s3_editor.Common.IsVerified
 function M.Verify ()
 	if not common.IsVerified() then
-		local verify, done = { pass = 1 }
+		local verify, done = { pass = 1, links = common.GetLinks() }
 
 		-- If the verification takes a while, post the activity indicator.
 		timers.RepeatEx(function(event)
