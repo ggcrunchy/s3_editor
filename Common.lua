@@ -42,6 +42,7 @@ local Tags = require("tektite_base_classes.Link.Tags")
 -- Corona globals --
 local display = display
 local Runtime = Runtime
+local timer = timer
 local transition = transition
 
 -- Exports --
@@ -147,6 +148,8 @@ function M.CleanUp ()
 
 		Runtime:removeEventListener("enterFrame", WatchNets)
 	end
+
+	timer.cancel(SessionLinks.cleanup)
 
 	Buttons, Nets, RepToValues, SessionLinks, ValuesToRep = nil
 end
@@ -277,6 +280,13 @@ function M.Init (ncols, nrows)
 	SessionLinks = Links(Tags(), function(object)
 		return object.parent
 	end)
+
+	-- Do periodic cleanup of links.
+	local index = 1
+
+	SessionLinks.cleanup = timer.performWithDelay(5000, function()
+		index = SessionLinks:CleanUp(index)
+	end, 0)
 end
 
 --
