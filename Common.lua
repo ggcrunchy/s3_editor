@@ -31,7 +31,6 @@ local min = math.min
 local pairs = pairs
 
 -- Modules --
-local require_ex = require("tektite_core.require_ex")
 local adaptive = require("tektite_core.table.adaptive")
 local sheet = require("corona_ui.utils.sheet")
 
@@ -273,10 +272,6 @@ function M.Init (ncols, nrows)
 
 	if Buttons.Save then
 		Buttons.Save.alpha = .4
-	end
-
-	if Buttons.Verify then
-		Buttons.Verify.alpha = .4
 	end
 
 	RepToValues, ValuesToRep, IsDirty, IsVerified = {}, {}, false, false
