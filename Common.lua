@@ -217,6 +217,16 @@ function M.GetLinks ()
 end
 
 --- DOCME
+-- @ptable values
+-- @treturn pobject O
+function M.GetRepFromValues (values)
+	return ValuesToRep[values]
+end
+
+--- DOCME
+-- @param etype
+-- @callable on_editor_event
+-- @treturn ?string X
 function M.GetTag (etype, on_editor_event)
 	local tname = on_editor_event(etype, "get_tag")
 	local tag_db = SessionLinks:GetTagDatabase()
@@ -243,13 +253,6 @@ function M.GetTag (etype, on_editor_event)
 	end
 
 	return tname
-end
-
---- DOCME
--- @ptable values
--- @treturn pobject O
-function M.GetRepFromValues (values)
-	return ValuesToRep[values]
 end
 
 --- DOCME

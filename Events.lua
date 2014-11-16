@@ -481,14 +481,14 @@ end
 -- @ptable mod Module, assumed to contain an **EditorEvent** function corresponding to the
 -- type of values being verified.
 --
--- A **"verify"** editor event takes as arguments, in order: _verify_, _values_, _key_, where
--- _values_ is a table of values to verify, and _key_ refers to the key being verified.
+-- A **"verify"** editor event takes as arguments, in order: _verify_, _ovals_, _rep_, where
+-- _ovals_ is a table of object values to verify, and _rep_ is the object's representative.
 -- @tparam GridView grid_view Supplies the module's values.
 function M.VerifyValues (verify, mod, grid_view)
 	local values = grid_view:GetValues()
 
 	for k, v in pairs(values) do
-		mod.EditorEvent(v.type, "verify", verify, values, k)
+		mod.EditorEvent(v.type, "verify", verify, v, common.GetRepFromValues(v))
 	end
 end
 
