@@ -163,7 +163,7 @@ function Overlay:create ()
 	self.m_about = display.newText(cgroup, "", 0, 0, native.systemFont, 18)
 
 	--
-	button.Button(cgroup, nil, 300, 30, 35, 35, function()
+	button.Button_XY(cgroup, 300, 30, 35, 35, function()
 		FadeShade(0)
 	end, "X")
 end

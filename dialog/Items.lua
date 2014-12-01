@@ -232,7 +232,7 @@ function M:AddSpinner (options)
 	sopts.name = name
 
 	self:AddString(sopts)
-	self:CommonAdd(button.Button(self:ItemGroup(), nil, 0, 0, 40, 30, function()
+	self:CommonAdd(button.Button(self:ItemGroup(), 40, 30, function()
 		local str = self:Find(name)
 
 		repeat
@@ -247,7 +247,7 @@ function M:AddSpinner (options)
 
 		str.text = value .. ""
 	end, "-"), { continue_line = true })
-	self:CommonAdd(button.Button(self:ItemGroup(), nil, 0, 0, 40, 30, function()
+	self:CommonAdd(button.Button(self:ItemGroup(), 40, 30, function()
 		local str = self:Find(name)
 
 		repeat
@@ -299,7 +299,7 @@ local DragTouch = touch.DragParentTouch_Child(1, { find = utils.GetDialog }) -- 
 -- @string type
 function M:StockElements (dir, type)
 	--
-	local exit = button.Button(self:ItemGroup(), nil, 0, 0, 25, 25, function()
+	local exit = button.Button(self:ItemGroup(), 25, 25, function()
 		self:RemoveSelf()
 	end, "X")
 

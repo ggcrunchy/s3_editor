@@ -73,9 +73,9 @@ local RowText = "Number of rows:"
 
 -- Create Scene --
 function Scene:create ()
-	button.Button(self.view, nil, 120, 70, 200, 50, scenes.WantsToGoBack, "Go Back")
+	button.Button_XY(self.view, 120, 70, 200, 50, scenes.WantsToGoBack, "Go Back")
 
-	self.m_new_scene = button.Button(self.view, nil, display.contentWidth - (150 + 20), display.contentHeight - (20 + 50), 200, 50, function()
+	self.m_new_scene = button.Button_XY(self.view, "from_right -170", "from_bottom -70", 200, 50, function()
 		local cols = tonumber(self.m_cols:GetString().text)
 		local rows = tonumber(self.m_rows:GetString().text)
 
@@ -199,7 +199,7 @@ function Scene:show (event)
 					end
 				end, "Delete scene"
 			) do
-				local button = button.Button(self.view, nil, 0, 0, 200, 50, action, text)
+				local button = button.Button(self.view, 200, 50, action, text)
 
 				layout.LeftAlignWith(button, prev)
 				layout.PutAbove(button, prev, -20)

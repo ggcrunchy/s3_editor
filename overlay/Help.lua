@@ -78,7 +78,7 @@ function Overlay:create ()
 	self.view:insert(self.message_group)
 
 	--
-	button.Button(self.view, nil, display.contentWidth - 100, 10, 35, 35, function()
+	button.Button_XY(self.view, "from_right -100", 10, 35, 35, function()
 		composer.hideOverlay(true)
 	end, "X")
 end

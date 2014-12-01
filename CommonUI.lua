@@ -114,7 +114,7 @@ local ScrollValues = {
 -- @number y ...and y-coordinate.
 -- @callable func Button function, cf. @{corona_ui.widgets.button.Button}.
 function M.ScrollButton (group, name, x, y, func)
-	local button = button.Button(group, "rscroll", x, y, 32, 32, func)
+	local button = button.Button_XY(group, x, y, 32, 32, func, { skin = "rscroll" })
 	local values = ScrollValues[name]
 
 	button[1].m_dc = values[1]

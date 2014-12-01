@@ -104,12 +104,17 @@ local EditorView
 -- Names of editor views --
 local Names, Prefix = require_ex.GetNames("config.EditorViews")
 
+--
+local function SpaceToUpper (letter)
+	return " " .. letter:upper()
+end
+
 -- Tab buttons to choose views... --
 local TabButtons = {}
 
 for _, name in ipairs(Names) do
 	TabButtons[#TabButtons + 1] = {
-		label = name,
+		label = name:gsub("_(%a)", SpaceToUpper):gsub("(%a)", string.upper, 1),
 
 		onPress = function()
 			SetCurrent(EditorView[name])
@@ -279,7 +284,7 @@ function Scene:show (event)
 				composer.showOverlay("s3_editor.overlay.Help", HelpOpts)
 			end, "Help"
 		) do
-			local button = button.Button(self.view, nil, 10, display.contentHeight - i * 65 - 5, 100, 50, func, text)
+			local button = button.Button_XY(self.view, 10, display.contentHeight - i * 65 - 5, 100, 50, func, text)
 
 			button:translate(button.width / 2, button.height / 2)
 
