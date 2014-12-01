@@ -338,7 +338,7 @@ end
 --- DOCME
 function M.NewGrid ()
 	local gx, gy, gw, gh = GridRect()
-	local grid = grid2D.Grid(Grid.group, nil, gx, gy, gw, gh, VCols, VRows)
+	local grid = grid2D.Grid(Grid.group, gx, gy, gw, gh, VCols, VRows)
 
 	grid:ShowBack(false)
 

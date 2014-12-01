@@ -294,7 +294,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		--
 		if update == FrameUpdate then
-			current = grid1D.OptionsHGrid(group, nil, 150, 50, 200, 100, title)
+			current = grid1D.OptionsHGrid(group, 150, 50, 200, 100, title)
 		end
 
 		--
