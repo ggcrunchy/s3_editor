@@ -59,56 +59,6 @@ function M.AddButton (name, button)
 	Buttons[name] = button
 end
 
--- Full-screen dummy widgets used to implement modal behavior --
--- CONSIDER: Can the use cases be subsumed into an overlay?
-local Nets
-
--- Nets intercept all input
-local function NetTouch (event)
-	event.target.m_caught = true
-
-	return true
-end
-
--- Removes nets whose object is invisible or has been removed
-local function WatchNets ()
-	for net, object in pairs(Nets) do
-		if net.m_caught and net.m_hide_object then
-			object.isVisible = false
-		end
-
-		if not object.isVisible then
-			net:removeSelf()
-
-			Nets[net] = nil
-		end
-	end
-end
-
---- DOCMAYBE
--- @pgroup group
--- @pobject object
--- @bool hide
-function M.AddNet (group, object, hide)
-	if not Nets then
-		Nets = {}
-
-		Runtime:addEventListener("enterFrame", WatchNets)
-	end
-
-	local net = M.NewRect(group, 0, 0, display.contentWidth, display.contentHeight)
-
-	net.m_hide_object = not not hide
-
-	net:addEventListener("touch", NetTouch)
-	net:setFillColor(1, .125)
-	net:toFront()
-	object:toFront()
-	net:translate(display.contentCenterX, display.contentCenterY)
-
-	Nets[net] = object
-end
-
 -- --
 local RepToValues, ValuesToRep
 
@@ -140,17 +90,9 @@ local SessionLinks
 
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
-	if Nets then
-		for net in pairs(Nets) do
-			net:removeSelf()
-		end
-
-		Runtime:removeEventListener("enterFrame", WatchNets)
-	end
-
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Nets, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.

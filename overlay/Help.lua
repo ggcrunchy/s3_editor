@@ -28,9 +28,9 @@ local type = type
 
 -- Modules --
 local button = require("corona_ui.widgets.button")
-local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
+local net = require("corona_ui.patterns.net")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
@@ -78,7 +78,7 @@ function Overlay:create ()
 	self.view:insert(self.message_group)
 
 	--
-	button.Button_XY(self.view, "from_right -100", 10, 35, 35, function()
+	button.Button_XY(self.view, "from_right -100", "top_align 10", 35, 35, function()
 		composer.hideOverlay(true)
 	end, "X")
 end
@@ -93,7 +93,7 @@ local ShowText = touch.TouchHelperFunc(function(_, node)
 	text.text = node.m_text
 	text.x, text.y = display.contentCenterX, display.contentCenterY
 
-	common.AddNet(Overlay.view, mgroup, true)
+	net.AddNet(Overlay.view, mgroup, true)
 
 	mgroup.isVisible = true
 end)

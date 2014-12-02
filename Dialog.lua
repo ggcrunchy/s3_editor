@@ -23,32 +23,26 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
-local pairs = pairs
-
--- Method modules --
-local dialog_data = require("s3_editor.dialog.Data")
-local dialog_items = require("s3_editor.dialog.Items")
-local dialog_layout = require("s3_editor.dialog.Layout")
-local dialog_methods = require("s3_editor.dialog.Methods")
-local utils = require("s3_editor.dialog.Utils")
-
 -- Modules --
 local common = require("s3_editor.Common")
+local dialog = require("corona_ui.widgets.dialog")
+local table_funcs = require("tektite_core.table.funcs")
 
 -- Corona globals --
 local display = display
 
+-- Cached module references --
+local _Dialog_
+
 -- Exports --
 local M = {}
 
--- Import dialog methods.
-local Methods = {} 
+-- --
+local Namespace = {}
 
-for _, mod in ipairs{ dialog_data, dialog_items, dialog_layout, dialog_methods } do
-	for k, v in pairs(mod) do
-		Methods[k] = v
-	end
+--
+local function Dirty ()
+	common.Dirty()
 end
 
 --- DOCME
@@ -58,31 +52,16 @@ end
 -- **CONSIDER**: In EVERY case so far I've used _name_ = **true**...
 function M.Dialog (group, options)
 	--
-	local dgroup = display.newGroup()
+	options = options and table_funcs.Copy(options) or {}
 
-	group:insert(dgroup)
-
-	--
-	utils.AddBack(dgroup, 1, 1)
+	options.namespace = Namespace
 
 	--
-	local igroup = display.newGroup()
+	local edialog = dialog.Dialog(group, options)
 
-	dgroup.m_items = igroup
+	edialog:addEventListener("update_object", Dirty)
 
-	dgroup:insert(igroup)
-
-	--
-	if options and options.is_modal then
-		common.AddNet(group, dgroup)
-	end
-
-	-- Install methods from submodules.
-	for k, v in pairs(Methods) do
-		dgroup[k] = v
-	end
-
-	return dgroup
+	return edialog
 end
 
 -- Helper to populate defaults
@@ -144,7 +123,7 @@ function M.DialogWrapper (on_editor_event)
 		-- arg4: Representative object
 		if what == "edit" then
 			if arg1 then
-				dialog = M.Dialog(arg2)
+				dialog = _Dialog_(arg2)--M.Dialog(arg2)
 
 				dialog:BindDefaults(GetDefaults(on_editor_event, arg1.type, arg3))
 				dialog:BindValues(arg1)
@@ -159,6 +138,9 @@ function M.DialogWrapper (on_editor_event)
 		end
 	end
 end
+
+-- Cache module members.
+_Dialog_ = M.Dialog
 
 -- Export the module.
 return M
