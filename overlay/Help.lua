@@ -43,16 +43,8 @@ local composer = require("composer")
 local Overlay = composer.newScene()
 
 --
-local function DefTouch () return true end
-
---
 function Overlay:create ()
-	-- Corona hack: block input to lower layer
-	local wall = display.newRect(self.view, 0, 0, display.contentWidth, display.contentHeight)
-
-	wall:addEventListener("touch", DefTouch)
-	wall:setFillColor(0, .25)
-	wall:translate(display.contentCenterX, display.contentCenterY)
+	net.Blocker(self.view)
 
 	--
 	self.help_group = display.newGroup()
@@ -93,7 +85,7 @@ local ShowText = touch.TouchHelperFunc(function(_, node)
 	text.text = node.m_text
 	text.x, text.y = display.contentCenterX, display.contentCenterY
 
-	net.AddNet(Overlay.view, mgroup, true)
+	net.AddNet_Hide(Overlay.view, mgroup)
 
 	mgroup.isVisible = true
 end)
