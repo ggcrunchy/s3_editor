@@ -38,6 +38,7 @@ local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common_ui = require("s3_editor.CommonUI")
 local editable_patterns = require("corona_ui.patterns.editable")
+local editor_config = require("config.Editor")
 local layout = require("corona_ui.utils.layout")
 local persistence = require("corona_utils.persistence")
 local scenes = require("corona_utils.scenes")
@@ -121,7 +122,7 @@ end
 -- Show Scene --
 function Scene:show (event)
 	if event.phase == "did" then
-		scenes.SetListenFunc_GoBack("scene.Choices")
+		scenes.SetListenFunc_GoBack(editor_config.return_to)
 
 		-- Line up the text input (if on device, we use native keyboards) a little to the right
 		-- of the columns or rows text (whichever was wider).
