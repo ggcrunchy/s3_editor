@@ -43,6 +43,10 @@ local native = native
 local Runtime = Runtime
 local system = system
 
+-- Cached module references --
+local _SetLevelName_
+local _Verify_
+
 -- Corona modules --
 local composer = require("composer")
 
@@ -56,7 +60,7 @@ local LevelName
 local View
 
 -- Tries to get the level name; if successful, writes the level
-local function GetLevelName (func, wip)
+local function GetLevelName (func, wip, follow_up)
 	prompts.WriteEntry_MightExist(LevelName, {
 		group = View, what = "level name",
 
@@ -65,11 +69,15 @@ local function GetLevelName (func, wip)
 		end,
 
 		writer = function(name)
-			M.SetLevelName(name)
+			_SetLevelName_(name)
 
 			local blob = persistence.Encode(func(), not wip)
 
 			persistence.SaveLevel(name, blob, true, wip, IsTemp)
+
+			if follow_up then
+				follow_up()
+			end
 		end
 	})
 end
@@ -97,7 +105,7 @@ end
 -- This table is then added, as a string, to the level database.
 -- @see s3_editor.Common.IsVerified, corona_utils.persistence.SaveLevel, GetLevelName, Verify
 function M.Build ()
-	M.Verify()
+	_Verify_()
 
 	if common.IsVerified() then
 		GetLevelName(function()
@@ -162,10 +170,10 @@ end
 -- and _rows_ are the tile-wise level dimensions. The **save\_level\_wip** event is dispatched
 -- with this table as event; listeners can then fill it in.
 --
--- This table is then added, as a string, to the level database (as a WIP). If possible, this
--- string is also sent to the clipboard.
+-- This table is then added, as a string, to the level database (as a WIP).
+-- @callable[opt] follow_up If present, called (without arguments) after saving.
 -- @see s3_editor.Common.IsDirty, corona_utils.persistence.SaveLevel, GetLevelName
-function M.Save ()
+function M.Save (follow_up)
 	if common.IsDirty() then
 		GetLevelName(function()
 			local scene = AuxSave()
@@ -173,7 +181,7 @@ function M.Save ()
 			common.Undirty()
 
 			return scene
-		end, true)
+		end, true, follow_up)
 	end
 end
 
@@ -268,6 +276,10 @@ function M.Verify ()
 		end
 	end
 end
+
+-- Cache module members.
+_SetLevelName_ = M.SetLevelName
+_Verify_ = M.Verify
 
 -- Export the module.
 return M

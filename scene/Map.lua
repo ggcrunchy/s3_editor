@@ -49,11 +49,13 @@ local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
 local common_ui = require("s3_editor.CommonUI")
+local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
+local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
 local tabs_patterns = require("corona_ui.patterns.tabs")
@@ -75,7 +77,7 @@ local Scene = composer.newScene()
 function Scene:create ()
 	scenes.Alias("Editor")
 
-	persistence.AddSaveFunc(print)
+	persistence.AddSaveFunc(print) -- TODO: make an option somewhere?
 end
 
 Scene:addEventListener("create")
@@ -127,28 +129,14 @@ end
 -- ... and the tabs themselves --
 local Tabs
 
--- Different ways of handling quits --
-local AlertChoices = { "Save and quit", "Discard", "Cancel" }
-
 -- Scene listener: handles quit requests
 local function Listen (what)
 	if what == "message:wants_to_go_back" then
-		-- Everything saved / nothing to save: quit.
-		if not common.IsDirty() then
-			ops.Quit()
-
-		-- Unsaved changes: ask for confirmation to quit.
-		else
-			native.showAlert("You have unsaved changes!", "Do you really want to quit?", AlertChoices, function(event)
-				if event.action == "clicked" and event.index ~= 3 then
-					if event.index == 1 then
-						ops.Save()
-					end
-
-					ops.Quit()
-				end
-			end)
-		end
+		prompts.DoActionThenProceed{
+			choices = "save_and_quit",
+			needs_doing = common.IsDirty,
+			action = ops.Save, follow_up = ops.Quit
+		}
 	end
 end
 
@@ -255,7 +243,7 @@ function Scene:show (event)
 						if exists then
 							RestoreState = restore
 
-							scenes.GoToScene{ name = "scene.Level", params = data, effect = "none" }
+							scenes.GoToScene{ name = editor_config.to_level, params = data, effect = "none" }
 						else
 							native.showAlert("Error!", "Failed to launch test level")
 
