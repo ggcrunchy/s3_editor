@@ -24,10 +24,9 @@
 --
 
 -- Modules --
-local require_ex = require("tektite_core.require_ex")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
-local dialog_utils = require_ex.Lazy("s3_editor.dialog.Utils")
+local dialog_utils = require("corona_ui.dialog_impl.utils")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona modules --

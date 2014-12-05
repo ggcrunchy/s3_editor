@@ -143,7 +143,9 @@ function Overlay:create ()
 	Backdrop(cgroup, 350, 225, 22)
 
 	--
-	self.m_choices = table_view_patterns.Listbox(cgroup, 25, 50, {
+	self.m_choices = table_view_patterns.Listbox(cgroup, {
+		left = 25, top = 50,
+
 		--
 		get_text = function(item)
 			local count = List[item.object]

@@ -284,7 +284,7 @@ function Scene:show (event)
 				composer.showOverlay("s3_editor.overlay.Help", HelpOpts)
 			end, "Help"
 		) do
-			local button = button.Button_XY(self.view, 10, display.contentHeight - i * 65 - 5, 100, 50, func, text)
+			local button = button.Button_XY(self.view, 10, "from_bottom -" .. (i * 65 - 5), 100, 50, func, text)
 
 			button:translate(button.width / 2, button.height / 2)
 

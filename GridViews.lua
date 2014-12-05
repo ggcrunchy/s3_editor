@@ -71,7 +71,7 @@ function M.AddTabs (group, names, func, w)
 		buttons[i] = { label = label, onPress = func(label) }
 	end
 
-	local tabs = tabs_patterns.TabBar(group, buttons, { top = display.contentHeight - 65, left = 120, width = w })
+	local tabs = tabs_patterns.TabBar(group, buttons, { y = "from_bottom_align -5", left = 120, width = w })
 
 	tabs.isVisible = false
 

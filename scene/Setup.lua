@@ -75,7 +75,7 @@ local RowText = "Number of rows:"
 function Scene:create ()
 	button.Button_XY(self.view, 120, 70, 200, 50, scenes.WantsToGoBack, "Go Back")
 
-	self.m_new_scene = button.Button_XY(self.view, "from_right -170", "from_bottom -70", 200, 50, function()
+	self.m_new_scene = button.Button_XY(self.view, "from_right -15%", "from_bottom_align -20", 200, 50, function()
 		local cols = tonumber(self.m_cols:GetString().text)
 		local rows = tonumber(self.m_rows:GetString().text)
 
@@ -146,7 +146,9 @@ function Scene:show (event)
 				return level1.name < level2.name
 			end)
 
-			self.m_levels_list = table_view_patterns.Listbox(self.view, display.contentWidth - 350, 20, {
+			self.m_levels_list = table_view_patterns.Listbox(self.view, {
+				top = 20,
+
 				--
 				get_text = function(item)
 					return item.name
@@ -157,6 +159,8 @@ function Scene:show (event)
 					UpdateCurrent(self, levels, event.index)
 				end
 			})
+
+			layout.LeftAlignWith(self.m_levels_list, self.m_new_scene)
 
 			self.m_current = display.newText(self.view, "", 0, 0, native.systemFont, 22)
 			self.m_frame = common_ui.Frame(self.m_levels_list, 0, 0, 1)
@@ -219,7 +223,7 @@ function Scene:hide (event)
 		self.m_rows:removeSelf()
 
 		CleanupLoadElements()
-
+	else
 		scenes.SetListenFunc(nil)
 	end
 end
