@@ -58,6 +58,7 @@ local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
+local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 local timers = require("corona_utils.timers")
 
@@ -106,17 +107,12 @@ local EditorView
 -- Names of editor views --
 local Names, Prefix = require_ex.GetNames("config.EditorViews")
 
---
-local function SpaceToUpper (letter)
-	return " " .. letter:upper()
-end
-
 -- Tab buttons to choose views... --
 local TabButtons = {}
 
 for _, name in ipairs(Names) do
 	TabButtons[#TabButtons + 1] = {
-		label = name:gsub("_(%a)", SpaceToUpper):gsub("(%a)", string.upper, 1),
+		label = strings.SplitIntoWords(name, "on_pattern"),
 
 		onPress = function()
 			SetCurrent(EditorView[name])
