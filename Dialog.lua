@@ -24,6 +24,7 @@
 --
 
 -- Modules --
+local augment = require("s3_editor.Augment")
 local common = require("s3_editor.Common")
 local dialog = require("corona_ui.widgets.dialog")
 local table_funcs = require("tektite_core.table.funcs")
@@ -40,11 +41,6 @@ local M = {}
 -- --
 local Namespace = {}
 
---
-local function Dirty ()
-	common.Dirty()
-end
-
 --- DOCME
 -- @pgroup group Group to which the dialog will be inserted.
 -- @ptable options
@@ -54,12 +50,13 @@ function M.Dialog (group, options)
 	--
 	options = options and table_funcs.Copy(options) or {}
 
+	options.augment = augment
 	options.namespace = Namespace
 
 	--
 	local edialog = dialog.Dialog(group, options)
 
-	edialog:addEventListener("update_object", Dirty)
+	edialog:addEventListener("update_object", common.Dirty)
 
 	return edialog
 end
@@ -123,7 +120,7 @@ function M.DialogWrapper (on_editor_event)
 		-- arg4: Representative object
 		if what == "edit" then
 			if arg1 then
-				dialog = _Dialog_(arg2)--M.Dialog(arg2)
+				dialog = _Dialog_(arg2)
 
 				dialog:BindDefaults(GetDefaults(on_editor_event, arg1.type, arg3))
 				dialog:BindValues(arg1)
