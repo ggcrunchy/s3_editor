@@ -5,15 +5,15 @@
 -- * **"grid"**: Boilerplate: editor grid function body.
 -- * **"load"**: Boilerplate: editor view being loaded... (The assets directory prefix, viz.
 -- in **"_prefix_\_Assets/", is passed through _col_, and a title for the current tile
--- @{ui.Grid1D} is passed through _row_.)
--- * **Enter(view)**: The editor view is being entered... (
+-- @{corona_ui.widget.grid_1D} is passed through _row_.)
+-- * **Enter(view)**: The editor view is being entered...
 -- * **Exit**: ...exited...
--- * **Load(group, prefix, title)**:
+-- * **Load(group, prefix, title)**: ...loaded...
 -- * **Unload**: ...or unloaded.
--- * **GetCurrent**: Returns the current tile @{ui.Grid1D}.
--- * **GetGrid**: @{corona_ui.widgets.grid.Grid}
--- * **GetValues**: Returns the values table.
--- * **GetTiles**: Returns the values and tiles tables.
+-- * **GetCurrent**: Returns the current tile @{corona_ui.widgets.grid_1D}...
+-- * **GetGrid**: ...@{corona_ui.widgets.grid}...
+-- * **GetValues**: ...values table...
+-- * **GetTiles**: ...or values and tiles tables.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -74,27 +74,6 @@ function M.AddTabs (group, names, func, w)
 	local tabs = tabs_patterns.TabBar(group, buttons, { y = "from_bottom_align -5", left = 120, width = w })
 
 	tabs.isVisible = false
-
--- HACK!
-local GRIDHACK = tabs_patterns.TabsHack(group, tabs, #buttons)
-local old = getmetatable(tabs)
-setmetatable(tabs, {
-	__index = old.__index,
-	__newindex = function(t, k, v)
-		if k == "isVisible" then
-			GRIDHACK.isHitTestable = v
-		end
-
-		old.__newindex(t, k, v)
-	end
-})
-GRIDHACK.isHitTestable = false
-tabs:addEventListener("finalize", function()
-	if GRIDHACK.parent then
-		GRIDHACK:removeSelf()
-	end
-end)
--- /HACK
 
 	tabs:setSelected(1, true)
 
