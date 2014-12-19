@@ -186,18 +186,20 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 			local vtype = type(types) == "string" and types or types[which]
 
-			values[key] = dialog_wrapper("new_values", vtype, key)
-			tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, tile_images, which)
+			if vtype then
+				values[key] = dialog_wrapper("new_values", vtype, key)
+				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, tile_images, which)
 
-			--
-			local tag = dialog_wrapper("get_tag", vtype)
+				--
+				local tag = dialog_wrapper("get_tag", vtype)
 
-			if tag then
-				common.BindRepAndValues(tiles[key], values[key])
-				common.GetLinks():SetTag(tiles[key], tag)
+				if tag then
+					common.BindRepAndValues(tiles[key], values[key])
+					common.GetLinks():SetTag(tiles[key], tag)
+				end
+
+				common.Dirty()
 			end
-
-			common.Dirty()
 		end
 	end
 
