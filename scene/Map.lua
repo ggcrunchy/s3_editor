@@ -1,7 +1,7 @@
 --- Map editor scene.
 --
 -- In this scene, users can edit and test "work in progress" levels, and build levels
--- into a form loadable by @{corona_boilerplate.loop.LoadLevel}.
+-- into a form loadable by @{corona_boilerplate.game.loop.LoadLevel}.
 --
 -- The scene expects event.params == { main = { _cols_, _rows_ }**[**, is_loading = _name_
 -- **]** }, where _cols_ and _rows_ are the tile-wise size of the level. When loading a
