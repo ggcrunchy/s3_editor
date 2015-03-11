@@ -32,7 +32,7 @@ local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local sheet = require("corona_ui.utils.sheet")
+local sheet = require("corona_utils.sheet")
 
 -- Classes --
 local Links = require("tektite_base_classes.Link.Links")
