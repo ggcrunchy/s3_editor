@@ -70,7 +70,7 @@ function Overlay:create ()
 	self.view:insert(self.message_group)
 
 	--
-	button.Button_XY(self.view, "from_right -100", "top_align 10", 35, 35, function()
+	button.Button_XY(self.view, "from_right -100", "below 10", 35, 35, function()
 		composer.hideOverlay(true)
 	end, "X")
 end
