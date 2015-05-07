@@ -24,6 +24,7 @@
 --
 
 -- Standard library imports --
+local max = math.max
 local type = type
 
 -- Modules --
@@ -35,6 +36,7 @@ local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
 local display = display
+local native = native
 
 -- Corona modules --
 local composer = require("composer")
@@ -54,11 +56,10 @@ function Overlay:create ()
 	--
 	self.message_group = display.newGroup()
 
-	local rect = display.newRoundedRect(self.message_group, 0, 0, display.contentWidth - 400, display.contentHeight - 300, 25)
+	local rect = display.newRoundedRect(self.message_group, 0, 0, display.contentWidth - 400, 1, 25)
 
 	rect:setFillColor(0, 0, 1, .75)
 	rect:setStrokeColor(0, 1, 0, .25)
-	rect:translate(rect.width / 2, rect.height / 2)
 
 	rect.x, rect.y = display.contentCenterX, display.contentCenterY
 	rect.strokeWidth = 5
@@ -80,10 +81,11 @@ Overlay:addEventListener("create")
 --
 local ShowText = touch.TouchHelperFunc(function(_, node)
 	local mgroup = Overlay.message_group
-	local text = mgroup[2]
+	local rect, text = mgroup[1], mgroup[2]
 
 	text.text = node.m_text
 	text.x, text.y = display.contentCenterX, display.contentCenterY
+	rect.height = max(display.contentHeight - 300, text.contentHeight + 10)
 
 	net.AddNet_Hide(Overlay.view, mgroup)
 

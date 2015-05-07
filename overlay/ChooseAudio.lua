@@ -24,11 +24,16 @@
 --
 
 -- Modules --
+local audio_patterns = require("corona_ui.patterns.audio")
+local button = require("corona_ui.widgets.button")
+local layout = require("corona_ui.utils.layout")
 local net = require("corona_ui.patterns.net")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
+local audio = audio
 local display = display
+local system = system
 
 -- Corona modules --
 local composer = require("composer")
@@ -53,12 +58,86 @@ local function Backdrop (group, w, h, corner)
 	return backdrop
 end
 
---
-function Overlay:create ()
-	net.Blocker(self.view)
+-- --
+local Source, SourceName
 
-	Backdrop(self.view, 350, 350, 22)
-	-- ^^^ Problem: layout modules not robust for dialogs (yet...)
+--
+local function Close ()
+	if Source then
+		audio.stop()
+		audio.dispose(Source)
+	end
+
+	Source, SourceName = nil
+end
+
+-- --
+local Base = system.ResourceDirectory
+-- ^^ TODO: Add somewhere to pull down remote files... and, uh, support
+
+-- --
+local Current
+
+-- --
+local Assign, Mode
+
+-- Helper to load or reload the music list
+local function Reload (songs)
+	-- If the file was removed while playing, try to close the source before problems arise.
+	if not songs:Find(SourceName) then
+		Close()
+	end
+
+	-- Provide the current element as an alternative in case the selection was erased.
+	return songs:Find(Current)
+end
+
+--
+function Overlay:create (event)
+	net.Blocker(self.view) -- :/
+
+	local backdrop = Backdrop(self.view, 350, 300, 22)
+	local dir = event.params.mode == "stream" and "Music" or "SFX"
+	local choices = audio_patterns.AudioList(self.view, {
+		x = layout.CenterX(backdrop), top = 30,
+		base = Base, path = dir, on_reload = Reload
+	})
+
+	local below, left = layout.Below(choices, 10), layout.LeftOf(choices)
+	local ok = button.Button_XY(self.view, "right_of " .. left, "below " .. below, 120, 40, function()
+		Assign(SourceName ~= nil and (dir .. "/" .. SourceName))
+
+		composer.hideOverlay()
+	end, "OK")
+	local cancel = button.Button_XY(self.view, 0, ok.y, ok.width, ok.height, function()
+		composer.hideOverlay()
+	end, "Cancel")
+	local try = button.Button_XY(self.view, 0, ok.y, ok.width, ok.height, function()
+		Close()
+
+		local selection = choices:GetSelection()
+
+		if selection then
+			local path, opts = dir .. "/" .. selection
+
+			if Mode == "stream" then
+				Source, opts = audio.loadStream(path, Base), { fadein = 1500, loops = -1 }
+			else
+				Source = audio.loadSound(path, Base)
+			end
+
+			if Source then
+				SourceName = selection
+
+				audio.play(Source, opts)
+			end
+		end
+	end, "Try")
+
+	layout.PutRightOf(cancel, ok, 10)
+	layout.PutRightOf(try, cancel, 10)
+
+	choices:Init()
 end
 
 Overlay:addEventListener("create")
@@ -66,7 +145,9 @@ Overlay:addEventListener("create")
 --
 function Overlay:show (event)
 	if event.phase == "did" then
-		--
+		local params = event.params
+
+		Assign, Mode = params.assign, params.mode
 	end
 end
 
@@ -75,7 +156,9 @@ Overlay:addEventListener("show")
 --
 function Overlay:hide (event)
 	if event.phase == "did" then
-		--
+		Close()
+
+		Assign, Mode = nil
 	end
 end
 
