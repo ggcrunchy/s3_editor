@@ -26,6 +26,7 @@
 -- Modules --
 local audio_patterns = require("corona_ui.patterns.audio")
 local button = require("corona_ui.widgets.button")
+local common_ui = require("s3_editor.CommonUI")
 local layout = require("corona_ui.utils.layout")
 local net = require("corona_ui.patterns.net")
 local touch = require("corona_ui.utils.touch")
@@ -96,6 +97,7 @@ end
 function Overlay:create (event)
 	net.Blocker(self.view) -- :/
 
+	--
 	local backdrop = Backdrop(self.view, 350, 300, 22)
 	local dir = event.params.mode == "stream" and "Music" or "SFX"
 	local choices = audio_patterns.AudioList(self.view, {
@@ -103,8 +105,11 @@ function Overlay:create (event)
 		base = Base, path = dir, on_reload = Reload
 	})
 
-	local below, left = layout.Below(choices, 10), layout.LeftOf(choices)
-	local ok = button.Button_XY(self.view, "right_of " .. left, "below " .. below, 120, 40, function()
+	common_ui.Frame(choices, 1, 0, 0)
+
+	--
+	local bottom, left = layout.Below(backdrop, -10), layout.LeftOf(choices)
+	local ok = button.Button_XY(self.view, "right_of " .. left, "above " .. bottom, 120, 40, function()
 		Assign(SourceName ~= nil and (dir .. "/" .. SourceName))
 
 		composer.hideOverlay()
@@ -112,7 +117,13 @@ function Overlay:create (event)
 	local cancel = button.Button_XY(self.view, 0, ok.y, ok.width, ok.height, function()
 		composer.hideOverlay()
 	end, "Cancel")
-	local try = button.Button_XY(self.view, 0, ok.y, ok.width, ok.height, function()
+
+	layout.PutRightOf(cancel, ok, 10)
+
+	--
+	local below_choices = layout.Below(choices, 10)
+
+	button.Button_XY(self.view, ok.x, "below " .. below_choices, ok.width, ok.height, function()
 		Close()
 
 		local selection = choices:GetSelection()
@@ -132,10 +143,7 @@ function Overlay:create (event)
 				audio.play(Source, opts)
 			end
 		end
-	end, "Try")
-
-	layout.PutRightOf(cancel, ok, 10)
-	layout.PutRightOf(try, cancel, 10)
+	end, "Listen")
 
 	choices:Init()
 end
