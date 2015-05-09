@@ -121,20 +121,29 @@ function Overlay:create (event)
 	layout.PutRightOf(cancel, ok, 10)
 
 	--
-	local below_choices = layout.Below(choices, 10)
+	local below_choices, done = layout.Below(choices, 10)
+	local opts_complete = {
+		onComplete = function()
+			done = true
+		end
+	}
 
 	button.Button_XY(self.view, ok.x, "below " .. below_choices, ok.width, ok.height, function()
+		local name = SourceName
+
 		Close()
 
 		local selection = choices:GetSelection()
 
-		if selection then
+		if (selection and selection ~= name) or done then
+			done = false
+
 			local path, opts = dir .. "/" .. selection
 
 			if Mode == "stream" then
 				Source, opts = audio.loadStream(path, Base), { fadein = 1500, loops = -1 }
 			else
-				Source = audio.loadSound(path, Base)
+				Source, opts = audio.loadSound(path, Base), opts_complete
 			end
 
 			if Source then
