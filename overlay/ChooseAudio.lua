@@ -77,9 +77,6 @@ local Base = system.ResourceDirectory
 -- ^^ TODO: Add somewhere to pull down remote files... and, uh, support
 
 -- --
-local Current
-
--- --
 local Assign, Mode
 
 -- Helper to load or reload the music list
@@ -88,9 +85,6 @@ local function Reload (songs)
 	if not songs:Find(SourceName) then
 		Close()
 	end
-
-	-- Provide the current element as an alternative in case the selection was erased.
-	return songs:Find(Current)
 end
 
 --
