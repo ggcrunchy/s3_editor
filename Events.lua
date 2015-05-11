@@ -1,7 +1,7 @@
 --- Some operations, e.g. for persistence and verification, reused among editor events.
 --
--- Many operations take an argument of type **GridView**. For an example of such an object,
--- see @{s3_editor.GridViews.EditErase}.
+-- Many operations take an argument of type **View**. For an example of such an object (or
+-- rather, the derived **GridView**), see @{s3_editor.GridViews.EditErase}.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -118,10 +118,10 @@ end
 -- on each blob of values in the group.
 -- @string what What type of value is being named (for error messages)?
 -- @array verify Verify block.
--- @tparam GridView grid_view Supplies the module's values.
+-- @tparam View view Supplies the module's values.
 -- @treturn boolean Were there any duplicates?
-function M.CheckNamesInValues (what, verify, grid_view)
-	local names, values = {}, grid_view:GetValues()
+function M.CheckNamesInValues (what, verify, view)
+	local names, values = {}, view:GetValues()
 
 	for _, v in pairs(values) do
 		if _CheckForNameDups_(what, verify, names, v) then
@@ -387,13 +387,13 @@ end
 -- @ptable level Saved level state, as per @{SaveValuesIntoEntry}.
 -- @string what The group to load is found under `level[what].entries`.
 -- @ptable mod Module, as per @{SaveValuesIntoEntry}.
--- @tparam GridView grid_view Supplies the module's values.
-function M.SaveGroupOfValues (level, what, mod, grid_view)
+-- @tparam View view Supplies the module's values.
+function M.SaveGroupOfValues (level, what, mod, view)
 	local target = {}
 
 	level[what] = { entries = target, version = 1 }
 
-	local values = grid_view:GetValues()
+	local values = view:GetValues()
 
 	for k, v in pairs(values) do
 		target[k] = _SaveValuesIntoEntry_(level, mod, v, {})
@@ -483,9 +483,9 @@ end
 --
 -- A **"verify"** editor event takes as arguments, in order: _verify_, _ovals_, _rep_, where
 -- _ovals_ is a table of object values to verify, and _rep_ is the object's representative.
--- @tparam GridView grid_view Supplies the module's values.
-function M.VerifyValues (verify, mod, grid_view)
-	local values = grid_view:GetValues()
+-- @tparam View view Supplies the module's values.
+function M.VerifyValues (verify, mod, view)
+	local values = view:GetValues()
 
 	for k, v in pairs(values) do
 		mod.EditorEvent(v.type, "verify", verify, v, common.GetRepFromValues(v))
