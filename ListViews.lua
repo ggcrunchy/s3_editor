@@ -39,37 +39,35 @@ local table_view_patterns = require("corona_ui.patterns.table_view")
 local M = {}
 
 --
-local function GetName (using, prefix)
+local function AuxGetSuffix (str, _, using, prefix)
+	local begins, suffix = strings.BeginsWith_AnyCase(str, prefix, true)
+	local index = begins and tonumber(suffix)
+
+	if index then
+		using("mark", index)
+	end
+end
+
+--
+local function GetSuffix (list, using, prefix)
 	using("begin_generation")
 
-	local items = using("get_array")
-	local n = #items
+	list:ForEach(AuxGetSuffix, using, prefix)
 
-	for i = 1, n do
-		local begins, suffix = strings.BeginsWith_AnyCase(items[i].name, prefix, true)
-		local index = begins and tonumber(suffix)
-
-		if index then
-			using("mark", index)
-		end
-	end
+	local n = list:GetCount()
 
 	for i = 1, n do
 		if not using("check", i) then
-			return prefix .. i
+			return i
 		end
 	end
 
-	return prefix .. (n + 1)
+	return n + 1
 end
 
 --- DOCME
 function M.EditErase (dialog_wrapper, vtype)
 	local list, values
-
---	local text = display.newText(Group, str, 0, 0, native.systemFont, 24)
-
---	return list, items, layout.Below(new)
 
 	--
 	local ListView = {}
@@ -109,23 +107,19 @@ function M.EditErase (dialog_wrapper, vtype)
 			press = function(event)
 				local listbox, index = event.listbox, event.index
 				local key = listbox:GetData(index)
-			--	action("update", using, event.index)
+
 				dialog_wrapper("edit", values[key], group, key, listbox:GetRect(index))
 			end
 		}), {}
+		-- ^^ TODO: Re-detect press?
 
---	layout.PutRightOf(text, 125)
---	layout.PutBelow(text, top)
-	layout.LeftAlignWith(list, left)
-	layout.PutBelow(list, top)
---	common_ui.Frame(list, r, g, b)
+		layout.LeftAlignWith(list, left)
+		layout.PutBelow(list, top)
 
 		--
 		local using = match_slot_id.Wrap{}
 		local new = button.Button_XY(group, 0, 0, 110, 40, function()
-			local key = GetName(using, prefix)
-
-		--	action("new", using, list)
+			local key = GetSuffix(list, using, prefix)
 
 			values[key] = dialog_wrapper("new_values", vtype, key)
 
@@ -163,26 +157,7 @@ function M.EditErase (dialog_wrapper, vtype)
 
 		layout.PutRightOf(delete, new, 10)
 
-
---[[
-		--
-		local choices = { "Paint", "Edit", "Erase" }
-
-		tabs = M.AddTabs(group, choices, function(label)
-			return function()
-				option = label
-
-				if label ~= "Edit" then
-					dialog_wrapper("close")
-				end
-
-				return true
-			end
-		end, 300)
-]]
-		return layout.Below(new) -- ???
-		--
-	--	help.AddHelp(prefix, { current = current, tabs = tabs })
+		return list, layout.Below(new)
 	end
 
 	--- DOCME
