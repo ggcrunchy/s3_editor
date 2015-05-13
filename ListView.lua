@@ -64,10 +64,10 @@ local function GetName (using, prefix)
 end
 
 --- DOCME
-function M.EditErase (dialog_wrapper, action, vtype, top, left)
+function M.EditErase (dialog_wrapper, vtype)
 	local list, values
 
-	local text = display.newText(Group, str, 0, 0, native.systemFont, 24)
+--	local text = display.newText(Group, str, 0, 0, native.systemFont, 24)
 
 --	return list, items, layout.Below(new)
 
@@ -95,84 +95,74 @@ function M.EditErase (dialog_wrapper, action, vtype, top, left)
 	end
 
 	--- DOCME
-	function ListView:Load (group, prefix, title)
-		values = {}
-
-
-
-		local using, items = match_slot_id.Wrap{}
-		local list = table_view_patterns.Listbox(group, {
+	function ListView:Load (group, prefix, top, left)
+		--
+		list, values = table_view_patterns.Listbox(group, {
 			width = "30%", height = "15%",
 
 			--
+			get_text = function(key)
+				return values[key].name
+			end,
+
+			--
 			press = function(event)
-				action("update", using, event.index)
+				local listbox, index = event.listbox, event.index
+				local key = listbox:GetData(index)
+			--	action("update", using, event.index)
+				dialog_wrapper("edit", values[key], group, key, listbox:GetRect(index))
 			end
-		})
+		}), {}
 
 --	layout.PutRightOf(text, 125)
 --	layout.PutBelow(text, top)
---	layout.LeftAlignWith(list, text)
---	layout.PutBelow(list, text)
+	layout.LeftAlignWith(list, left)
+	layout.PutBelow(list, top)
 --	common_ui.Frame(list, r, g, b)
 
+		--
+		local using = match_slot_id.Wrap{}
 		local new = button.Button_XY(group, 0, 0, 110, 40, function()
-			action("new", using, list)
---[[
-			if tile then
-				common.GetLinks():RemoveTag(tile)
-			end
-			-- ^^^ Listbox item
+			local key = GetName(using, prefix)
+
+		--	action("new", using, list)
 
 			values[key] = dialog_wrapper("new_values", vtype, key)
-			-- ^^ Should just put it in the listbox
 
-			--
+			local index = list:Append(key)
 			local tag = dialog_wrapper("get_tag", vtype)
 
 			if tag then
-				common.BindRepAndValues(tiles[key], values[key])
-				common.GetLinks():SetTag(tiles[key], tag)
+				local entry = list:GetRect(index)
+
+				common.BindRepAndValues(entry, values[key])
+				common.GetLinks():SetTag(entry, tag)
 			end
 
 			common.Dirty()
-]]
 		end, "New")
 
 		layout.LeftAlignWith(new, list)
 		layout.PutBelow(new, list, 10)
 
+		--
 		local delete = button.Button_XY(group, 0, new.y, new.width, new.height, function()
 			local index = list:FindSelection()
 
 			if index then
-				remove(items, index)
-				action("delete", using, list, index)
-			end
---[[
-			if tile then
-				tile:removeSelf() -- "tile" = listbox item
+				local entry, key = list:GetRect(index), list:GetData(index)
 
-				common.BindRepAndValues(tile, nil)
+				list:Delete(index)
+
+				common.BindRepAndValues(entry, nil)
 				common.Dirty()
-			end
 
-			values[key], tiles[key] = nil
-]]
+				values[key] = nil
+			end
 		end, "Delete")
 
 		layout.PutRightOf(delete, new, 10)
 
-
---[[
-EDIT:
-
-			if cur then
-				dialog_wrapper("edit", cur, tabs.parent, key, tile)
-			else
-				dialog_wrapper("close")
-			end
-]]
 
 --[[
 		--
@@ -190,9 +180,9 @@ EDIT:
 			end
 		end, 300)
 ]]
-
+		return layout.Below(new) -- ???
 		--
-		help.AddHelp(prefix, { current = current, tabs = tabs })
+	--	help.AddHelp(prefix, { current = current, tabs = tabs })
 	end
 
 	--- DOCME
