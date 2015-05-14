@@ -64,6 +64,8 @@ end
 			event.target:SetText(old_text)
 		end
 	end)
+
+	-- TODO: Incorporate into buttons...
 ]]
 
 --- DOCME

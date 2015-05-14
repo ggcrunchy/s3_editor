@@ -106,30 +106,11 @@ function M.EditErase (dialog_wrapper, vtype)
 			--
 			get_text = function(key)
 				return values[key].name
-			end,
-
-			--
-			press = function(event)
-				local listbox, index = event.listbox, event.index
-				local key = listbox:GetData(index)
-
-				dialog_wrapper("edit", values[key], group, key, listbox:GetRect(index))
 			end
 		}), {}
-		-- ^^ TODO: Re-detect press?
 
 		layout.LeftAlignWith(list, left)
 		layout.PutBelow(list, top)
-
-		watch_name = timer.performWithDelay(150, function()
-			local index = list:FindSelection()
-			local key = list:GetData(index)
-
-			if dialog_wrapper("is_bound", values[key]) then
-				list:Update(index)
-			end
-		end, 0)
-		timer.pause(watch_name)
 
 		--
 		local using = match_slot_id.Wrap{}
@@ -163,6 +144,8 @@ function M.EditErase (dialog_wrapper, vtype)
 
 				list:Delete(index)
 
+				dialog_wrapper("close")
+
 				common.BindRepAndValues(entry, nil)
 				common.Dirty()
 
@@ -171,6 +154,32 @@ function M.EditErase (dialog_wrapper, vtype)
 		end, "Delete")
 
 		layout.PutRightOf(delete, new, 10)
+
+		--
+		local edit = button.Button_XY(group, 0, new.y, new.width, new.height, function()
+			local index = list:FindSelection()
+
+			if index then
+				local key = list:GetData(index)
+
+				if not dialog_wrapper("is_bound", values[key]) then
+					dialog_wrapper("close")
+					dialog_wrapper("edit", values[key], group, key, list:GetRect(index))
+				end
+			end
+		end, "Edit")
+
+		layout.PutRightOf(edit, delete, 10)
+
+		--
+		watch_name = timer.performWithDelay(150, function()
+			local index = list:FindSelection()
+
+			if dialog_wrapper("is_bound", values[list:GetData(index)]) then
+				list:Update(index)
+			end
+		end, 0)
+		timer.pause(watch_name)
 
 		return list, layout.Below(new)
 	end
