@@ -35,6 +35,9 @@ local match_slot_id = require("tektite_core.array.match_slot_id")
 local strings = require("tektite_core.var.strings")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 
+-- Corona globals --
+local timer = timer
+
 -- Exports --
 local M = {}
 
@@ -67,19 +70,21 @@ end
 
 --- DOCME
 function M.EditErase (dialog_wrapper, vtype)
-	local list, values
+	local list, values, watch_name
 
 	--
 	local ListView = {}
 
 	--- DOCME
 	function ListView:Enter ()
-		--
+		timer.resume(watch_name)
 	end
 
 	--- DOCME
 	function ListView:Exit ()
 		dialog_wrapper("close")
+
+		timer.pause(watch_name)
 	end
 
 	--- DOCME
@@ -115,6 +120,16 @@ function M.EditErase (dialog_wrapper, vtype)
 
 		layout.LeftAlignWith(list, left)
 		layout.PutBelow(list, top)
+
+		watch_name = timer.performWithDelay(150, function()
+			local index = list:FindSelection()
+			local key = list:GetData(index)
+
+			if dialog_wrapper("is_bound", values[key]) then
+				list:Update(index)
+			end
+		end, 0)
+		timer.pause(watch_name)
 
 		--
 		local using = match_slot_id.Wrap{}
@@ -164,7 +179,9 @@ function M.EditErase (dialog_wrapper, vtype)
 	function ListView:Unload ()
 		list:removeSelf()
 
-		list, values = nil
+		timer.cancel(watch_name)
+
+		list, values, watch_name = nil
 	end
 
 	return ListView
