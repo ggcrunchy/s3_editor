@@ -196,6 +196,23 @@ function M.LoadGroupOfValues_Grid (level, what, mod, grid_view)
 	grid.Show(false)
 end
 
+--- DOCME
+function M.LoadGroupOfValues_List (level, what, mod, list_view)
+	level[what].version = nil
+
+	local n, list, values = 0, list_view:GetListbox(), list_view:GetValues()
+
+	for k, entry in pairs(level[what].entries) do
+		-- Add and populate a new entry.
+		values[k], n = list_view:AddEntry(k), n + 1
+
+		_LoadValuesFromEntry_(level, mod, values[k], entry)
+
+		-- Account for name changes.
+		list:Update(n)
+	end
+end
+
 -- Default values for the type being saved or loaded --
 -- TODO: How much work would it be to install some prefab logic?
 local Defs

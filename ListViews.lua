@@ -76,6 +76,21 @@ function M.EditErase (dialog_wrapper, vtype)
 	local ListView = {}
 
 	--- DOCME
+	function ListView:AddEntry (key)
+		values[key] = dialog_wrapper("new_values", vtype, key)
+
+		local index = list:Append(key)
+		local tag = dialog_wrapper("get_tag", vtype)
+
+		if tag then
+			local entry = list:GetRect(index)
+
+			common.BindRepAndValues(entry, values[key])
+			common.GetLinks():SetTag(entry, tag)
+		end
+	end
+
+	--- DOCME
 	function ListView:Enter ()
 		timer.resume(watch_name)
 	end
@@ -115,19 +130,7 @@ function M.EditErase (dialog_wrapper, vtype)
 		--
 		local using = match_slot_id.Wrap{}
 		local new = button.Button_XY(group, 0, 0, 110, 40, function()
-			local key = GetSuffix(list, using, prefix)
-
-			values[key] = dialog_wrapper("new_values", vtype, key)
-
-			local index = list:Append(key)
-			local tag = dialog_wrapper("get_tag", vtype)
-
-			if tag then
-				local entry = list:GetRect(index)
-
-				common.BindRepAndValues(entry, values[key])
-				common.GetLinks():SetTag(entry, tag)
-			end
+			self:AddEntry(GetSuffix(list, using, prefix))
 
 			common.Dirty()
 		end, "New")

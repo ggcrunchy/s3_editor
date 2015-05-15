@@ -530,7 +530,7 @@ function Overlay:show (event)
 		self.m_shade.m_dialog = dialog
 
 		--
-		self.m_choices:deleteAllRows()
+		self.m_choices:Clear()--deleteAllRows()
 
 		List = {}
 	-- TODO: (optionally) add icon from one (both?) link objects into dialogs?
