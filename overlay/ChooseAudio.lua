@@ -104,7 +104,9 @@ function Overlay:create (event)
 	--
 	local bottom, left = layout.Below(backdrop, -10), layout.LeftOf(choices)
 	local ok = button.Button_XY(self.view, "right_of " .. left, "above " .. bottom, 120, 40, function()
-		Assign(SourceName ~= nil and (dir .. "/" .. SourceName))
+		local name = choices:GetSelection()
+
+		Assign(name ~= nil and (dir .. "/" .. name))
 
 		composer.hideOverlay()
 	end, "OK")

@@ -39,7 +39,7 @@ local function AuxChooseAudio (mode)
 		composer.showOverlay("s3_editor.overlay.ChooseAudio", {
 			params = {
 				assign = function(name)
-					utils.UpdateObject(button, name)
+					utils.UpdateObject(button.parent, name)
 				end,
 				mode = mode
 			}
@@ -71,7 +71,7 @@ end
 --- DOCME
 function M:AddMusicPicker (options)
 	local picker = button.Button(self:ItemGroup(), 240, 40, AuxChooseAudio("stream"))
-
+print("PICKER", picker)
 	self:CommonAdd(picker, options, true)
 end
 
