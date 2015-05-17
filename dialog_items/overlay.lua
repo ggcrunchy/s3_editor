@@ -71,7 +71,7 @@ end
 --- DOCME
 function M:AddMusicPicker (options)
 	local picker = button.Button(self:ItemGroup(), 240, 40, AuxChooseAudio("stream"))
-print("PICKER", picker)
+
 	self:CommonAdd(picker, options, true)
 end
 
