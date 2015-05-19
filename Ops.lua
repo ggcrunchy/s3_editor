@@ -76,9 +76,6 @@ local function GetLevelName (func, wip, follow_up)
 			persistence.SaveLevel(name, blob, true, wip, IsTemp)
 
 			if follow_up then
-vdump(func)
-vdump(wip)
-vdump(follow_up)
 				follow_up()
 			end
 		end
