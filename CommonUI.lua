@@ -114,11 +114,11 @@ local ScrollValues = {
 -- @callable func Button function, cf. @{corona_ui.widgets.button.Button}.
 function M.ScrollButton (group, name, x, y, func)
 	local button = button.Button_XY(group, x, y, 32, 32, func, { skin = "rscroll" })
-	local values = ScrollValues[name]
+	local bpart, values = button:GetButton(), ScrollValues[name]
 
-	button[1].m_dc = values[1]
-	button[1].m_dr = values[2]
-	button[1].rotation = values[3]
+	bpart.m_dc = values[1]
+	bpart.m_dr = values[2]
+	bpart.rotation = values[3]
 
 	return button
 end

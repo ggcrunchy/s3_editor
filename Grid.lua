@@ -262,6 +262,8 @@ end
 
 --
 local function UpdateDir (button)
+	-- TODO: Another fix-the-argument case, I think...
+
 	UpdateCoord(Col + button.m_dc, Row + button.m_dr)
 end
 
