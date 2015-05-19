@@ -131,7 +131,8 @@ local function Listen (what)
 		prompts.DoActionThenProceed{
 			choices = "save_and_quit",
 			needs_doing = common.IsDirty,
-			action = ops.Save, follow_up = ops.Quit
+			action = ops.Save_FollowUp,
+			follow_up = ops.Quit
 		}
 	end
 end

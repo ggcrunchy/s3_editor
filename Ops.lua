@@ -76,6 +76,9 @@ local function GetLevelName (func, wip, follow_up)
 			persistence.SaveLevel(name, blob, true, wip, IsTemp)
 
 			if follow_up then
+vdump(func)
+vdump(wip)
+vdump(follow_up)
 				follow_up()
 			end
 		end
@@ -162,6 +165,19 @@ function M.Quit ()
 	composer.gotoScene("s3_editor.scene.Setup")
 end
 
+-- Save logic body
+local function SaveBody (follow_up)
+	if common.IsDirty() then
+		GetLevelName(function()
+			local scene = AuxSave()
+
+			common.Undirty()
+
+			return scene
+		end, true, follow_up)
+	end
+end
+
 --- Saves the work-in-progress level in the database under the working name.
 --
 -- If the editor state is not dirty, this is no-op.
@@ -174,16 +190,13 @@ end
 -- @callable[opt] follow_up If present, called (without arguments) after saving.
 -- @see s3_editor.Common.IsDirty, corona_utils.persistence.SaveLevel, GetLevelName
 function M.Save (follow_up)
-	if common.IsDirty() then
-		GetLevelName(function()
-			local scene = AuxSave()
-
-			common.Undirty()
-
-			return scene
-		end, true, follow_up)
-	end
+	SaveBody()
 end
+
+--- Variant of @{Save} that allows a follow-up action.
+-- @function Save_FollowUp
+-- @callable[opt] follow_up If present, called (without arguments) after saving.
+M.Save_FollowUp = SaveBody
 
 --- Sets the current working name, which is used by @{Build} and @{Save} to assign levels
 -- into the database.
