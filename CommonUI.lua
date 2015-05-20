@@ -27,6 +27,7 @@
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
 local dialog_utils = require("corona_ui.dialog_impl.utils")
+local layout = require("corona_ui.utils.layout")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona modules --
@@ -45,7 +46,7 @@ local M = {}
 function M.Frame (object, r, g, b, group)
 	local bounds = object.contentBounds
 	local w, h = bounds.xMax - bounds.xMin, bounds.yMax - bounds.yMin
-	local frame = common.NewRoundedRect(group or object.parent, bounds.xMin, bounds.yMin, w, h, 2)
+	local frame = common.NewRoundedRect(group or object.parent, bounds.xMin, bounds.yMin, w, h, layout.ResolveX(".25%"))
 
 	frame:setFillColor(0, 0)
 	frame:setStrokeColor(r, g, b)
@@ -79,7 +80,7 @@ end)
 
 --- DOCME
 function M.Link (group, options)
-	local link = common.NewCircle(group, 0, 0, 20)
+	local link = common.NewCircle(group, 0, 0, layout.ResolveX("2.5%"))
 
 	if options then
 		link.m_interfaces = options.interfaces

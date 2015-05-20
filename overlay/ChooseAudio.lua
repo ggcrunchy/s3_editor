@@ -28,6 +28,7 @@ local audio_patterns = require("corona_ui.patterns.audio")
 local button = require("corona_ui.widgets.button")
 local common_ui = require("s3_editor.CommonUI")
 local layout = require("corona_ui.utils.layout")
+local layout_dsl = require("corona_ui.utils.layout_dsl")
 local net = require("corona_ui.patterns.net")
 local touch = require("corona_ui.utils.touch")
 
@@ -47,7 +48,9 @@ local DragTouch = touch.DragParentTouch()
 
 --
 local function Backdrop (group, w, h, corner)
-	local backdrop = display.newRoundedRect(group, 0, 0, w, h, corner)
+	w, h = layout_dsl.EvalDims(w, h)
+
+	local backdrop = display.newRoundedRect(group, 0, 0, w, h, layout.ResolveX(corner))
 
 	backdrop:addEventListener("touch", DragTouch)
 	backdrop:setFillColor(.375, .675)
@@ -92,18 +95,18 @@ function Overlay:create (event)
 	net.Blocker(self.view) -- :/
 
 	--
-	local backdrop = Backdrop(self.view, 350, 300, 22)
+	local backdrop = Backdrop(self.view, "43.75%", "62.5%", "2.75%")
 	local dir = event.params.mode == "stream" and "Music" or "SFX"
 	local choices = audio_patterns.AudioList(self.view, {
-		x = layout.CenterX(backdrop), top = 30,
+		x = layout.CenterX(backdrop), top = "6.25%",
 		base = Base, path = dir, on_reload = Reload
 	})
 
 	common_ui.Frame(choices, 1, 0, 0)
 
 	--
-	local bottom, left = layout.Below(backdrop, -10), layout.LeftOf(choices)
-	local ok = button.Button_XY(self.view, "right_of " .. left, "above " .. bottom, 120, 40, function()
+	local bottom, left = layout.Below(backdrop, "-2.1%"), layout.LeftOf(choices)
+	local ok = button.Button_XY(self.view, "right_of " .. left, "above " .. bottom, "15%", "8.3%", function()
 		local name = choices:GetSelection()
 
 		Assign(name ~= nil and (dir .. "/" .. name))
@@ -117,7 +120,7 @@ function Overlay:create (event)
 	layout.PutRightOf(cancel, ok, 10)
 
 	--
-	local below_choices, done = layout.Below(choices, 10)
+	local below_choices, done = layout.Below(choices, "2.1%")
 	local opts_complete = {
 		onComplete = function()
 			done = true

@@ -124,9 +124,10 @@ function M.DialogWrapper (on_editor_event)
 
 				dialog:BindDefaults(GetDefaults(on_editor_event, arg1.type, arg3))
 				dialog:BindValues(arg1)
-				dialog:SetBeforeRemove(BeforeRemove)
 
 				on_editor_event(arg1.type, "enum_props", dialog, arg4)
+
+				dialog:addEventListener("before_remove", BeforeRemove)
 
 				dialog.x = dx or display.contentCenterX - dialog.width / 2
 				dialog.y = dy or display.contentCenterY - dialog.height / 2

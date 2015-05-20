@@ -295,7 +295,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 				return true
 			end
-		end, 300)
+		end, "37.5%")
 
 		--
 		try_option = grid.ChoiceTrier(choices)

@@ -60,7 +60,7 @@ function M:AddSpinner (options)
 	sopts.name = name
 
 	self:AddString(sopts)
-	self:CommonAdd(button.Button(self:ItemGroup(), 40, 30, function()
+	self:CommonAdd(button.Button(self:ItemGroup(), "5%", "6.25%", function()
 		local str = self:Find(name)
 
 		repeat
@@ -75,7 +75,7 @@ function M:AddSpinner (options)
 
 		str.text = value .. ""
 	end, "-"), { continue_line = true })
-	self:CommonAdd(button.Button(self:ItemGroup(), 40, 30, function()
+	self:CommonAdd(button.Button(self:ItemGroup(), "5%", "6.25%", function()
 		local str = self:Find(name)
 
 		repeat

@@ -129,14 +129,14 @@ function M.EditErase (dialog_wrapper, vtype)
 
 		--
 		local using = match_slot_id.Wrap{}
-		local new = button.Button_XY(group, 0, 0, 110, 40, function()
+		local new = button.Button_XY(group, 0, 0, "13.75%", "8.33%", function()
 			self:AddEntry(GetSuffix(list, using, prefix))
 
 			common.Dirty()
 		end, "New")
 
 		layout.LeftAlignWith(new, list)
-		layout.PutBelow(new, list, 10)
+		layout.PutBelow(new, list, "2.1%")
 
 		--
 		local delete = button.Button_XY(group, 0, new.y, new.width, new.height, function()
@@ -156,7 +156,7 @@ function M.EditErase (dialog_wrapper, vtype)
 			end
 		end, "Delete")
 
-		layout.PutRightOf(delete, new, 10)
+		layout.PutRightOf(delete, new, "1.25%")
 
 		--
 		local edit = button.Button_XY(group, 0, new.y, new.width, new.height, function()
@@ -172,7 +172,7 @@ function M.EditErase (dialog_wrapper, vtype)
 			end
 		end, "Edit")
 
-		layout.PutRightOf(edit, delete, 10)
+		layout.PutRightOf(edit, delete, "1.25%")
 
 		--
 		watch_name = timer.performWithDelay(150, function()

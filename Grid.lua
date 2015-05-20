@@ -36,6 +36,8 @@ local common = require("s3_editor.Common")
 local common_ui = require("s3_editor.CommonUI")
 local grid2D = require("corona_ui.widgets.grid")
 local help = require("s3_editor.Help")
+local layout = require("corona_ui.utils.layout")
+local layout_dsl = require("corona_ui.utils.layout_dsl")
 local strings = require("tektite_core.var.strings")
 
 -- Corona globals --
@@ -102,7 +104,7 @@ local ColBase, RowBase = 9, 9
 
 --
 local function GetCellDims ()
-	local gw, gh = display.contentWidth - 240, display.contentHeight - 160
+	local gw, gh = layout_dsl.EvalDims("70%", "66.67%")
 
 	return gw / ColBase, gh / RowBase
 end
@@ -276,9 +278,10 @@ end
 
 --
 local function GridRect ()
+	local x, y = layout_dsl.EvalPos("15%", "16.67%")
 	local cw, ch = GetCellDims()
 
-	return 120, 80, ceil(cw * VCols), ceil(ch * VRows)
+	return x, y, ceil(cw * VCols), ceil(ch * VRows)
 end
 
 --- Initializes various state used by editor grid operations.
@@ -300,25 +303,27 @@ function M.Init (view)
 	local grid_proxy = common.ProxyRect(view, gx, gy, gx + gw, gy + gh)
 
 	-- Add scroll buttons for each dimension where the level exceeds the grid.
-	local x, y = display.contentWidth - 100, display.contentHeight - 230
+	local dy, x, y = layout.ResolveY("13.5%"), layout_dsl.EvalPos("87.5%", "52.1%")
 
 	if nrows > RowBase then
 		AddButton("uscroll", x, y)
-		AddButton("dscroll", x, y + 65)
+		AddButton("dscroll", x, y + dy)
 
-		y = y - 130
+		y = y - 2 * dy
 	end
 
 	if ncols > ColBase then
 		AddButton("lscroll", x, y)
-		AddButton("rscroll", x, y + 65)
+		AddButton("rscroll", x, y + dy)
 	end
 
 	local n = Grid.group.numChildren
 	local scroll_proxy = common.Proxy(view, Grid.group[n], Grid.group[n - 1], Grid.group[n - 2], Grid.group[n - 3])
 
 	-- Add the offset text and initialize it and the scroll button opacities.
-	Offset = display.newText(Grid.group, "", display.contentWidth - 170, display.contentHeight - 40, native.systemFont, 24)
+	local tx, ty = layout_dsl.EvalPos("78.75%", "91.67%")
+
+	Offset = display.newText(Grid.group, "", tx, ty, native.systemFont, layout.ResolveY("5%"))
 
 	UpdateCoord(Col, Row, -1)
 

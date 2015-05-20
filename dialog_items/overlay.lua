@@ -70,14 +70,14 @@ end
 
 --- DOCME
 function M:AddMusicPicker (options)
-	local picker = button.Button(self:ItemGroup(), 240, 40, AuxChooseAudio("stream"))
+	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("stream"))
 
 	self:CommonAdd(picker, options, true)
 end
 
 --- DOCME
 function M:AddSoundPicker (options)
-	local picker = button.Button(self:ItemGroup(), 240, 40, AuxChooseAudio("sound"))
+	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("sound"))
 
 	self:CommonAdd(picker, options, true)
 end

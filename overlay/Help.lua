@@ -31,6 +31,8 @@ local type = type
 local button = require("corona_ui.widgets.button")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
+local layout = require("corona_ui.utils.layout")
+local layout_dsl = require("corona_ui.utils.layout_dsl")
 local net = require("corona_ui.patterns.net")
 local touch = require("corona_ui.utils.touch")
 
@@ -56,7 +58,7 @@ function Overlay:create ()
 	--
 	self.message_group = display.newGroup()
 
-	local rect = display.newRoundedRect(self.message_group, 0, 0, display.contentWidth - 400, 1, 25)
+	local rect = display.newRoundedRect(self.message_group, 0, 0, display.contentWidth / 2, 1, layout.ResolveX("3.125%"))
 
 	rect:setFillColor(0, 0, 1, .75)
 	rect:setStrokeColor(0, 1, 0, .25)
@@ -64,14 +66,15 @@ function Overlay:create ()
 	rect.x, rect.y = display.contentCenterX, display.contentCenterY
 	rect.strokeWidth = 5
 
-	local text = display.newText(self.message_group, "", 200, 200, rect.width - 50, 0, native.systemFontBold, 25)
+	local w, tx, ty = layout.ResolveX("6.25%"), layout_dsl.EvalPos("25%", "41.67%")
+	local text = display.newText(self.message_group, "", tx, ty, rect.width - w, 0, native.systemFontBold, layout.ResolveY("5.21%"))
 
 	self.message_group.isVisible = false
 
 	self.view:insert(self.message_group)
 
 	--
-	button.Button_XY(self.view, "from_right -100", "below 10", 35, 35, function()
+	button.Button_XY(self.view, "from_right -12.5%", "below 5.2%", "4.375%", "7.3%", function()
 		composer.hideOverlay(true)
 	end, "X")
 end
@@ -85,7 +88,7 @@ local ShowText = touch.TouchHelperFunc(function(_, node)
 
 	text.text = node.m_text
 	text.x, text.y = display.contentCenterX, display.contentCenterY
-	rect.height = max(display.contentHeight - 300, text.contentHeight + 10)
+	rect.height = max(layout.ResolveY("62.5%"), text.contentHeight + layout.ResolveY("2.1%"))
 
 	net.AddNet_Hide(Overlay.view, mgroup)
 
@@ -100,9 +103,10 @@ function Overlay:show (event)
 				local bounds = binding.contentBounds
 
 				--
+				local radius = layout.ResolveX("1.875%")
 				local minx, miny = bounds.xMin, bounds.yMin
 				local maxx, maxy = bounds.xMax, bounds.yMax
-				local help = display.newRoundedRect(self.help_group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny, 15)
+				local help = display.newRoundedRect(self.help_group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny, radius)
 
 				help:setFillColor(1, 1, 0, .125)
 				help:setStrokeColor(1, 1, 0)
@@ -127,7 +131,7 @@ function Overlay:show (event)
 				local x, y = help.x - dx, help.y
 
 				for i = 1, n do
-					local node = display.newCircle(self.help_group, x, y, 15)
+					local node = display.newCircle(self.help_group, x, y, radius)
 
 					node:addEventListener("touch", ShowText)
 					node:setFillColor(0, 0, 1)
@@ -149,7 +153,7 @@ function Overlay:show (event)
 					end
 
 					--
-					local qmark = display.newText(self.help_group, "?", node.x, node.y, native.systemFontBold, 30)
+					local qmark = display.newText(self.help_group, "?", node.x, node.y, native.systemFontBold, layout.ResolveY("6.25%"))
 
 					x = x + dw
 				end

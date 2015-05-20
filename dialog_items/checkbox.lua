@@ -55,14 +55,14 @@ end
 
 --- DOCME
 function M:AddBitfield (options)
-	local bits, sep = options and self:GetValue(options.value_name) or 0, 10
+	local bits, sep = options and self:GetValue(options.value_name) or 0, layout.ResolveX("1.25%")
 	local bf, nstrs = display.newGroup(), #(options and options.strs or "")
 	local prev, w = 0, 0
 
 	self:ItemGroup():insert(bf)
 
 	for i = 1, nstrs do
-		local cb, low = checkbox.Checkbox(bf, 40, 40, OnCheck_Field), bits % 2
+		local cb, low = checkbox.Checkbox(bf, "5%", "8.33%", OnCheck_Field), bits % 2
 
 		cb.anchorX, cb.x = 0, sep
 		cb.m_flag = 2^(i - 1)
@@ -73,14 +73,14 @@ function M:AddBitfield (options)
 			cb:Check(true)
 		end
 
-		local text = display.newText(bf, options.strs[i], 0, cb.y, native.systemFontBold, 22)
+		local text = display.newText(bf, options.strs[i], 0, cb.y, native.systemFontBold, layout.ResolveY("4.6%"))
 
 		layout.PutRightOf(text, cb, sep)
 
 		bits, prev, w = (bits - low) / 2, cb, max(w, layout.RightOf(text, sep))
 	end
 
-	local region = display.newRoundedRect(bf, 0, 0, w, layout.Below(prev, sep), 12)
+	local region = display.newRoundedRect(bf, 0, 0, w, layout.Below(prev, sep), layout.ResolveX("1.5%"))
 
 	region:setFillColor(0, 0)
 	region:setStrokeColor(0)
@@ -101,7 +101,7 @@ end
 --- DOCME
 -- @ptable options
 function M:AddCheckbox (options)
-	local cb = checkbox.Checkbox(self:ItemGroup(), 40, 40, OnCheck)
+	local cb = checkbox.Checkbox(self:ItemGroup(), "5%", "8.33%", OnCheck)
 
 	self:CommonAdd(cb, options, true)
 

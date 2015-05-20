@@ -31,6 +31,7 @@ local format = string.format
 local button = require("corona_ui.widgets.button")
 local color_picker = require("corona_ui.widgets.color_picker")
 local common_ui = require("s3_editor.CommonUI")
+local layout = require("corona_ui.utils.layout")
 local touch = require("corona_ui.utils.touch")
 local utils = require("corona_ui.dialog_impl.utils")
 
@@ -69,12 +70,12 @@ end
 -- @ptable options
 function M:AddImage (options)
 	--
-	local dim, image = options and options.dim or 32
+	local dim, image = layout.ResolveX(options and options.dim or "6.67%")
 
 	if options and options.file then
 		image = display.newImageRect(self:ItemGroup(), options.file, dim, dim)
 	else
-		image = display.newRoundedRect(self:ItemGroup(), 0, 0, dim, dim, 12)
+		image = display.newRoundedRect(self:ItemGroup(), 0, 0, dim, dim, layout.ResolveY("2.5%"))
 	end
 
 	self:CommonAdd(image, options)
@@ -123,14 +124,14 @@ local DragTouch = touch.DragParentTouch_Child(1, { find = utils.GetDialog }) -- 
 -- @string type
 function M:StockElements (dir, type)
 	--
-	local exit = button.Button(self:ItemGroup(), 25, 25, function()
+	local exit = button.Button(self:ItemGroup(), "3.125%", "5.2%", function()
 		self:RemoveSelf()
 	end, "X")
 
 	self:CommonAdd(exit, { continue_line = true })
 
 	--
-	local bar = display.newRoundedRect(self:ItemGroup(), 0, 0, 1, exit.height, 12)
+	local bar = display.newRoundedRect(self:ItemGroup(), 0, 0, 1, exit.height, layout.ResolveY("2.5%"))
 
 	bar:addEventListener("touch", DragTouch)
 	bar:setFillColor(0, 0, 1)
@@ -144,7 +145,7 @@ function M:StockElements (dir, type)
 
 	--
 	if dir then
-		self:AddImage{ file = format("%s_Assets/%s_Thumb.png", dir, type), dim = 48, continue_line = true }
+		self:AddImage{ file = format("%s_Assets/%s_Thumb.png", dir, type), dim = "6%", continue_line = true }
 	end
 
 	--

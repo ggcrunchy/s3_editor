@@ -27,6 +27,7 @@
 local ipairs = ipairs
 
 -- Modules --
+local layout = require("corona_ui.utils.layout")
 local table_funcs = require("tektite_core.table.funcs")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 local utils = require("corona_ui.dialog_impl.utils")
@@ -84,7 +85,7 @@ function M:AddTabs (options)
 	if options then
 		options = table_funcs.Copy(options)
 
-		options.width = options.width or #(options.buttons or "") * 90
+		options.width = options.width or #(options.buttons or "") * layout.ResolveX("11.25%")
 		options.buttons = TabButtonsFromLabels(options.buttons)
 
 		local tabs = tabs_patterns.TabBar(self:ItemGroup(), options.buttons, options)
