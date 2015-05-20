@@ -74,9 +74,9 @@ local RowText = "Number of rows:"
 
 -- Create Scene --
 function Scene:create ()
-	button.Button_XY(self.view, 120, 70, 200, 50, scenes.WantsToGoBack, "Go Back")
+	button.Button_XY(self.view, "15%", "8.6%", "25%", "10.4%", scenes.WantsToGoBack, "Go Back")
 
-	self.m_new_scene = button.Button_XY(self.view, "from_right -15%", "from_bottom_align -20", 200, 50, function()
+	self.m_new_scene = button.Button_XY(self.view, "from_right -15%", "from_bottom_align -20", "25%", "10.4%", function()
 		local cols = tonumber(self.m_cols:GetString().text)
 		local rows = tonumber(self.m_rows:GetString().text)
 
@@ -91,11 +91,13 @@ function Scene:create ()
 		end
 	end, "New Scene")
 
-	self.m_cols_text = display.newText(self.view, ColText, 0, 150, native.systemFont, 24)
-	self.m_rows_text = display.newText(self.view, RowText, 0, 210, native.systemFont, 24)
+	local x, size = layout.ResolveX("3.75%"), layout.ResolveY("5%")
 
-	self.m_cols_text.anchorX, self.m_cols_text.x = 0, 30
-	self.m_rows_text.anchorX, self.m_rows_text.x = 0, 30
+	self.m_cols_text = display.newText(self.view, ColText, 0, layout.ResolveY("31.25%"), native.systemFont, size)
+	self.m_rows_text = display.newText(self.view, RowText, 0, layout.ResolveY("43.75%"), native.systemFont, size)
+
+	self.m_cols_text.anchorX, self.m_cols_text.x = 0, x
+	self.m_rows_text.anchorX, self.m_rows_text.x = 0, x
 end
 
 Scene:addEventListener("create")
@@ -104,7 +106,7 @@ Scene:addEventListener("create")
 local function UpdateCurrent (scene, levels, index)
 	scene.m_current.text = "Current choice: " .. levels[index].name
 
-	layout.PutBelow(scene.m_current, scene.m_levels_list, 10)
+	layout.PutBelow(scene.m_current, scene.m_levels_list, "2.1%")
 	layout.LeftAlignWith(scene.m_current, scene.m_levels_list)
 
 	scene.m_load_index = index
@@ -126,7 +128,7 @@ function Scene:show (event)
 
 		-- Line up the text input (if on device, we use native keyboards) a little to the right
 		-- of the columns or rows text (whichever was wider).
-		local extent = max(layout.RightOf(self.m_cols_text), layout.RightOf(self.m_rows_text)) + 10
+		local extent = max(layout.RightOf(self.m_cols_text), layout.RightOf(self.m_rows_text)) + layout.ResolveX("1.25%")
 
 		for _, name, count in args.ArgsByN(2,
 			"m_cols", Cols,
@@ -148,7 +150,7 @@ function Scene:show (event)
 			end)
 
 			self.m_levels_list = table_view_patterns.Listbox(self.view, {
-				top = 20,
+				top = layout.ResolveY("2.5%"),
 
 				--
 				get_text = function(item)
@@ -163,7 +165,7 @@ function Scene:show (event)
 
 			layout.LeftAlignWith(self.m_levels_list, self.m_new_scene)
 
-			self.m_current = display.newText(self.view, "", 0, 0, native.systemFont, 22)
+			self.m_current = display.newText(self.view, "", 0, 0, native.systemFont, layout.ResolveY("4.6%"))
 			self.m_frame = common_ui.Frame(self.m_levels_list, 0, 0, 1)
 
 			self.m_levels_list:AssignList(levels)
@@ -204,10 +206,10 @@ function Scene:show (event)
 					end
 				end, "Delete scene"
 			) do
-				local button = button.Button(self.view, 200, 50, action, text)
+				local button = button.Button(self.view, "25%", "10.4%", action, text)
 
 				layout.LeftAlignWith(button, prev)
-				layout.PutAbove(button, prev, -20)
+				layout.PutAbove(button, prev, "-2.5%")
 
 				self["m_" .. key], prev = button, button
 			end
