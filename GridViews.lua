@@ -71,7 +71,7 @@ function M.AddTabs (group, names, func, w)
 		buttons[i] = { label = label, onPress = func(label) }
 	end
 
-	local tabs = tabs_patterns.TabBar(group, buttons, { y = "from_bottom_align -5", left = 120, width = w })
+	local tabs = tabs_patterns.TabBar(group, buttons, { y = "from_bottom_align -.625%", left = "15%", width = w })
 
 	tabs.isVisible = false
 
@@ -275,7 +275,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		--
 		if update == FrameUpdate then
-			current = grid1D.OptionsHGrid(group, 150, 50, 200, 100, title)
+			current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title)
 		end
 
 		--
