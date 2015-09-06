@@ -308,7 +308,7 @@ end
 -- the available handlers are called as
 --    handler(entry1, entry2, sub1, sub2)
 -- where _entry1_ and _sub1_ are the entry and sublink associated with the handler; _entry2_
--- and _sub2_ comprise the target. At this point, all entries will have their final **uid**'s,
+-- and _sub2_ make up the target. At this point, all entries will have their final **uid**'s,
 -- so this is the ideal time to bind everything as the application expects, e.g. via @{tektite_core.bind}.
 --
 -- Once finished, the editor state is storage-ready.
