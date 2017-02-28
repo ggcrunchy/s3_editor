@@ -144,9 +144,6 @@ local RestoreState
 local TestLevelName = "?TEST?"
 
 -- --
-local CommonTagsLoaded
-
--- --
 local HelpOpts = { isModal = true }
 
 -- --
@@ -331,17 +328,13 @@ function Scene:show (event)
 		ops.Init(self.view)
 
 		--
-		if not CommonTagsLoaded then
-			local tags = common.GetLinks():GetTagDatabase()
+		local tags = common.GetLinks():GetTagDatabase()
 
-			for k, v in pairs{
-				event_source = "event_target",
-				event_target = "event_source"
-			} do
-				tags:ImpliesInterface(k, v)
-			end
-
-			CommonTagsLoaded = true
+		for k, v in pairs{
+			event_source = "event_target",
+			event_target = "event_source"
+		} do
+			tags:ImpliesInterface(k, v)
 		end
 
 		--
