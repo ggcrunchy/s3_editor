@@ -162,7 +162,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 		--
 		if option == "Edit" then
 			if cur then
-				dialog_wrapper("edit", cur, tabs.parent, key, tile)
+				dialog_wrapper("edit", cur, tabs.parent, key)
 			else
 				dialog_wrapper("close")
 			end
@@ -191,13 +191,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, tile_images, which)
 
 				--
-				local tag = dialog_wrapper("get_tag", vtype)
-
-				if tag then
-					common.BindRepAndValues(tiles[key], values[key])
-					common.GetLinks():SetTag(tiles[key], tag)
-				end
-
+				common.BindRepAndValuesWithTag(tiles[key], values[key], dialog_wrapper("get_tag", vtype), dialog_wrapper)
 				common.Dirty()
 			end
 		end

@@ -28,6 +28,7 @@ local format = string.format
 local ipairs = ipairs
 local max = math.max
 local min = math.min
+local next = next
 local pairs = pairs
 
 -- Modules --
@@ -40,9 +41,12 @@ local Tags = require("tektite_base_classes.Link.Tags")
 
 -- Corona globals --
 local display = display
-local Runtime = Runtime
 local timer = timer
 local transition = transition
+
+-- Cached module references --
+local _AttachLinkInfo_
+local _BindRepAndValues_
 
 -- Exports --
 local M = {}
@@ -57,6 +61,15 @@ function M.AddButton (name, button)
 	Buttons = Buttons or {}
 
 	Buttons[name] = button
+end
+
+--
+function M.AttachLinkInfo (object, info)
+	local old_info = object.m_link_info
+
+	object.m_link_info = info
+
+	return old_info
 end
 
 -- --
@@ -87,6 +100,30 @@ end
 
 -- --
 local SessionLinks
+
+-- --
+local LinkInfo
+
+--- DOCME
+function M.BindRepAndValuesWithTag (rep, values, tag, dialog)
+	if tag then
+		_BindRepAndValues_(rep, values)
+
+		SessionLinks:SetTag(rep, tag)
+
+		if dialog then
+			LinkInfo = LinkInfo or {}
+
+			dialog("get_link_info", values.type, LinkInfo, rep)
+
+			if next(LinkInfo, nil) then
+				_AttachLinkInfo_(rep, LinkInfo)
+
+				LinkInfo = nil
+			end
+		end
+	end
+end
 
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
@@ -367,6 +404,10 @@ function M.Verify ()
 
 	IsVerified = true
 end
+
+-- Cache module members.
+_AttachLinkInfo_ = M.AttachLinkInfo
+_BindRepAndValues_ = M.BindRepAndValues
 
 -- Export the module.
 return M

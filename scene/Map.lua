@@ -334,7 +334,7 @@ function Scene:show (event)
 			event_source = "event_target",
 			event_target = "event_source"
 		} do
-			tags:ImpliesInterface(k, v)
+			tags:ImplyInterface(k, v)
 		end
 
 		--

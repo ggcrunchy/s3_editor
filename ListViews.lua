@@ -85,8 +85,7 @@ function M.EditErase (dialog_wrapper, vtype)
 		if tag then
 			local entry = list:GetRect(index)
 
-			common.BindRepAndValues(entry, values[key])
-			common.GetLinks():SetTag(entry, tag)
+			common.BindRepAndValuesWithTag(entry, values[key], tag, dialog_wrapper)
 		end
 	end
 
@@ -167,7 +166,7 @@ function M.EditErase (dialog_wrapper, vtype)
 
 				if not dialog_wrapper("is_bound", values[key]) then
 					dialog_wrapper("close")
-					dialog_wrapper("edit", values[key], group, key, list:GetRect(index))
+					dialog_wrapper("edit", values[key], group, key)
 				end
 			end
 		end, "Edit")

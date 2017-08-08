@@ -82,7 +82,7 @@ function M.DialogWrapper (on_editor_event)
 		dx, dy, dialog = dialog.x, dialog.y
 	end
 
-	return function(what, arg1, arg2, arg3, arg4)
+	return function(what, arg1, arg2, arg3)
 		--
 		if what == "get_dialog" then
 			return dialog
@@ -106,6 +106,13 @@ function M.DialogWrapper (on_editor_event)
 			if what == "is_bound" or is_bound then
 				return is_bound
 			end
+
+		--
+		-- arg1: Value type
+		-- arg2: Info to populate
+		-- arg3: Representative object
+		elseif what == "get_link_info" then
+			on_editor_event(arg1, "get_link_info", arg2, arg3)
 		end
 
 		--
@@ -117,7 +124,6 @@ function M.DialogWrapper (on_editor_event)
 		-- arg1: Values to edit
 		-- arg2: Group
 		-- arg3: Key
-		-- arg4: Representative object
 		if what == "edit" then
 			if arg1 then
 				dialog = _Dialog_(arg2)
@@ -125,7 +131,7 @@ function M.DialogWrapper (on_editor_event)
 				dialog:BindDefaults(GetDefaults(on_editor_event, arg1.type, arg3))
 				dialog:BindValues(arg1)
 
-				on_editor_event(arg1.type, "enum_props", dialog, arg4)
+				on_editor_event(arg1.type, "enum_props", dialog)
 
 				dialog:addEventListener("before_remove", BeforeRemove)
 
