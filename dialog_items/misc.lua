@@ -30,7 +30,6 @@ local format = string.format
 -- Modules --
 local button = require("corona_ui.widgets.button")
 local color_picker = require("corona_ui.widgets.color_picker")
---local common_ui = require("s3_editor.CommonUI")
 local layout = require("corona_ui.utils.layout")
 local touch = require("corona_ui.utils.touch")
 local utils = require("corona_ui.dialog_impl.utils")
@@ -79,17 +78,6 @@ function M:AddImage (options)
 	end
 
 	self:CommonAdd(image, options)
-end
-
---- DOCME
--- @ptable options
-function M:AddLink (options)
-	--[[
-	local link = common_ui.Link(self:ItemGroup(), options)
-
-	-- TODO: Use stored rep, infer interfaces (might need some work in tags)...
-
-	self:CommonAdd(link, options, true)]]
 end
 
 --- DOCME

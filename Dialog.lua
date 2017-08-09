@@ -110,9 +110,8 @@ function M.DialogWrapper (on_editor_event)
 		--
 		-- arg1: Value type
 		-- arg2: Info to populate
-		-- arg3: Representative object
 		elseif what == "get_link_info" then
-			on_editor_event(arg1, "get_link_info", arg2, arg3)
+			on_editor_event(arg1, "get_link_info", arg2)
 		end
 
 		--
