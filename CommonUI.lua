@@ -57,47 +57,6 @@ function M.Frame (object, r, g, b, group)
 	return frame
 end
 
--- --
-local OverlayArgs = { params = {}, isModal = true }
-
---
-local LinkTouch = touch.TouchHelperFunc(function(_, link)
-	local params = OverlayArgs.params
-
-	params.x, params.y = link:localToContent(0, 0)
-	params.dialog = dialog_utils.GetDialog(link)
-	params.interfaces = link.m_interfaces
-	params.rep = link.m_rep
-	params.sub = link.m_sub
-	params.tags = link.m_tags
-end, nil, function()
-	composer.showOverlay("s3_editor.overlay.Link", OverlayArgs)
-
-	local params = OverlayArgs.params
-
-	params.dialog, params.interfaces, params.rep, params.sub, params.tags = nil
-end)
-
---- DOCME
-function M.Link (group, options)
-	local link = common.NewCircle(group, 0, 0, layout.ResolveX("2.5%"))
-
-	if options then
-		link.m_interfaces = options.interfaces
-		link.m_rep = options.rep
-		link.m_sub = options.sub
-		link.m_tags = options.tags
-	end
-
-	link:addEventListener("touch", LinkTouch)
-	link:setFillColor(0)
-	link:setStrokeColor(.75)
-
-	link.strokeWidth = 6
-
-	return link
-end
-
 -- Values used by each scroll button type --
 local ScrollValues = { 
 	dscroll = { 0, 1, 90},
