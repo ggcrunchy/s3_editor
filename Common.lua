@@ -34,6 +34,7 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local sheet = require("corona_utils.sheet")
+local state_vars = require("config.StateVariables")
 
 -- Classes --
 local Links = require("tektite_base_classes.Link.Links")
@@ -201,6 +202,27 @@ function M.GetRepFromValues (values)
 	return ValuesToRep[values]
 end
 
+--
+local function PairSublinks (sub_links, t1, name1, t2, name2)
+	for k in adaptive.IterSet(t1) do
+		sub_links[k] = name2
+	end
+
+	for k in adaptive.IterSet(t2) do
+		sub_links[k] = name1
+	end
+end
+
+-- --
+local Properties = state_vars.properties
+
+--
+local function PropertyPairs (sub_links, t1, t2)
+	for name, prop in pairs(Properties) do
+		PairSublinks(sub_links, t1 and t1[name], prop.push, t2 and t2[name], prop.push)
+	end
+end
+
 --- DOCME
 -- @param etype
 -- @callable on_editor_event
@@ -210,18 +232,13 @@ function M.GetTag (etype, on_editor_event)
 	local tag_db = SessionLinks:GetTagDatabase()
 
 	if tname and not tag_db:Exists(tname) then
-		local topts, ret1, ret2 = on_editor_event(etype, "new_tag")
+		local topts, ret1, ret2, ret3, ret4 = on_editor_event(etype, "new_tag")
 
 		if topts == "sources_and_targets" then
 			local sub_links = {}
 
-			for k in adaptive.IterSet(ret1) do
-				sub_links[k] = "event_target"
-			end
-
-			for k in adaptive.IterSet(ret2) do
-				sub_links[k] = "event_source"
-			end
+			PairSublinks(sub_links, ret1, "event_source", ret2, "event_target")
+			PropertyPairs(sub_links, ret3, ret4)
 
 			topts = { sub_links = sub_links }
 		-- Others?
