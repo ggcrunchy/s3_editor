@@ -219,7 +219,7 @@ local Properties = state_vars.properties
 --
 local function PropertyPairs (sub_links, t1, t2)
 	for name, prop in pairs(Properties) do
-		PairSublinks(sub_links, t1 and t1[name], prop.push, t2 and t2[name], prop.push)
+		PairSublinks(sub_links, t1 and t1[name], prop.push, t2 and t2[name], prop.pull)
 	end
 end
 

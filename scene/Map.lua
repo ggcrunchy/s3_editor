@@ -58,6 +58,7 @@ local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
+local state_vars = require("config.StateVariables")
 local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 local timers = require("corona_utils.timers")
@@ -335,6 +336,11 @@ function Scene:show (event)
 			event_target = "event_source"
 		} do
 			tags:ImplyInterface(k, v)
+		end
+
+		for _, prop in pairs(state_vars.properties) do
+			tags:ImplyInterface(prop.pull, prop.push)
+			tags:ImplyInterface(prop.push, prop.pull)
 		end
 
 		--
