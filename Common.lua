@@ -221,6 +221,8 @@ local function PropertyPairs (sub_links, t1, t2)
 	for name, prop in pairs(Properties) do
 		PairSublinks(sub_links, t1 and t1[name], prop.push, t2 and t2[name], prop.pull)
 	end
+
+	return sub_links
 end
 
 --- DOCME
@@ -238,10 +240,10 @@ function M.GetTag (etype, on_editor_event)
 			local sub_links = {}
 
 			PairSublinks(sub_links, ret1, "event_source", ret2, "event_target")
-			PropertyPairs(sub_links, ret3, ret4)
 
-			topts = { sub_links = sub_links }
-		-- Others?
+			topts = { sub_links = PropertyPairs(sub_links, ret3, ret4) }
+		elseif topts == "properties" then
+			topts = { sub_links = PropertyPairs({}, ret1, ret2) }
 		end
 
 		tag_db:New(tname, topts)
