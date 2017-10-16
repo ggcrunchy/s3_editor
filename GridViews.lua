@@ -269,7 +269,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		--
 		if update == FrameUpdate then
-			current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title)
+			current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title, { types = types })
 		end
 
 		--
