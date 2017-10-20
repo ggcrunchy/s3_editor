@@ -26,6 +26,7 @@
 
 -- Standard library imports --
 local tonumber = tonumber
+local type = type
 
 -- Modules --
 local button = require("corona_ui.widgets.button")
@@ -70,23 +71,37 @@ end
 
 --- DOCME
 function M.EditErase (dialog_wrapper, vtype)
-	local list, values, watch_name
+	local list, values, watch_name, vfunc
+
+	if type(vtype) == "function" then
+		vfunc = vtype
+	end
 
 	--
 	local ListView = {}
 
 	--- DOCME
 	function ListView:AddEntry (key)
-		values[key] = dialog_wrapper("new_values", vtype, key)
-
-		local index = list:Append(key)
-		local tag = dialog_wrapper("get_tag", vtype)
-
-		if tag then
-			local entry = list:GetRect(index)
-
-			common.BindRepAndValuesWithTag(entry, values[key], tag, dialog_wrapper)
+		if vfunc then
+			vtype = vfunc()
 		end
+
+		if vtype then
+			values[key] = dialog_wrapper("new_values", vtype, key)
+
+			local index = list:Append(key)
+			local tag = dialog_wrapper("get_tag", vtype)
+
+			if tag then
+				local entry = list:GetRect(index)
+
+				common.BindRepAndValuesWithTag(entry, values[key], tag, dialog_wrapper)
+			end
+
+			return true
+		end
+
+		return false
 	end
 
 	--- DOCME
@@ -129,9 +144,9 @@ function M.EditErase (dialog_wrapper, vtype)
 		--
 		local using = match_slot_id.Wrap{}
 		local new = button.Button_XY(group, 0, 0, "13.75%", "8.33%", function()
-			self:AddEntry(GetSuffix(list, using, prefix))
-
-			common.Dirty()
+			if self:AddEntry(GetSuffix(list, using, prefix)) then
+				common.Dirty()
+			end
 		end, "New")
 
 		layout.LeftAlignWith(new, list)
