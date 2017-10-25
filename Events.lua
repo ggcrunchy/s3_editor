@@ -394,6 +394,8 @@ function M.ResolveLinks_Save (level)
 					new[#new + 1] = osub
 				end
 			end
+			-- TODO: templates and instances...
+			-- probably harder problem for Load()
 		end
 
 		level.links = new
