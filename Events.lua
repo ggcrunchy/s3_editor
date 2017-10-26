@@ -336,14 +336,40 @@ function M.ResolveLinks_Build (level)
 	end
 end
 
+-- Helper to resolve sublinks that might be instantiated templates; since this is a new session, we need to
+-- request new names for each instance to maintain consistency
+local function ResolveSublink (object, name, resolved)
+	if name:sub(-1) == "]" then
+		resolved = resolved or {}
+
+		if not resolved[name] then
+			local tag_db = common.GetLinks():GetTagDatabase()
+
+			resolved[name] = tag_db:Instantiate(tag_db:GetTag(object), name:match("(%s)%[%i%]") .. "*", object)
+		end
+
+		return resolved[name], resolved
+	else
+		return name, resolved
+	end
+end
+
 --- Resolves any link information produced by @{LoadGroupOfValues_Grid} and @{LoadValuesFromEntry}.
 --
 -- Once finished, the loaded values are ready to be edited.
+--
+-- **N.B.** Loading might change some IDs. In particular, templated sublink instances are subject to
+-- renaming to maintain consistency with the tag database's state.
 -- @ptable level Saved level state. If present, the **links** table is read, and links are
 -- established between editor-side values.
 function M.ResolveLinks_Load (level)
 	if level.links then
+		local resolved
+
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
+			sub1, resolved = ResolveSublink(obj1, sub1, resolved)
+			sub2, resolved = ResolveSublink(obj2, sub2, resolved)
+
 			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)
 	end
