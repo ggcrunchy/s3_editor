@@ -372,6 +372,7 @@ function M.ResolveLinks_Load (level)
 
 			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)
+		-- TODO: fix keys for set-style templates
 	end
 end
 
@@ -409,22 +410,24 @@ function M.ResolveLinks_Save (level)
 
 			entry.uid = nil
 
-			for _, sub in tag_db:Sublinks(links:GetTag(rep)) do
-				new[#new + 1] = "sub"
-				new[#new + 1] = sub
+			for _, sname in tag_db:Sublinks(links:GetTag(rep), rep) do
+				if sname:sub(-1) ~= "*" then
+					new[#new + 1] = "sub"
+					new[#new + 1] = sname
 
-				for link in links:Links(rep, sub) do
-					local obj, osub = link:GetOtherObject(rep)
+					for link in links:Links(rep, sname) do
+						local obj, osub = link:GetOtherObject(rep)
 
-					new[#new + 1] = list[obj]
-					new[#new + 1] = osub
+						new[#new + 1] = list[obj]
+						new[#new + 1] = osub
+					end
 				end
 			end
-			-- TODO: templates and instances...
-			-- probably harder problem for Load()
 		end
 
 		level.links = new
+		-- TODO: record keys for set-style templates
+		-- ^^^ Does this need special build handling?
 	end
 end
 
