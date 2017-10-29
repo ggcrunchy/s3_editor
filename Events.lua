@@ -410,17 +410,15 @@ function M.ResolveLinks_Save (level)
 
 			entry.uid = nil
 
-			for _, sname in tag_db:Sublinks(links:GetTag(rep), rep) do
-				if sname:sub(-1) ~= "*" then
-					new[#new + 1] = "sub"
-					new[#new + 1] = sname
+			for _, sub in tag_db:Sublinks(links:GetTag(rep), "no_templates") do
+				new[#new + 1] = "sub"
+				new[#new + 1] = sub
 
-					for link in links:Links(rep, sname) do
-						local obj, osub = link:GetOtherObject(rep)
+				for link in links:Links(rep, sub) do
+					local obj, osub = link:GetOtherObject(rep)
 
-						new[#new + 1] = list[obj]
-						new[#new + 1] = osub
-					end
+					new[#new + 1] = list[obj]
+					new[#new + 1] = osub
 				end
 			end
 		end
