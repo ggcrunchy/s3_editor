@@ -372,7 +372,7 @@ function M.ResolveLinks_Load (level)
 
 			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)
-		-- TODO: fix keys for set-style templates
+		-- TODO: fix labels for set-style templates
 	end
 end
 
@@ -424,7 +424,7 @@ function M.ResolveLinks_Save (level)
 		end
 
 		level.links = new
-		-- TODO: record keys for set-style templates
+		-- TODO: record labels for set-style templates
 		-- ^^^ Does this need special build handling?
 	end
 end
