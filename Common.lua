@@ -126,11 +126,14 @@ function M.BindRepAndValuesWithTag (rep, values, tag, dialog)
 	end
 end
 
+-- --
+local Labels
+
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, Labels, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.
@@ -188,6 +191,13 @@ local NCols, NRows
 -- @treturn uint ...and number of rows.
 function M.GetDims ()
 	return NCols, NRows
+end
+
+--- Getter.
+-- @string name Name to label, e.g. an instanced sublink.
+-- @treturn ?|string|nil Current label, or **nil** if none is assigned.
+function M.GetLabel (name)
+	return Labels and Labels[name]
 end
 
 --- DOCME
@@ -376,6 +386,18 @@ function M.ProxyRect (group, minx, miny, maxx, maxy)
 	rect.m_is_proxy = true
 
 	return rect
+end
+
+--- Attach a label to a name, e.g. to attach user-defined information.
+-- @string name Name to label.
+-- @tparam ?|string|nil Label to assign, or **nil** to remove the label.
+function M.SetLabel (name, label)
+	if label then
+		Labels = Labels or {}
+		Labels[name] = label
+	elseif Labels then
+		Labels[name] = nil
+	end
 end
 
 --- Shows or hides the current selection widget. As a convenience, the last position of a

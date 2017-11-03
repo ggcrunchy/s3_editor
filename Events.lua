@@ -338,7 +338,7 @@ end
 
 -- Helper to resolve sublinks that might be instantiated templates; since this is a new session, we need to
 -- request new names for each instance to maintain consistency
-local function ResolveSublink (object, name, resolved)
+local function ResolveSublink (object, name, resolved, labels)
 	if name:sub(-1) == "]" then
 		resolved = resolved or {}
 
@@ -346,6 +346,8 @@ local function ResolveSublink (object, name, resolved)
 			local tag_db = common.GetLinks():GetTagDatabase()
 
 			resolved[name] = tag_db:ReplaceSingleInstance(tag_db:GetTag(object), name)
+
+			common.SetLabel(resolved[name], labels and labels[name])
 		end
 
 		return resolved[name], resolved
@@ -364,16 +366,27 @@ end
 -- established between editor-side values.
 function M.ResolveLinks_Load (level)
 	if level.links then
-		local resolved
+		local labels, resolved = level.labels
 
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
-			sub1, resolved = ResolveSublink(obj1, sub1, resolved)
-			sub2, resolved = ResolveSublink(obj2, sub2, resolved)
+			sub1, resolved = ResolveSublink(obj1, sub1, resolved, labels)
+			sub2, resolved = ResolveSublink(obj2, sub2, resolved, labels)
 
 			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)
-		-- TODO: fix labels for set-style templates
 	end
+end
+
+--
+local function GatherLabel (name, labels)
+	local label = common.GetLabel(name)
+
+	if label then
+		labels = labels or {}
+		labels[name] = label
+	end
+
+	return labels
 end
 
 --- Resolves any link information produced by @{SaveGroupOfValues} and @{SaveValuesIntoEntry}.
@@ -399,7 +412,7 @@ function M.ResolveLinks_Save (level)
 	local list = level.links
 
 	if list then
-		local new, links = {}, common.GetLinks()
+		local new, links, labels = {}, common.GetLinks()
 		local tag_db = links:GetTagDatabase()
 
 		for _, rep in ipairs(list) do
@@ -414,18 +427,20 @@ function M.ResolveLinks_Save (level)
 				new[#new + 1] = "sub"
 				new[#new + 1] = sub
 
+				labels = GatherLabel(sub, labels)
+
 				for link in links:Links(rep, sub) do
 					local obj, osub = link:GetOtherObject(rep)
 
 					new[#new + 1] = list[obj]
 					new[#new + 1] = osub
+
+					labels = GatherLabel(sub, labels)
 				end
 			end
 		end
 
-		level.links = new
-		-- TODO: record labels for set-style templates
-		-- ^^^ Does this need special build handling?
+		level.links, level.labels = new, labels
 	end
 end
 
