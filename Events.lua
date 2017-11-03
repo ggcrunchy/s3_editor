@@ -345,7 +345,7 @@ local function ResolveSublink (object, name, resolved)
 		if not resolved[name] then
 			local tag_db = common.GetLinks():GetTagDatabase()
 
-			resolved[name] = tag_db:Instantiate(tag_db:GetTag(object), name:match("(%s)%[%i%]") .. "*", object)
+			resolved[name] = tag_db:ReplaceSingleInstance(tag_db:GetTag(object), name)
 		end
 
 		return resolved[name], resolved
@@ -533,7 +533,7 @@ end
 function M.VerifyValues (verify, mod, view)
 	local values = view:GetValues()
 
-	for k, v in pairs(values) do
+	for _, v in pairs(values) do
 		mod.EditorEvent(v.type, "verify", verify, v, common.GetRepFromValues(v))
 	end
 end
