@@ -151,6 +151,9 @@ local HelpOpts = { isModal = true }
 local TabsMax = 7
 
 -- --
+local TabsToRotate = 3
+
+-- --
 local TabOptions, TabRotate, TabW
 
 --
@@ -302,17 +305,29 @@ function Scene:show (event)
 			-- /TODO
 
 			local lscroll = common_ui.ScrollButton(self.view, "lscroll", 0, 0, function()
-				if x > 0 and not Tabs.m_going then
-					x = x - 1
+				local amount = 0
 
-					TabRotate(w)
+				for i = 1, Tabs.m_going and 0 or TabsToRotate do
+					if x > 0 then
+						x, amount = x - 1, amount + w
+					end
+				end
+
+				if amount ~= 0 then
+					TabRotate(amount)
 				end
 			end)
 			local rscroll = common_ui.ScrollButton(self.view, "rscroll", 0, 0, function()
-				if x < n and not Tabs.m_going then
-					x = x + 1
+				local amount = 0
 
-					TabRotate(-w)
+				for i = 1, Tabs.m_going and 0 or TabsToRotate do
+					if x < n then
+						x, amount = x + 1, amount - w
+					end
+				end
+
+				if amount ~= 0 then
+					TabRotate(amount)
 				end
 			end)
 
