@@ -204,7 +204,7 @@ function M.LoadGroupOfValues_List (level, what, mod, list_view)
 
 	for k, entry in pairs(level[what].entries) do
 		-- Add and populate a new entry.
-		values[k], n = list_view:AddEntry(k), n + 1
+		values[k], n = list_view:AddEntry(k, entry.type), n + 1
 
 		_LoadValuesFromEntry_(level, mod, values[k], entry)
 
@@ -338,22 +338,21 @@ end
 
 -- Helper to resolve sublinks that might be instantiated templates; since this is a new session, we need to
 -- request new names for each instance to maintain consistency
-local function ResolveSublink (object, name, resolved, labels)
-	if name:sub(-1) == "]" then
-		resolved = resolved or {}
+local function ResolveSublink (links, tag_db, object, name, resolved, labels)
+	local res_name = resolved and resolved[name]
 
-		if not resolved[name] then
-			local tag_db = common.GetLinks():GetTagDatabase()
+	if not res_name then
+		res_name = tag_db:ReplaceSingleInstance(links:GetTag(object), name)
 
-			resolved[name] = tag_db:ReplaceSingleInstance(tag_db:GetTag(object), name)
+		if res_name then
+			resolved = resolved or {}
+			resolved[name] = res_name
 
-			common.SetLabel(resolved[name], labels and labels[name])
+			common.SetLabel(res_name, labels and labels[name])
 		end
-
-		return resolved[name], resolved
-	else
-		return name, resolved
 	end
+
+	return res_name or name, resolved
 end
 
 --- Resolves any link information produced by @{LoadGroupOfValues_Grid} and @{LoadValuesFromEntry}.
@@ -366,11 +365,12 @@ end
 -- established between editor-side values.
 function M.ResolveLinks_Load (level)
 	if level.links then
-		local labels, resolved = level.labels
+		local links = common.GetLinks()
+		local tag_db, labels, resolved = links:GetTagDatabase(), level.labels
 
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
-			sub1, resolved = ResolveSublink(obj1, sub1, resolved, labels)
-			sub2, resolved = ResolveSublink(obj2, sub2, resolved, labels)
+			sub1, resolved = ResolveSublink(links, tag_db, obj1, sub1, resolved, labels)
+			sub2, resolved = ResolveSublink(links, tag_db, obj2, sub2, resolved, labels)
 
 			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
 		end)

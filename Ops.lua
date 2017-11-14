@@ -186,7 +186,7 @@ end
 -- This table is then added, as a string, to the level database (as a WIP).
 -- @callable[opt] follow_up If present, called (without arguments) after saving.
 -- @see s3_editor.Common.IsDirty, corona_utils.persistence.SaveLevel, GetLevelName
-function M.Save (follow_up)
+function M.Save ()
 	SaveBody()
 end
 

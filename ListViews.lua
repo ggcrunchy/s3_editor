@@ -81,8 +81,10 @@ function M.EditErase (dialog_wrapper, vtype)
 	local ListView = {}
 
 	--- DOCME
-	function ListView:AddEntry (key)
-		if vfunc then
+	function ListView:AddEntry (key, itype)
+		if itype then
+			vtype = itype
+		elseif vfunc then
 			vtype = vfunc()
 		end
 
@@ -98,7 +100,7 @@ function M.EditErase (dialog_wrapper, vtype)
 				common.BindRepAndValuesWithTag(entry, values[key], tag, dialog_wrapper)
 			end
 
-			return true
+			return values[key]
 		end
 
 		return false
@@ -127,7 +129,7 @@ function M.EditErase (dialog_wrapper, vtype)
 	end
 
 	--- DOCME
-	function ListView:Load (group, prefix, top, left)
+	function ListView:Load (group, top, left)
 		--
 		list, values = table_view_patterns.Listbox(group, {
 			width = "30%", height = "15%",
@@ -144,7 +146,11 @@ function M.EditErase (dialog_wrapper, vtype)
 		--
 		local using = match_slot_id.Wrap{}
 		local new = button.Button_XY(group, 0, 0, "13.75%", "8.33%", function()
-			if self:AddEntry(GetSuffix(list, using, prefix)) then
+			if vfunc then
+				vtype = vfunc()
+			end
+
+			if self:AddEntry(GetSuffix(list, using, vtype)) then
 				common.Dirty()
 			end
 		end, "New")
