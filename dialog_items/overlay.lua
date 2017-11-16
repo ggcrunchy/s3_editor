@@ -39,7 +39,9 @@ local function AuxChooseAudio (mode)
 		composer.showOverlay("s3_editor.overlay.ChooseAudio", {
 			params = {
 				assign = function(name)
-					utils.UpdateObject(button.parent, name)
+					utils.UpdateObject(button, name)
+
+					button:SetText(name)
 				end,
 				mode = mode
 			}
@@ -68,18 +70,25 @@ end
 	-- TODO: Incorporate into buttons...
 ]]
 
+-- --
+local PickerOpts = { skin = "small_text_button" }
+
 --- DOCME
 function M:AddMusicPicker (options)
-	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("stream"))
+	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("stream"), PickerOpts)
 
 	self:CommonAdd(picker, options, true)
+
+	picker:SetText(utils.GetValue(picker) or "")
 end
 
 --- DOCME
 function M:AddSoundPicker (options)
-	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("sound"))
+	local picker = button.Button(self:ItemGroup(), "30%", "8.33%", AuxChooseAudio("sound"), PickerOpts)
 
 	self:CommonAdd(picker, options, true)
+
+	picker:SetText(utils.GetValue(picker) or "")
 end
 
 -- Export the module.
