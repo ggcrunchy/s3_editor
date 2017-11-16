@@ -269,19 +269,18 @@ function M.LoadValuesFromEntry (level, mod, values, entry)
 	end
 
 	--
-	local links, resolved = common.GetLinks()
+	local links, labels, resolved = common.GetLinks()
 	local tag_db, tag = links:GetTagDatabase(), links:GetTag(rep)
 
 	for i = 1, #(entry.instances or "") do
 		local name = entry.instances[i]
 
-		resolved = resolved or {}
+		labels, resolved = labels or level.labels, resolved or {}
 		resolved[name] = tag_db:ReplaceSingleInstance(tag, name)
-print("RESOLVED",name,resolved[name])
-		common.AddInstance(rep, resolved[name])
-	end
 
-	level.resolved = resolved
+		common.AddInstance(rep, resolved[name])
+		common.SetLabel(resolved[name], labels and labels[name])
+	end
 
 	-- Copy the editor state into the values, alert any listeners, and add defaults as necessary.
 	entry.instances = nil
@@ -359,15 +358,8 @@ end
 
 -- Helper to resolve sublinks that might be instantiated templates; since this is a new session, we need to
 -- request new names for each instance to maintain consistency
-local function ResolveSublink (links, tag_db, object, name, labels, resolved)
-	local res_name = resolved and resolved[name]
-
-	if res_name then
-print("RESOLVED TO!",name,res_name)
-		common.SetLabel(res_name, labels and labels[name])
-	end
-
-	return res_name or name
+local function ResolveSublink (name, resolved)
+	return resolved and resolved[name] or name
 end
 
 --- Resolves any link information produced by @{LoadGroupOfValues_Grid} and @{LoadValuesFromEntry}.
@@ -380,12 +372,12 @@ end
 -- established between editor-side values.
 function M.ResolveLinks_Load (level)
 	if level.links then
-		local links, labels, resolved = common.GetLinks(), level.labels, level.resolved
+		local links, resolved = common.GetLinks(), level.resolved
 		local tag_db = links:GetTagDatabase()
 
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
-			sub1 = ResolveSublink(links, tag_db, obj1, sub1, labels, resolved)
-			sub2 = ResolveSublink(links, tag_db, obj2, sub2, labels, resolved)
+			sub1 = ResolveSublink(sub1, resolved)
+			sub2 = ResolveSublink(sub2, resolved)
 
 			links:LinkObjects(obj1, obj2, sub1, sub2)
 		end)
