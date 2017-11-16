@@ -64,6 +64,17 @@ function M.AddButton (name, button)
 	Buttons[name] = button
 end
 
+local Instances
+
+--- DOCME
+function M.AddInstance (object, instance)
+	Instances = Instances or {}
+
+	local ilist = Instances[object] or {}
+
+	Instances[object], ilist[#ilist + 1] = ilist, instance
+end
+
 --
 function M.AttachLinkInfo (object, info)
 	local old_info = object.m_link_info
@@ -133,7 +144,7 @@ local Labels
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Labels, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, Instances, Labels, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.
@@ -191,6 +202,23 @@ local NCols, NRows
 -- @treturn uint ...and number of rows.
 function M.GetDims ()
 	return NCols, NRows
+end
+
+--- DOCME
+function M.GetInstances (object, how)
+	local ilist = Instances and Instances[object]
+
+	if how == "copy" and ilist then
+		local into = {}
+
+		for _, instance in ipairs(ilist) do
+			into[#into + 1] = instance
+		end
+
+		return into
+	end
+
+	return ilist
 end
 
 --- Getter.
@@ -386,6 +414,25 @@ function M.ProxyRect (group, minx, miny, maxx, maxy)
 	rect.m_is_proxy = true
 
 	return rect
+end
+
+--- DOCME
+function M.RemoveInstance (object, instance)
+	if instance == "all" then
+		Instances[object] = nil
+	else
+		local ilist = Instances[object]
+		local n = #ilist
+
+		for i = 1, n do
+			if ilist[i] == instance then
+				ilist[i] = ilist[n]
+				ilist[n] = nil
+
+				break
+			end
+		end
+	end
 end
 
 --- Attach a label to a name, e.g. to attach user-defined information.

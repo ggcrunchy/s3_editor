@@ -240,6 +240,8 @@ local function EnumDefs (mod, value)
 	end
 end
 
+--
+
 --- Helper to load a blob of values.
 -- @ptable level Loaded level state. (Basically, this begins as saved level state, and
 -- is restructured into load-appropriate form.)
@@ -260,11 +262,30 @@ function M.LoadValuesFromEntry (level, mod, values, entry)
 
 	-- If the entry will be involved in links, stash its rep so that it gets picked up (as
 	-- "entry") by ReadLinks() during resolution.
+	local rep = common.GetRepFromValues(values)
+
 	if entry.uid then
-		level.links[entry.uid] = common.GetRepFromValues(values)
+		level.links[entry.uid] = rep
 	end
 
+	--
+	local links, resolved = common.GetLinks()
+	local tag_db, tag = links:GetTagDatabase(), links:GetTag(rep)
+
+	for i = 1, #(entry.instances or "") do
+		local name = entry.instances[i]
+
+		resolved = resolved or {}
+		resolved[name] = tag_db:ReplaceSingleInstance(tag, name)
+print("RESOLVED",name,resolved[name])
+		common.AddInstance(rep, resolved[name])
+	end
+
+	level.resolved = resolved
+
 	-- Copy the editor state into the values, alert any listeners, and add defaults as necessary.
+	entry.instances = nil
+
 	common.CopyInto(values, entry)
 	mod.EditorEvent(ValueType, "load", level, entry, values)
 
@@ -317,7 +338,7 @@ end
 function M.ResolveLinks_Build (level)
 	if level.links then
 		ReadLinks(level, function(entry, index)
-			entry.uid = index
+			entry.uid, entry.instances = index
 		end, function(list, entry1, entry2, sub1, sub2)
 			local func1, func2 = list[entry1], list[entry2]
 
@@ -338,21 +359,15 @@ end
 
 -- Helper to resolve sublinks that might be instantiated templates; since this is a new session, we need to
 -- request new names for each instance to maintain consistency
-local function ResolveSublink (links, tag_db, object, name, resolved, labels)
+local function ResolveSublink (links, tag_db, object, name, labels, resolved)
 	local res_name = resolved and resolved[name]
 
-	if not res_name then
-		res_name = tag_db:ReplaceSingleInstance(links:GetTag(object), name)
-
-		if res_name then
-			resolved = resolved or {}
-			resolved[name] = res_name
-
-			common.SetLabel(res_name, labels and labels[name])
-		end
+	if res_name then
+print("RESOLVED TO!",name,res_name)
+		common.SetLabel(res_name, labels and labels[name])
 	end
 
-	return res_name or name, resolved
+	return res_name or name
 end
 
 --- Resolves any link information produced by @{LoadGroupOfValues_Grid} and @{LoadValuesFromEntry}.
@@ -365,14 +380,14 @@ end
 -- established between editor-side values.
 function M.ResolveLinks_Load (level)
 	if level.links then
-		local links = common.GetLinks()
-		local tag_db, labels, resolved = links:GetTagDatabase(), level.labels
+		local links, labels, resolved = common.GetLinks(), level.labels, level.resolved
+		local tag_db = links:GetTagDatabase()
 
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
-			sub1, resolved = ResolveSublink(links, tag_db, obj1, sub1, resolved, labels)
-			sub2, resolved = ResolveSublink(links, tag_db, obj2, sub2, resolved, labels)
+			sub1 = ResolveSublink(links, tag_db, obj1, sub1, labels, resolved)
+			sub2 = ResolveSublink(links, tag_db, obj2, sub2, labels, resolved)
 
-			common.GetLinks():LinkObjects(obj1, obj2, sub1, sub2)
+			links:LinkObjects(obj1, obj2, sub1, sub2)
 		end)
 	end
 end
@@ -467,7 +482,7 @@ local function HasAny (rep)
 	local tag = links:GetTag(rep)
 
 	if tag then
-		local f, s, v0, reclaim = links:GetTagDatabase():Sublinks(tag)
+		local f, s, v0, reclaim = links:GetTagDatabase():Sublinks(tag, "no_templates")
 
 		for _, sub in f, s, v0 do
 			if links:HasLinks(rep, sub) then
@@ -525,6 +540,8 @@ function M.SaveValuesIntoEntry (level, mod, values, entry)
 	mod.EditorEvent(ValueType, "save", level, entry, values)
 
 	AssignDefs(entry)
+
+	entry.instances = common.GetInstances(rep, "copy")
 
 	return entry
 end

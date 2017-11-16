@@ -29,6 +29,7 @@ local type = type
 
 -- Modules --
 local net = require("corona_ui.patterns.net")
+local scenes = require("corona_utils.scenes")
 
 -- Corona globals --
 local display = display
@@ -87,6 +88,8 @@ function Overlay:show (event)
 		StringFunc("get", Arg, Text)
 
 		Text:addEventListener("userInput", UserInput)
+
+		self.m_old_listen = scenes.SetListenFunc(nil)
 	end
 end
 
@@ -97,7 +100,9 @@ function Overlay:hide (event)
 	if event.phase == "did" then
 		Text:removeSelf()
 
-		StringFunc, Text, Arg = nil
+		scenes.SetListenFunc(self.m_old_listen)
+
+		StringFunc, Text, Arg, self.m_old_listen = nil
 	end
 end
 
