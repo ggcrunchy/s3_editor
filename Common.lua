@@ -48,6 +48,7 @@ local transition = transition
 -- Cached module references --
 local _AttachLinkInfo_
 local _BindRepAndValues_
+local _SetLabel_
 
 -- Exports --
 local M = {}
@@ -418,19 +419,26 @@ end
 
 --- DOCME
 function M.RemoveInstance (object, instance)
+	local ilist = Instances and Instances[object]
+
 	if instance ~= "all" then
-		local ilist = Instances[object]
 		local n = #ilist
 
 		for i = 1, n do
 			if ilist[i] == instance then
+				_SetLabel_(instance, nil)
+
 				ilist[i] = ilist[n]
 				ilist[n] = nil
 
 				break
 			end
 		end
-	elseif Instances then
+	elseif ilist then
+		for _, instance in ipairs(ilist) do
+			_SetLabel_(instance, nil)
+		end
+
 		Instances[object] = nil
 	end
 end
@@ -496,6 +504,7 @@ end
 -- Cache module members.
 _AttachLinkInfo_ = M.AttachLinkInfo
 _BindRepAndValues_ = M.BindRepAndValues
+_SetLabel_ = M.SetLabel
 
 -- Export the module.
 return M
