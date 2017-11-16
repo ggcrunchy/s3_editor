@@ -418,9 +418,7 @@ end
 
 --- DOCME
 function M.RemoveInstance (object, instance)
-	if instance == "all" then
-		Instances[object] = nil
-	else
+	if instance ~= "all" then
 		local ilist = Instances[object]
 		local n = #ilist
 
@@ -432,6 +430,8 @@ function M.RemoveInstance (object, instance)
 				break
 			end
 		end
+	elseif Instances then
+		Instances[object] = nil
 	end
 end
 
