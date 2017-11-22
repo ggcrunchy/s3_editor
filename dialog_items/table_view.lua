@@ -24,24 +24,51 @@
 --
 
 -- Modules --
+local state_vars = require("config.StateVariables")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 local utils = require("corona_ui.dialog_impl.utils")
 
 -- Exports --
 local M = {}
 
+--
+--
+--
+
+local ListboxOpts = {
+	press = function(event)
+		utils.UpdateObject(event.listbox, event.str)
+	end
+}
+
+local function AuxListbox (dialog, options, list)
+	local listbox = table_view_patterns.Listbox(dialog:ItemGroup(), ListboxOpts)
+
+	utils.SetProperty(listbox, "type", "widget", utils.GetNamespace(dialog))
+
+	listbox:AppendList(list)
+	dialog:CommonAdd(listbox, options, true)
+
+	local def_index = utils.GetValue(listbox) or (options and options.default)
+
+	def_index = def_index and listbox:Find(def_index)
+
+	if def_index then
+		listbox:Select(def_index)
+	end
+end
+
+--- DOCME
+-- @ptable options
+function M:AddFamilyList (options)
+	AuxListbox(self, options, state_vars.families)
+end
+
 --- DOCME
 -- @ptable options
 function M:AddListbox (options)
-	local listbox = table_view_patterns.Listbox(self:ItemGroup())
-
-	utils.SetProperty(listbox, "type", "widget", utils.GetNamespace(self))
-
-	-- TODO! there are probably some ways to make this nicer?
-	self:CommonAdd(listbox, options)
+	AuxListbox(self, options, options)
 end
-
--- ^^^ TODO: Various special-purpose lists...
 
 -- Export the module.
 return M
