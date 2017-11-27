@@ -217,6 +217,7 @@ end
 -- One or more passes are run over the level data. On each pass, the **verify\_level\_wip**
 -- event is dispatched, with a table as event. The table has the following fields:
 --
+-- * **get\_label**: May be called as `label = get_label(name)` to query any label.
 -- * **links**: Links for the current editor session, cf. @{s3_editor.Common.GetLinks}.
 -- * **pass**: Read-only **uint**. Starts at 1 and is incremented after each pass.
 -- * **needs\_another\_pass**: **bool**. Begins each pass as **false**. To request another
@@ -230,7 +231,7 @@ end
 -- @see s3_editor.Common.IsVerified
 function M.Verify ()
 	if not common.IsVerified() then
-		local verify, done = { pass = 1, links = common.GetLinks() }
+		local verify, done = { pass = 1, get_label = common.GetLabel, links = common.GetLinks() }
 
 		-- If the verification takes a while, post the activity indicator.
 		timers.RepeatEx(function(event)

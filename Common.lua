@@ -256,26 +256,29 @@ end
 local Properties = state_vars.properties
 
 --
-local function LimitToOneLink (object, sub, _, _, links)
-	return not links:HasLinks(object, sub)
+local function LimitToOneLink (object, _, sub, o, links)
+	return not links:HasLinks(object, sub:GetName())
 end
 
--- TODO: pull will usually want either zero, one, or many targets...
--- ^^^ Idea: by default one or zero, but if ends with "+" make it multi-target (then remove that "+")
--- Now in probation, I guess
+--
+local PushFuncs = {}
 
 --
 local function PropertyPairs (sub_links, t1, t2)
 	for name, prop in pairs(Properties) do
-		local pull = prop.pull
+		local push = prop.push
 
-		if name:sub(-1) == "+" then
-			name = name:sub(1, -2)
+		if name:sub(-1) == "+" then -- allow more links?
+			name = name:sub(1, -2) -- if so, restore the name
+		elseif not PushFuncs[push] then -- else impose a one-link limit as well
+			local augmented = { link_to = adaptive.Append(push, LimitToOneLink) }
+
+			PushFuncs[push], push = augmented, augmented
 		else
-		--	pull = adaptive.Append(pull, LimitToOneLink)
+			push = PushFuncs[push]
 		end
 
-		PairSublinks(sub_links, t1 and t1[name], prop.push, t2 and t2[name], pull)
+		PairSublinks(sub_links, t1 and t1[name], push, t2 and t2[name], prop.pull)
 	end
 
 	return sub_links

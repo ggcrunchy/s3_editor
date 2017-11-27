@@ -49,7 +49,7 @@ local function AuxListbox (dialog, options, list)
 	listbox:AppendList(list)
 	dialog:CommonAdd(listbox, options, true)
 
-	local def_index = utils.GetValue(listbox) or (options and options.default)
+	local def_index = utils.GetValue(listbox)
 
 	def_index = def_index and listbox:Find(def_index)
 

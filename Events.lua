@@ -67,7 +67,7 @@ local M = {}
 -- A **"build"** editor event takes as arguments, in order: _level_, _entry_, _built_. Any
 -- final changes to _built_ may be performed here.
 -- @ptable entry Entry to build. The built entry itself will be a copy of this, with **name**
--- and **id** stripped, plus any changes performed in the **"build"** logic; _entry_ itself
+-- and **uid** stripped, plus any changes performed in the **"build"** logic; _entry_ itself
 -- is left intact in case said logic still has need of those members.
 -- @array? acc Accumulator table, to which the built entry will be appended. If absent, a
 -- table is created.
@@ -76,6 +76,14 @@ function M.BuildEntry (level, mod, entry, acc)
 	acc = acc or {}
 
 	local built = common.CopyInto({}, entry)
+	local instances, labels, labeled_instances = built.instances, level.labels
+
+	for i = 1, #(instances or "") do
+		labeled_instances = labeled_instances or {}
+		labeled_instances[instances[i]] = labels[instances[i]]
+	end
+
+	built.labeled_instances, built.instances, built.name = labeled_instances
 
 	if entry.uid then
 		level.links[entry.uid], built.uid = built
@@ -83,11 +91,9 @@ function M.BuildEntry (level, mod, entry, acc)
 		level.links[built] = mod.EditorEvent(entry.type, "prep_link", level, built)
 	end
 
-	built.name = nil
-
 	mod.EditorEvent(entry.type, "build", level, entry, built)
 
-	acc[#acc + 1] = built
+	acc[#acc + 1], built.labeled_instances = built
 
 	return acc
 end
@@ -337,7 +343,7 @@ end
 function M.ResolveLinks_Build (level)
 	if level.links then
 		ReadLinks(level, function(entry, index)
-			entry.uid, entry.instances = index
+			entry.uid = index
 		end, function(list, entry1, entry2, sub1, sub2)
 			local func1, func2 = list[entry1], list[entry2]
 
@@ -350,9 +356,9 @@ function M.ResolveLinks_Build (level)
 			end
 		end)
 
-		-- All link information has now been incorporated into the entries themselves, so there
-		-- is no longer need to retain it in the editor state.
-		level.links = nil
+		-- All labels and link information have now been incorporated into the entries
+		-- themselves, so there is no longer need to retain it in the editor state.
+		level.labels, level.links = nil
 	end
 end
 
