@@ -268,8 +268,8 @@ local function PropertyPairs (sub_links, t1, t2)
 	for name, prop in pairs(Properties) do
 		local push = prop.push
 
-		if name:sub(-1) == "+" then -- allow more links?
-			name = name:sub(1, -2) -- if so, restore the name
+		if push:sub(-1) == "+" then -- allow more links?
+			push = push:sub(1, -2) -- if so, restore the name
 		elseif not PushFuncs[push] then -- else impose a one-link limit as well
 			local augmented = { link_to = adaptive.Append(push, LimitToOneLink) }
 
