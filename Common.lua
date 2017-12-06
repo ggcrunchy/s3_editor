@@ -30,6 +30,7 @@ local max = math.max
 local min = math.min
 local next = next
 local pairs = pairs
+local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
@@ -252,24 +253,20 @@ local function PairSublinks (sub_links, t1, name1, t2, name2)
 	end
 end
 
--- --
-local Properties = state_vars.properties
+local PushFuncs = {}
 
---
 local function LimitToOneLink (object, _, sub, o, links)
 	return not links:HasLinks(object, sub:GetName())
 end
 
---
-local PushFuncs = {}
+local function PairSublinksMulti (sub_links, t1, push, t2, pull)
+	for k in adaptive.IterSet(t1) do
+		sub_links[k] = pull
+	end
 
---
-local function PropertyPairs (sub_links, t1, t2)
-	for name, prop in pairs(Properties) do
-		local push = prop.push
-
-		if push:sub(-1) == "+" then -- allow more links?
-			push = push:sub(1, -2) -- if so, restore the name
+	for k in adaptive.IterSet(t2) do
+		if k:sub(-1) == "+" then -- allow more links?
+			k = k:sub(1, -2)
 		elseif not PushFuncs[push] then -- else impose a one-link limit as well
 			local augmented = { link_to = adaptive.Append(push, LimitToOneLink) }
 
@@ -278,7 +275,17 @@ local function PropertyPairs (sub_links, t1, t2)
 			push = PushFuncs[push]
 		end
 
-		PairSublinks(sub_links, t1 and t1[name], push, t2 and t2[name], prop.pull)
+		sub_links[k] = push
+	end
+end
+
+-- --
+local Properties = state_vars.properties
+
+--
+local function PropertyPairs (sub_links, t1, t2)
+	for name, prop in pairs(Properties) do
+		PairSublinksMulti(sub_links, t1 and t1[name], prop.push, t2 and t2[name], prop.pull)
 	end
 
 	return sub_links
