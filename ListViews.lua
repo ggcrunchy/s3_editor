@@ -82,25 +82,31 @@ function M.EditErase (dialog_wrapper, vtype)
 
 	--- DOCME
 	function ListView:AddEntry (key, itype)
+		local akey
+
 		if itype then
 			vtype = itype
 		elseif vfunc then
 			vtype = vfunc()
+		else
+			akey = key
 		end
 
 		if vtype then
-			values[key] = dialog_wrapper("new_values", vtype, key)
+			akey = akey or vtype .. key
 
-			local index = list:Append(key)
+			values[akey] = dialog_wrapper("new_values", vtype, key)
+
+			local index = list:Append(akey)
 			local tag = dialog_wrapper("get_tag", vtype)
 
 			if tag then
 				local entry = list:GetRect(index)
 
-				common.BindRepAndValuesWithTag(entry, values[key], tag, dialog_wrapper)
+				common.BindRepAndValuesWithTag(entry, values[akey], tag, dialog_wrapper)
 			end
 
-			return values[key]
+			return values[akey]
 		end
 
 		return false
