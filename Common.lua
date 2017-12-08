@@ -255,7 +255,7 @@ end
 
 local PushFuncs = {}
 
-local function LimitToOneLink (object, _, sub, o, links)
+local function LimitToOneLink (object, _, sub, _, links)
 	return not links:HasLinks(object, sub:GetName())
 end
 
@@ -265,17 +265,19 @@ local function PairSublinksMulti (sub_links, t1, push, t2, pull)
 	end
 
 	for k in adaptive.IterSet(t2) do
+		local pfunc = push
+
 		if k:sub(-1) == "+" then -- allow more links?
 			k = k:sub(1, -2)
-		elseif not PushFuncs[push] then -- else impose a one-link limit as well
-			local augmented = { link_to = adaptive.Append(push, LimitToOneLink) }
+		elseif not PushFuncs[pfunc] then -- else impose a one-link limit as well
+			local augmented = { link_to = adaptive.Append(pfunc, LimitToOneLink) }
 
-			PushFuncs[push], push = augmented, augmented
+			PushFuncs[pfunc], pfunc = augmented, augmented
 		else
-			push = PushFuncs[push]
+			pfunc = PushFuncs[pfunc]
 		end
 
-		sub_links[k] = push
+		sub_links[k] = pfunc
 	end
 end
 
