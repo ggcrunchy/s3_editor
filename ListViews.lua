@@ -85,7 +85,7 @@ function M.EditErase (dialog_wrapper, vtype)
 		local akey
 
 		if itype then
-			vtype = itype
+			vtype, akey = itype, key
 		elseif vfunc then
 			vtype = vfunc()
 		else
