@@ -45,6 +45,7 @@ local ipairs = ipairs
 local pairs = pairs
 
 -- Modules --
+local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
@@ -356,6 +357,15 @@ function Scene:show (event)
 		for _, prop in pairs(state_vars.properties) do
 			tags:ImplyInterface(prop.pull, prop.push)
 			tags:ImplyInterface(prop.push, prop.pull)
+		end
+
+		if state_vars.implied_by then
+			for from, props in pairs(state_vars.implied_by) do
+				for _, to in adaptive.IterArray(props) do
+					tags:ImplyInterface(from, to)
+					tags:ImplyInterface(to, from)
+				end
+			end
 		end
 
 		--
