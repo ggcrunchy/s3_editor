@@ -98,6 +98,8 @@ function M:AddString (options)
 
 		sopts.name = options.name
 		sopts.value_name = options.value_name
+		sopts.get_editable_text = options.get_editable_text
+		sopts.set_editable_text = options.set_editable_text
 	end
 
 	sopts.text = text or ""
