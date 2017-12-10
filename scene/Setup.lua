@@ -77,8 +77,8 @@ function Scene:create ()
 	button.Button_XY(self.view, "15%", "8.6%", "25%", "10.4%", scenes.WantsToGoBack, "Go Back")
 
 	self.m_new_scene = button.Button_XY(self.view, "from_right -15%", "from_bottom_align -20", "25%", "10.4%", function()
-		local cols = tonumber(self.m_cols:GetString().text)
-		local rows = tonumber(self.m_rows:GetString().text)
+		local cols = tonumber(self.m_cols:GetText())
+		local rows = tonumber(self.m_rows:GetText())
 
 		-- Alert the user if the input is invalid (too high a number, malformed, etc.).
 		-- Otherwise, proceed to the editor.

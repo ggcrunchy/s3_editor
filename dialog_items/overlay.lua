@@ -55,7 +55,7 @@ end
 		local index = list:Find(old_text)
 
 		if index and event.closed_by_key then
-			local str = event.target:GetString().text
+			local str = event.target:GetText()
 
 			items[index].name = str
 

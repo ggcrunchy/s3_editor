@@ -26,6 +26,7 @@
 
 -- Standard library imports --
 local format = string.format
+local type = type
 
 -- Modules --
 local button = require("corona_ui.widgets.button")
@@ -100,6 +101,16 @@ function M:AddString (options)
 		sopts.value_name = options.value_name
 		sopts.get_editable_text = options.get_editable_text
 		sopts.set_editable_text = options.set_editable_text
+
+		local adjust = options.adjust_to_size
+
+		if adjust then
+			sopts.adjust_to_size = true
+
+			if type(adjust) == "number" or type(adjust) == "string" then
+				sopts.max_adjust_width = adjust
+			end
+		end
 	end
 
 	sopts.text = text or ""
@@ -140,7 +151,7 @@ function M:StockElements (dir, type)
 	end
 
 	--
-	self:AddString{ value_name = "name" }
+	self:AddString{ value_name = "name", before = "Name:", adjust_to_size = "30%" }
 end
 
 -- Export the module.
