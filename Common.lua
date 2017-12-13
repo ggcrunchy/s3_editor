@@ -142,11 +142,14 @@ end
 -- --
 local Labels
 
+-- --
+local LinkGroupings
+
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Instances, Labels, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, Instances, Labels, LinkGroupings, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.
@@ -231,6 +234,11 @@ function M.GetLabel (name)
 end
 
 --- DOCME
+function M.GetLinkGrouping (tname)
+	return LinkGroupings and LinkGroupings[tname]
+end
+
+--- DOCME
 function M.GetLinks ()
 	return SessionLinks
 end
@@ -312,6 +320,13 @@ function M.GetTag (etype, on_editor_event)
 			topts = { sub_links = PropertyPairs(sub_links, ret3, ret4) }
 		elseif topts == "properties" then
 			topts = { sub_links = PropertyPairs({}, ret1, ret2) }
+		end
+
+		local lg = on_editor_event(etype, "get_link_groupings")
+
+		if lg then
+			LinkGroupings = LinkGroupings or {}
+			LinkGroupings[tname] = lg
 		end
 
 		tag_db:New(tname, topts)
