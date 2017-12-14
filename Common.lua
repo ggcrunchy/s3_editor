@@ -322,7 +322,7 @@ function M.GetTag (etype, on_editor_event)
 			topts = { sub_links = PropertyPairs({}, ret1, ret2) }
 		end
 
-		local lg = on_editor_event(etype, "get_link_groupings")
+		local lg = on_editor_event(etype, "get_link_grouping")
 
 		if lg then
 			LinkGroupings = LinkGroupings or {}
