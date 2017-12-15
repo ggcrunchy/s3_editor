@@ -210,6 +210,11 @@ function M.SetTemp (is_temp)
 	IsTemp = not not is_temp
 end
 
+-- Safe instance retrieval
+local function GetInstances (object)
+	return common.GetInstances(object, "copy")
+end
+
 --- Verifies the game-ready integrity of the working version of the level.
 --
 -- If the editor state is already verified, this is a no-op.
@@ -217,7 +222,10 @@ end
 -- One or more passes are run over the level data. On each pass, the **verify\_level\_wip**
 -- event is dispatched, with a table as event. The table has the following fields:
 --
--- * **get\_label**: May be called as `label = get_label(name)` to query any label.
+-- * **get\_instances**: May be called as `instances = get_instances(object)`, where _object_
+-- is the representative object, cf. @{s3_editor.Common.GetInstances} with **"copy"**.
+-- * **get\_label**: May be called as `label = get_label(name)` to query any label, cf.
+-- @{s3_editor.Common.GetLabel}.
 -- * **links**: Links for the current editor session, cf. @{s3_editor.Common.GetLinks}.
 -- * **pass**: Read-only **uint**. Starts at 1 and is incremented after each pass.
 -- * **needs\_another\_pass**: **bool**. Begins each pass as **false**. To request another
