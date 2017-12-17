@@ -47,6 +47,7 @@ local _SetCurrentIndex_
 local M = {}
 
 --- Helper to build a level-ready entry.
+-- TODO: needs some work, at very least something about instances and timing of name
 -- @ptable level Built level state. (Basically, this begins as saved level state, and
 -- is restructured into build-appropriate form.)
 --
@@ -75,15 +76,13 @@ local M = {}
 function M.BuildEntry (level, mod, entry, acc)
 	acc = acc or {}
 
-	local built = common.CopyInto({}, entry)
-	local instances, labels, labeled_instances = built.instances, level.labels
+	local built, instances = common.CopyInto({}, entry), entry.instances
 
-	for i = 1, #(instances or "") do
-		labeled_instances = labeled_instances or {}
-		labeled_instances[instances[i]] = labels[instances[i]]
+	if instances then
+		built.instances = nil
+
+		mod.EditorEvent(entry.type, "build_instances", built, instances, level.labels)
 	end
-
-	built.labeled_instances, built.instances, built.name = labeled_instances
 
 	if entry.uid then
 		level.links[entry.uid], built.uid = built
@@ -91,9 +90,11 @@ function M.BuildEntry (level, mod, entry, acc)
 		level.links[built] = mod.EditorEvent(entry.type, "prep_link", level, built)
 	end
 
+	built.name = nil
+
 	mod.EditorEvent(entry.type, "build", level, entry, built)
 
-	acc[#acc + 1], built.labeled_instances = built
+	acc[#acc + 1] = built
 
 	return acc
 end

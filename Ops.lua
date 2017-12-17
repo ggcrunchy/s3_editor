@@ -239,7 +239,7 @@ end
 -- @see s3_editor.Common.IsVerified
 function M.Verify ()
 	if not common.IsVerified() then
-		local verify, done = { pass = 1, get_label = common.GetLabel, links = common.GetLinks() }
+		local verify, done = { pass = 1, get_instances = GetInstances, get_label = common.GetLabel, links = common.GetLinks() }
 
 		-- If the verification takes a while, post the activity indicator.
 		timers.RepeatEx(function(event)
