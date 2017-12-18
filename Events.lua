@@ -380,7 +380,6 @@ end
 function M.ResolveLinks_Load (level)
 	if level.links then
 		local links, resolved = common.GetLinks(), level.resolved
-		local tag_db = links:GetTagDatabase()
 
 		ReadLinks(level, function() end, function(_, obj1, obj2, sub1, sub2)
 			sub1 = ResolveSublink(sub1, resolved)
