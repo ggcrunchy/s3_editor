@@ -363,7 +363,7 @@ function M.Init (ncols, nrows)
 	-- Do periodic cleanup of links.
 	local index = 1
 
-	SessionLinks.cleanup = timer.performWithDelay(5000, function()
+	SessionLinks.cleanup = timer.performWithDelay(50, function()
 		index = SessionLinks:CleanUp(index)
 	end, 0)
 end

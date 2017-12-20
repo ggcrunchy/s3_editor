@@ -87,7 +87,14 @@ function M.BuildEntry (level, mod, entry, acc)
 	if entry.uid then
 		level.links[entry.uid], built.uid = built
 
-		level.links[built] = mod.EditorEvent(entry.type, "prep_link", level, built)
+		local prep_link, cleanup = mod.EditorEvent(entry.type, "prep_link", level, built)
+
+		level.links[built] = prep_link
+
+		if cleanup then
+			level.cleanup = level.cleanup or {}
+			level.cleanup[built] = cleanup
+		end
 	end
 
 	built.name = nil
@@ -356,6 +363,15 @@ function M.ResolveLinks_Build (level)
 				func2(entry2, entry1, sub2, sub1)
 			end
 		end)
+
+		-- Tidy up any information only needed during linking.
+		if level.cleanup then
+			for entry, cleanup in pairs(level.cleanup) do
+				cleanup(entry)
+			end
+
+			level.cleanup = nil
+		end
 
 		-- All labels and link information have now been incorporated into the entries
 		-- themselves, so there is no longer need to retain it in the editor state.
