@@ -81,7 +81,9 @@ function M.BuildEntry (level, mod, entry, acc)
 	if instances then
 		built.instances = nil
 
-		mod.EditorEvent(entry.type, "build_instances", built, instances, level.labels)
+		mod.EditorEvent(entry.type, "build_instances", built, {
+			instances = instances, labels = level.labels, links = common.GetLinks()
+		})
 	end
 
 	if entry.uid then
