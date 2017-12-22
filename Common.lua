@@ -532,14 +532,14 @@ function M.ShowCurrent (current, show)
 end
 
 --- DOCMAYBE
--- @string prefix
+-- @callable on_editor_event
 -- @array types
 -- @treturn SpriteImages Y
-function M.SpriteSetFromThumbs (prefix, types)
+function M.SpriteSetFromThumbs (on_editor_event, types)
 	local thumbs = {}
 
 	for _, name in ipairs(types) do
-		thumbs[#thumbs + 1] = format("%s_Assets/%s_Thumb.png", prefix, name)
+		thumbs[#thumbs + 1] = on_editor_event(name, "get_thumb_filename")--("%s_Assets/%s_Thumb.png", prefix, name)
 	end
 
 	return sheet.NewSpriteSetFromImages(thumbs)

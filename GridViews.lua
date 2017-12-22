@@ -296,7 +296,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		--
 		if current then
-			tile_images = common.SpriteSetFromThumbs(prefix, types)
+			tile_images = common.SpriteSetFromThumbs(dialog_wrapper("get_editor_event"), types)
 
 			current:Bind(tile_images, #tile_images)
 			current:toFront()

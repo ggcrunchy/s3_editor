@@ -88,6 +88,10 @@ function M.DialogWrapper (on_editor_event)
 			return dialog
 
 		--
+		elseif what == "get_editor_event" then
+			return on_editor_event
+
+		--
 		-- arg1: Value type
 		elseif what == "get_tag" then
 			return common.GetTag(arg1, on_editor_event)
