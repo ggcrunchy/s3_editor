@@ -564,7 +564,7 @@ function M.SaveValuesIntoEntry (level, mod, values, entry)
 
 	AssignDefs(entry)
 
-	entry.instances = common.GetInstances(rep, "copy")
+	entry.positions, entry.instances = common.GetPositions(rep), common.GetInstances(rep, "copy")
 
 	return entry
 end
