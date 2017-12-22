@@ -27,6 +27,7 @@
 local audio_patterns = require("corona_ui.patterns.audio")
 local button = require("corona_ui.widgets.button")
 local common_ui = require("s3_editor.CommonUI")
+local directories = require("config.Directories")
 local layout = require("corona_ui.utils.layout")
 local layout_dsl = require("corona_ui.utils.layout_dsl")
 local net = require("corona_ui.patterns.net")
@@ -96,7 +97,7 @@ function Overlay:create (event)
 
 	--
 	local backdrop = Backdrop(self.view, "43.75%", "62.5%", "2.75%")
-	local dir = event.params.mode == "stream" and "Music" or "SFX"
+	local dir = event.params.mode == "stream" and directories.music or directories.sound
 	local choices = audio_patterns.AudioList(self.view, {
 		x = layout.CenterX(backdrop), top = "6.25%",
 		base = Base, path = dir, on_reload = Reload

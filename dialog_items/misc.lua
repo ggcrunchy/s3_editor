@@ -25,7 +25,6 @@
 --
 
 -- Standard library imports --
-local format = string.format
 local type = type
 
 -- Modules --
@@ -122,9 +121,8 @@ end
 local DragTouch = touch.DragParentTouch_Child(1, { find = utils.GetDialog }) -- brittle, depends on back index...
 
 --- DOCME
--- @string[opt] dir
--- @string type
-function M:StockElements (dir)--, type)
+-- @string[opt] thumb
+function M:StockElements (thumb)
 	--
 	local exit = button.Button(self:ItemGroup(), "3.125%", "5.2%", function()
 		self:RemoveSelf()
@@ -146,8 +144,8 @@ function M:StockElements (dir)--, type)
 	self:CommonAdd(bar)
 
 	--
-	if dir then
-		self:AddImage{ file = format("%s_Assets/%s_Thumb.png", dir, type), dim = "6%", continue_line = true }
+	if thumb then
+		self:AddImage{ file = thumb, dim = "6%", continue_line = true }
 	end
 
 	--
