@@ -24,7 +24,7 @@
 --
 
 -- Modules --
-local state_vars = require("config.StateVariables")
+local object_vars = require("config.ObjectVariables")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 local utils = require("corona_ui.dialog_impl.utils")
 
@@ -61,7 +61,7 @@ end
 --- DOCME
 -- @ptable options
 function M:AddFamilyList (options)
-	AuxListbox(self, options, state_vars.families)
+	AuxListbox(self, options, object_vars.families)
 end
 
 --- DOCME

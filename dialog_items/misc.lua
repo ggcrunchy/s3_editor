@@ -124,7 +124,7 @@ local DragTouch = touch.DragParentTouch_Child(1, { find = utils.GetDialog }) -- 
 --- DOCME
 -- @string[opt] dir
 -- @string type
-function M:StockElements (dir, type)
+function M:StockElements (dir)--, type)
 	--
 	local exit = button.Button(self:ItemGroup(), "3.125%", "5.2%", function()
 		self:RemoveSelf()

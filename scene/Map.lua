@@ -54,12 +54,12 @@ local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
+local object_vars = require("config.ObjectVariables")
 local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
-local state_vars = require("config.StateVariables")
 local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 local timers = require("corona_utils.timers")
@@ -354,13 +354,13 @@ function Scene:show (event)
 			tags:ImplyInterface(k, v)
 		end
 
-		for _, prop in pairs(state_vars.properties) do
+		for _, prop in pairs(object_vars.properties) do
 			tags:ImplyInterface(prop.pull, prop.push)
 			tags:ImplyInterface(prop.push, prop.pull)
 		end
 
-		if state_vars.implied_by then
-			for from, props in pairs(state_vars.implied_by) do
+		if object_vars.implied_by then
+			for from, props in pairs(object_vars.implied_by) do
 				for _, to in adaptive.IterArray(props) do
 					tags:ImplyInterface(from, to)
 					tags:ImplyInterface(to, from)

@@ -34,8 +34,8 @@ local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
+local object_vars = require("config.ObjectVariables")
 local sheet = require("corona_utils.sheet")
-local state_vars = require("config.StateVariables")
 
 -- Classes --
 local Links = require("tektite_base_classes.Link.Links")
@@ -298,7 +298,7 @@ local function PairSublinksMulti (sub_links, t1, push, t2, pull)
 end
 
 -- --
-local Properties = state_vars.properties
+local Properties = object_vars.properties
 
 --
 local function PropertyPairs (sub_links, t1, t2)
