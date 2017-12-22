@@ -84,6 +84,8 @@ end
 
 -- Common save / build logic
 local function AuxSave ()
+	Runtime:dispatchEvent{ name = "set_object_positions" }
+
 	local saved = { name = "save_level_wip", main = { common.GetDims() } }
 
 	Runtime:dispatchEvent(saved)

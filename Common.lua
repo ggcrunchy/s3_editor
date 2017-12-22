@@ -145,11 +145,14 @@ local Labels
 -- --
 local LinkGroupings
 
+-- --
+local Positions
+
 --- Cleans up various state used pervasively by the editor.
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Instances, Labels, LinkGroupings, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, Instances, Labels, LinkGroupings, Positions, RepToValues, SessionLinks, ValuesToRep = nil
 end
 
 --- Copies into one table from another.
@@ -224,6 +227,11 @@ function M.GetInstances (object, how)
 	end
 
 	return ilist
+end
+
+--- DOCME
+function M.GetPositions (object)
+	return Positions and Positions[object]
 end
 
 --- Getter.
@@ -496,6 +504,14 @@ function M.SetLabel (name, label)
 		Labels[name] = label
 	elseif Labels then
 		Labels[name] = nil
+	end
+end
+
+--- DOCME
+function M.SetPositions (object, positions)
+	if Positions or positions then
+		Positions = Positions or {}
+		Positions[object] = positions
 	end
 end
 

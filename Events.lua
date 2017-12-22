@@ -86,6 +86,8 @@ function M.BuildEntry (level, mod, entry, acc)
 		})
 	end
 
+	built.positions = nil
+
 	if entry.uid then
 		level.links[entry.uid], built.uid = built
 
@@ -297,6 +299,11 @@ function M.LoadValuesFromEntry (level, mod, values, entry)
 		common.AddInstance(rep, resolved[name])
 		common.SetLabel(resolved[name], labels and labels[name])
 	end
+
+	-- Restore any positions.
+	common.SetPositions(rep, entry.positions)
+
+	entry.positions = nil
 
 	-- Copy the editor state into the values, alert any listeners, and add defaults as necessary.
 	entry.instances = nil
