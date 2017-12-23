@@ -1,4 +1,4 @@
---- Helpers to populate a dialog with checkbox UI elements.
+--- Helpers to populate a dialog with slider UI elements.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -23,14 +23,80 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local round = math.round
+
+-- Modules --
+local utils = require("corona_ui.dialog_impl.utils")
+local layout = require("corona_ui.utils.layout")
+
+-- Corona globals --
+local display = display
+
+-- Corona modules --
+local widget = require("widget")
+
 -- Exports --
 local M = {}
 
+--
+--
+--
+
+--
+local function Pad (igroup, w, h) -- the thumb sliders bleed out a bit, so pad around them
+	local pad = display.newRect(igroup, 0, 0, w, h)
+
+	pad.isVisible = false
+
+	return pad
+end
+
+--
+local function UpdateSlider (event)
+	utils.UpdateObject(event.target, event.value / 100)
+end
+
+-- --
+local PadDim = 5
+
+local function AuxSlider(dialog, options, params)
+	local igroup, pad_dim = dialog:ItemGroup(), options.pad_dim or PadDim
+
+	if not options.continue_line then
+		dialog:Update(Pad(igroup, 1, pad_dim))
+		dialog:NewLine()
+	end
+
+	dialog:Update(Pad(igroup, pad_dim, 1))
+
+	params.listener = UpdateSlider
+	params.value = round((dialog:GetValue(options.value_name) or 0) * 100)
+
+	local slider = widget.newSlider(params)
+
+	utils.SetProperty(slider, "type", "widget", utils.GetNamespace(dialog))
+
+	igroup:insert(slider)
+
+	dialog:CommonAdd(slider, options, true)
+
+	if options.continue_line then
+		dialog:Update(Pad(igroup, pad_dim, 1))
+	else
+		dialog:NewLine()
+		dialog:Update(Pad(igroup, 1, pad_dim))
+	end
+end
+
 --- DOCME
-function M:AddSlider (options)
-	-- TODO!
-	-- Horizontal, vertical?
-	-- Range, quantized?
+function M:AddHorizontalSlider (options)
+	AuxSlider(self, options, { width = options.width or layout.ResolveX("20%") })
+end
+
+--- DOCME
+function M:AddVerticalSlider (options)
+	AuxSlider(self, options, { height = options.height or layout.ResolveY("20%"), orientation = "vertical" })
 end
 
 -- Export the module.

@@ -24,13 +24,11 @@
 --
 
 -- Standard library imports --
-local format = string.format
 local ipairs = ipairs
 local max = math.max
 local min = math.min
 local next = next
 local pairs = pairs
-local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
@@ -539,7 +537,7 @@ function M.SpriteSetFromThumbs (on_editor_event, types)
 	local thumbs = {}
 
 	for _, name in ipairs(types) do
-		thumbs[#thumbs + 1] = on_editor_event(name, "get_thumb_filename")--("%s_Assets/%s_Thumb.png", prefix, name)
+		thumbs[#thumbs + 1] = on_editor_event(name, "get_thumb_filename")
 	end
 
 	return sheet.NewSpriteSetFromImages(thumbs)

@@ -1,4 +1,4 @@
---- Helpers to populate a dialog with spinner elements.
+--- Helpers to populate a dialog with stepper elements.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -37,7 +37,7 @@ local M = {}
 
 --- DOCME
 -- @ptable options
-function M:AddSpinner (options)
+function M:AddStepper (options)
 	local sopts = table_funcs.Copy(options)
 
 	local inc = sopts.inc or 1

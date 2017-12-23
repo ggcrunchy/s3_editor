@@ -30,7 +30,7 @@ for _, mod in ipairs{
 	require("s3_editor.dialog_items.misc"),
 	require("s3_editor.dialog_items.overlay"),
 	require("s3_editor.dialog_items.slider"),
-	require("s3_editor.dialog_items.spinner"),
+	require("s3_editor.dialog_items.stepper"),
 	require("s3_editor.dialog_items.table_view"),
 	require("s3_editor.dialog_items.tabs")
 } do
