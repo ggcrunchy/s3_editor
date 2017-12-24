@@ -24,20 +24,110 @@
 --
 
 -- Standard library imports --
+local assert = assert
 local max = math.max
 local min = math.min
+local pairs = pairs
+local tonumber = tonumber
+local type = type
 
 -- Modules --
 local button = require("corona_ui.widgets.button")
+local number = require("s3_objects.grammars.number")
 local table_funcs = require("tektite_core.table.funcs")
 local utils = require("corona_ui.dialog_impl.utils")
+
+-- Corona globals --
+local display = display
+
+-- Corona modules --
+local widget = require("widget")
 
 -- Exports --
 local M = {}
 
+--
+--
+--
+
+-- --
+local Steppers = {}
+
+--
+local function Finalize (editable)
+	Steppers[editable] = nil
+end
+
+--
+local function UpdateValue (stepper, value)
+	utils.UpdateObject(stepper, value)
+end
+
+local function Correct (editable, stepper, correct_stepper)
+	local text = editable and editable:GetText()
+	local value = tonumber(text)
+
+	if value then -- not nan or infinite
+		if value < stepper.m_min then
+			editable:SetText(stepper.m_min)
+		elseif stepper.m_max and value > stepper.m_max then
+			editable:SetText(stepper.m_max)
+		elseif not correct_stepper then
+			editable:SetText(stepper:getValue())
+		elseif value ~= stepper:getValue() then
+			stepper:setValue(value)
+
+			UpdateValue(stepper, value)
+		end
+	end
+end
+
+--
+local function UpdateStepper (event)
+	local phase, stepper = event.phase, event.target
+
+	if phase == "increment" or phase == "decrement" then
+		Correct(stepper.m_editable, stepper)
+		UpdateValue(stepper, event.value)
+	end
+end
+
 --- DOCME
 -- @ptable options
 function M:AddStepper (options)
+	local stepper = widget.newStepper{
+		width = options.width, height = options.height,
+		initialValue = self:GetValue(options.value_name),
+		maximumValue = options.max,
+		minimumValue = options.min,
+		onPress = UpdateStepper,
+		timerIncrementSpeed = 350
+	}
+
+	utils.SetProperty(stepper, "type", "widget", utils.GetNamespace(self))
+
+	self:ItemGroup():insert(stepper)
+	self:CommonAdd(stepper, options, true)
+
+	local editable = options.editable
+
+	if editable then
+		if type(editable) == "string" then
+			editable = assert(self:Find(editable), "Bad editable name")
+		end
+
+		stepper.m_editable, Steppers[editable] = editable, stepper
+		stepper.m_min, stepper.m_max = options.min or 0, options.max
+
+		Correct(editable, stepper, true)
+
+		editable:addEventListener("finalize", Finalize)
+	end
+end
+
+--- DOCME
+-- @ptable options
+function M:AddStepper_Old (options) -- TODO: keep?
 	local sopts = table_funcs.Copy(options)
 
 	local inc = sopts.inc or 1
@@ -92,7 +182,42 @@ function M:AddStepper (options)
 	end, "+"))
 end
 
--- ^^ This basically now exists, in "widgets"...
+--- DOCME
+function M:AddStepperWithEditable (options)
+	local topts, eopts, sopts = {}, {}, {}
+
+	assert(options.text, "Missing text")
+	assert(options.value_name, "Missing value name")
+
+	for k, v in pairs(options) do
+		if k == "text" then
+			topts[k] = v
+		elseif k == "value_name" then
+			eopts[k], sopts.editable = v, v
+		elseif k ~= "is_static" and k ~= "editable" then
+			sopts[k] = v
+		-- TODO: any relevant properties to the other two
+		end
+	end
+
+	topts.is_static, topts.continue_line, eopts.continue_line = true, true, true
+	sopts.set_editable_text = self.SetText_StepperAware
+
+	self:AddString(topts)
+	self:AddString(eopts)
+	self:AddStepper(sopts)
+end
+
+--- DOCME
+function M.SetText_StepperAware (editable, text)
+	local stepper = assert(Steppers[editable], "No stepper has been bound")
+
+	number.set_editable_text(editable, text)
+
+	if display.isValid(stepper) then
+		Correct(editable, stepper, true)
+	end
+end
 
 -- Export the module.
 return M

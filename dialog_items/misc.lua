@@ -96,6 +96,7 @@ function M:AddString (options)
 			text = options.text
 		end
 
+		sopts.continue_line = options.continue_line
 		sopts.name = options.name
 		sopts.value_name = options.value_name
 		sopts.get_editable_text = options.get_editable_text
