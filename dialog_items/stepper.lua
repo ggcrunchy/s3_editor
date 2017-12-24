@@ -28,6 +28,7 @@ local assert = assert
 local max = math.max
 local min = math.min
 local pairs = pairs
+local round = math.round
 local tonumber = tonumber
 local type = type
 
@@ -58,28 +59,54 @@ local function Finalize (editable)
 	Steppers[editable] = nil
 end
 
+local function AdjustForGet (stepper, value)
+	return (stepper.m_scale or 1) * value
+end
+
+local function AdjustForSet (stepper, value)
+	return value / (stepper.m_scale or 1)
+end
+
 --
 local function UpdateValue (stepper, value)
-	utils.UpdateObject(stepper, value)
+	utils.UpdateObject(stepper, AdjustForGet(stepper, value))
 end
 
 local function Correct (editable, stepper, correct_stepper)
-	local text = editable and editable:GetText()
-	local value = tonumber(text)
+	local text = editable:GetText()
+	local value, adjust = tonumber(text)
 
 	if value then -- not nan or infinite
-		if value < stepper.m_min then
-			editable:SetText(stepper.m_min)
-		elseif stepper.m_max and value > stepper.m_max then
-			editable:SetText(stepper.m_max)
-		elseif not correct_stepper then
-			editable:SetText(stepper:getValue())
-		elseif value ~= stepper:getValue() then
-			stepper:setValue(value)
+		value = AdjustForSet(stepper, value)
 
-			UpdateValue(stepper, value)
+		if value < stepper.m_min then
+			adjust = stepper.m_min
+		elseif stepper.m_max and value > stepper.m_max then
+			adjust = stepper.m_max
+		elseif not correct_stepper then
+			editable:SetText(AdjustForGet(stepper, stepper:getValue()))
+		end
+
+		if adjust or correct_stepper then
+			if adjust then
+				value = adjust
+
+				editable:SetText(AdjustForGet(stepper, value))
+			end
+
+			local rounded = round(value)
+
+			if rounded ~= stepper:getValue() then
+				stepper:setValue(rounded)
+
+				UpdateValue(stepper, rounded)
+			end
 		end
 	end
+end
+
+local function CorrectStatic (static, stepper)
+	static.text = AdjustForGet(stepper, stepper:getValue())
 end
 
 --
@@ -87,7 +114,14 @@ local function UpdateStepper (event)
 	local phase, stepper = event.phase, event.target
 
 	if phase == "increment" or phase == "decrement" then
-		Correct(stepper.m_editable, stepper)
+		local editable, static = stepper.m_editable, stepper.m_static
+
+		if editable then
+			Correct(editable, stepper)
+		elseif static then
+			CorrectStatic(static, stepper)
+		end
+
 		UpdateValue(stepper, event.value)
 	end
 end
@@ -109,19 +143,14 @@ function M:AddStepper (options)
 	self:ItemGroup():insert(stepper)
 	self:CommonAdd(stepper, options, true)
 
-	local editable = options.editable
+	stepper.m_min, stepper.m_max, stepper.m_scale = options.min or 0, options.max, options.scale
+
+	local editable, static = options.editable, options.static
 
 	if editable then
-		if type(editable) == "string" then
-			editable = assert(self:Find(editable), "Bad editable name")
-		end
-
-		stepper.m_editable, Steppers[editable] = editable, stepper
-		stepper.m_min, stepper.m_max = options.min or 0, options.max
-
-		Correct(editable, stepper, true)
-
-		editable:addEventListener("finalize", Finalize)
+		self:AttachEditable(stepper, editable)
+	elseif static then
+		self:AttachStaticText(stepper, static)
 	end
 end
 
@@ -182,30 +211,97 @@ function M:AddStepper_Old (options) -- TODO: keep?
 	end, "+"))
 end
 
+local function HasFloats (dialog, opts)
+	local maxv, minv, scalev, value = opts.max or 0, opts.min or 0, opts.scale or 0, dialog:GetValue(opts.value_name)
+
+	return maxv % 1 ~= 0 or (minv % 1 ~= 0 and 1 / minv ~= 0) or scalev % 1 ~= 0 or value % 1 ~= 0
+end
+
 --- DOCME
 function M:AddStepperWithEditable (options)
-	local topts, eopts, sopts = {}, {}, {}
+	local eopts, sopts = {}, {}
 
-	assert(options.text, "Missing text")
 	assert(options.value_name, "Missing value name")
 
 	for k, v in pairs(options) do
-		if k == "text" then
-			topts[k] = v
+		if k == "before" or k == "mode" then
+			eopts[k] = v
 		elseif k == "value_name" then
 			eopts[k], sopts.editable = v, v
-		elseif k ~= "is_static" and k ~= "editable" then
+		elseif k ~= "editable" then
 			sopts[k] = v
-		-- TODO: any relevant properties to the other two
+		-- TODO: any relevant text properties
 		end
 	end
 
-	topts.is_static, topts.continue_line, eopts.continue_line = true, true, true
-	sopts.set_editable_text = self.SetText_StepperAware
+	eopts.continue_line, eopts.set_editable_text = true, self.SetText_StepperAware
 
-	self:AddString(topts)
+	local any_floats = HasFloats(self, options)
+
+	if not eopts.mode then
+		eopts.mode = any_floats and "decimal" or "nums"
+	else
+		assert(not any_floats or eopts.mode == "decimal", "Floats detected, requires `decimal` mode")
+	end
+
 	self:AddString(eopts)
 	self:AddStepper(sopts)
+end
+
+--- DOCME
+function M:AddStepperWithStaticText (options)
+	local topts, sopts = {}, {}
+
+	assert(options.value_name, "Missing value name")
+
+	for k, v in pairs(options) do
+		if k == "before" or k == "value_name" then
+			topts[k] = v
+		elseif k == "text" then
+			sopts.before = v
+		elseif k ~= "editable" and k ~= "static" then
+			sopts[k] = v
+		-- TODO: any relevant text properties
+		end
+	end
+
+	local stepper_name = sopts -- nonce
+
+	sopts.continue_line, sopts.name, topts.is_static = true, stepper_name, true
+
+	self:AddStepper(sopts)
+	self:AddString(topts)
+	self:AttachStaticText(self:Find(stepper_name), options.value_name)
+end
+
+local function AuxAttach (dialog, stepper, object, err)
+	assert(not (stepper.m_editable or stepper.m_static), "Already has editable or static text")
+
+	if type(object) == "string" then
+		object = assert(dialog:Find(object), "Bad editable name")
+	end
+
+	return object
+end
+
+--- DOCME
+function M:AttachEditable (stepper, editable)
+	editable = AuxAttach(self, stepper, editable, "Bad editable name")
+
+	stepper.m_editable, Steppers[editable] = editable, stepper
+
+	Correct(editable, stepper, true)
+
+	editable:addEventListener("finalize", Finalize)
+end
+
+--- DOCME
+function M:AttachStaticText (stepper, static)
+	static = AuxAttach(self, stepper, static, "Bad static string name")
+
+	stepper.m_static = static
+
+	CorrectStatic(static, stepper)
 end
 
 --- DOCME

@@ -101,6 +101,7 @@ function M:AddString (options)
 		sopts.value_name = options.value_name
 		sopts.get_editable_text = options.get_editable_text
 		sopts.set_editable_text = options.set_editable_text
+		sopts.mode = options.mode
 
 		local adjust = options.adjust_to_size
 
