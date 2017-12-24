@@ -80,13 +80,6 @@ local function AuxSlider(dialog, options, params)
 	igroup:insert(slider)
 
 	dialog:CommonAdd(slider, options, true)
-
-	if options.continue_line then
-		dialog:Update(Pad(igroup, pad_dim, 1))
-	else
-		dialog:NewLine()
-		dialog:Update(Pad(igroup, 1, pad_dim))
-	end
 end
 
 --- DOCME
