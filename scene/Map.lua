@@ -234,6 +234,7 @@ function Scene:show (event)
 					ops.SetLevelName(TestLevelName)
 					ops.Save()
 					ops.Build()
+					-- TODO?: ops.VerifyBuild(), e.g. to test for unmet link subscriptions
 					ops.SetTemp(false)
 
 					timers.Defer(function()
