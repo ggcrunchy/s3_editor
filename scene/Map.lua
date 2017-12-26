@@ -40,7 +40,7 @@
 --
 
 -- Standard library imports --
-local ceil = math.ceil
+--local ceil = math.ceil
 local ipairs = ipairs
 local pairs = pairs
 
@@ -49,7 +49,7 @@ local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
-local common_ui = require("s3_editor.CommonUI")
+--local common_ui = require("s3_editor.CommonUI")
 local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
@@ -62,14 +62,14 @@ local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
 local strings = require("tektite_core.var.strings")
-local tabs_patterns = require("corona_ui.patterns.tabs")
+--local tabs_patterns = require("corona_ui.patterns.tabs")
 local timers = require("corona_utils.timers")
 
 -- Corona globals --
 local display = display
 local native = native
 local Runtime = Runtime
-local transition = transition
+--local transition = transition
 
 -- Corona modules --
 local composer = require("composer")
@@ -313,7 +313,9 @@ function Scene:show (event)
 		end
 
 		local selector = menu.Menu{
-			column_width = 120, x = display.contentCenterX, top = 10, group = self.view, columns = MenuColumns,
+			group = self.view, columns = MenuColumns,
+			x = display.contentCenterX, top = 10,
+			column_width = 120, heading_height = 50,
 
 			get_text = function(name)
 				return strings.SplitIntoWords(name, "on_pattern")

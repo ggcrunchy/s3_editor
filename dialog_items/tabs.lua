@@ -42,9 +42,7 @@ local DirTabs
 -- @ptable options
 function M:AddDirectionTabs (options)
 	options = table_funcs.Copy(options)
-
 	DirTabs = DirTabs or { "up", "down", "left", "right" }
-
 	options.buttons = DirTabs
 
 	self:AddTabs(options)
@@ -84,7 +82,6 @@ end
 function M:AddTabs (options)
 	if options then
 		options = table_funcs.Copy(options)
-
 		options.width = options.width or #(options.buttons or "") * layout.ResolveX("11.25%")
 		options.buttons = TabButtonsFromLabels(options.buttons)
 

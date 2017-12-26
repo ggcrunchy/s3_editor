@@ -25,6 +25,8 @@
 
 -- Modules --
 local object_vars = require("config.ObjectVariables")
+local menu = require("corona_ui.widgets.menu")
+local table_funcs = require("tektite_core.table.funcs")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 local utils = require("corona_ui.dialog_impl.utils")
 
@@ -58,10 +60,36 @@ local function AuxListbox (dialog, options, list)
 	end
 end
 
+--
+local function UpdateDropdown (event)
+	utils.UpdateObject(event.target, event.text)
+end
+
+local function AuxDropdown (dialog, options, column)
+	local opts = table_funcs.Copy(options)
+
+	opts.group, opts.column = dialog:ItemGroup(), column
+
+	local dropdown = menu.Dropdown(opts)
+	local stash = dropdown:StashDropdowns() -- avoid including incorporate dropdown in the layout
+
+	dialog:CommonAdd(dropdown, options, true)
+
+	dropdown:RestoreDropdowns(stash)
+	dropdown:RelocateDropdowns(dialog:UpperGroup())
+	dropdown:Select(utils.GetValue(dropdown))
+	dropdown:addEventListener("item_change", UpdateDropdown)
+end
+
+--- DOCME
+function M:AddDropdown (options)
+	AuxDropdown(self, options, options.column)
+end
+
 --- DOCME
 -- @ptable options
 function M:AddFamilyList (options)
-	AuxListbox(self, options, object_vars.families)
+	AuxDropdown(self, options, object_vars.families)
 end
 
 --- DOCME

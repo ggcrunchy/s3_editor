@@ -158,7 +158,6 @@ end
 -- @ptable options
 function M:AddStepper_Old (options) -- TODO: keep?
 	local sopts = table_funcs.Copy(options)
-
 	local inc = sopts.inc or 1
 	local nmax = sopts.max
 	local nmin = sopts.min
