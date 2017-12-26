@@ -38,6 +38,7 @@ local table_view_patterns = require("corona_ui.patterns.table_view")
 
 -- Corona globals --
 local timer = timer
+local transition = transition
 
 -- Exports --
 local M = {}
@@ -49,6 +50,17 @@ local function AuxGetSuffix (str, _, using, prefix)
 
 	if index then
 		using("mark", index)
+	end
+end
+
+local FadeParams = { time = 250 }
+
+local function Fade (list, edit, delete, alpha)
+	if list:Count() == 1 - alpha then -- n either 0 or 1
+		FadeParams.alpha = alpha
+
+		transition.to(delete, FadeParams)
+		transition.to(edit, FadeParams)
 	end
 end
 
@@ -97,6 +109,8 @@ function M.EditErase (dialog_wrapper, vtype)
 
 			values[akey] = dialog_wrapper("new_values", vtype, key)
 
+			Fade(list, list.m_edit, list.m_delete, 1)
+
 			local index = list:Append(akey)
 			local tag = dialog_wrapper("get_tag", vtype)
 
@@ -138,7 +152,7 @@ function M.EditErase (dialog_wrapper, vtype)
 	function ListView:Load (group, top, left)
 		--
 		list, values = table_view_patterns.Listbox(group, {
-			width = "30%", height = "15%",
+			width = "30%", height = "50%", text_rect_height = "6%", text_size = "3.25%",
 
 			--
 			get_text = function(key)
@@ -171,6 +185,8 @@ function M.EditErase (dialog_wrapper, vtype)
 			if index then
 				local entry, key = list:GetRect(index), list:GetData(index)
 
+				Fade(list, list.m_edit, list.m_delete, 0)
+
 				list:Delete(index)
 
 				dialog_wrapper("close")
@@ -197,6 +213,8 @@ function M.EditErase (dialog_wrapper, vtype)
 				end
 			end
 		end, "Edit")
+
+		list.m_edit, list.m_delete, delete.alpha, edit.alpha = edit, delete, 0, 0
 
 		layout.PutRightOf(edit, delete, "1.25%")
 
