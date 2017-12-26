@@ -54,6 +54,7 @@ local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
+local menu = require("corona_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
 local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
@@ -106,9 +107,15 @@ end
 -- List of editor views --
 local EditorView
 
--- Names of editor views --
-local Names, Prefix = require_ex.GetNames("config.EditorViews")
+local function SetCurrentFromMenu (event)
+	SetCurrent(EditorView[event.text])
 
+	event.target:toFront()
+end
+
+-- Names of editor views --
+local Names, Prefix, Categories = require_ex.GetNames("config.EditorViews")
+--[[
 -- Tab buttons to choose views... --
 local TabButtons = {}
 
@@ -122,10 +129,29 @@ for _, name in ipairs(Names) do
 			return true
 		end
 	}
+end]]
+
+local MenuColumns, CurrentHeading = {}
+
+for _, name in ipairs(Names) do
+	local category = Categories[name]
+
+	if category then
+		if category ~= CurrentHeading then
+			MenuColumns[#MenuColumns + 1] = category
+			MenuColumns[#MenuColumns + 1], CurrentHeading = {}, category
+		end
+
+		local clist = MenuColumns[#MenuColumns]
+
+		clist[#clist + 1] = name
+	else
+		MenuColumns[#MenuColumns + 1] = name
+	end
 end
 
 -- ... and the tabs themselves --
-local Tabs
+--local Tabs
 
 -- Scene listener: handles quit requests
 local function Listen (what)
@@ -147,7 +173,7 @@ local TestLevelName = "?TEST?"
 
 -- --
 local HelpOpts = { isModal = true }
-
+--[[
 -- --
 local TabsMax = 7
 
@@ -179,7 +205,7 @@ if #TabButtons > TabsMax then
 
 	TabOptions = { left = TabW(1), width = TabW(#TabButtons) }
 end
-
+]]
 -- Show Scene --
 function Scene:show (event)
 	if event.phase == "did" then
@@ -286,6 +312,16 @@ function Scene:show (event)
 			end
 		end
 
+		local selector = menu.Menu{
+			column_width = 120, x = display.contentCenterX, top = 10, group = self.view, columns = MenuColumns,
+
+			get_text = function(name)
+				return strings.SplitIntoWords(name, "on_pattern")
+			end
+		}
+
+		selector:addEventListener("menu_item", SetCurrentFromMenu)
+--[[
 		-- Load the view-switching tabs.
 		Tabs = tabs_patterns.TabBar(self.view, TabButtons, TabOptions)
 
@@ -338,7 +374,7 @@ function Scene:show (event)
 			lscroll:translate(lscroll.width / 2, lscroll.height / 2)
 			rscroll:translate(rscroll.width / 2, rscroll.height / 2)
 		end
-
+]]
 		-- Initialize systems.
 		common.Init(params.main[1], params.main[2])
 		help.Init()
@@ -401,7 +437,8 @@ function Scene:show (event)
 		end
 
 		-- Trigger the default view.
-		Tabs:setSelected(1, true)
+	--	Tabs:setSelected(1, true)
+		selector:Select("player")
 
 		-- If the state was dirty before a test, then re-dirty it.
 		if RestoreState and RestoreState.was_dirty then
@@ -433,7 +470,7 @@ function Scene:hide (event)
 		help.CleanUp()
 		common.CleanUp()
 
-		Tabs:removeSelf()
+	--	Tabs:removeSelf()
 
 		for i = self.view.numChildren, 1, -1 do
 			self.view:remove(i)
