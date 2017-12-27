@@ -32,6 +32,7 @@ local button = require("corona_ui.widgets.button")
 local color_picker = require("corona_ui.widgets.color_picker")
 local layout = require("corona_ui.utils.layout")
 local touch = require("corona_ui.utils.touch")
+local ui_color = require("corona_ui.utils.color")
 local utils = require("corona_ui.dialog_impl.utils")
 
 -- Corona globals --
@@ -59,7 +60,7 @@ function M:AddColorPicker (options)
 	local color = options and self:GetValue(options.value_name)
 
 	if color then
-		picker:SetColor(color.r, color.g, color.b)
+		picker:SetColor(ui_color.GetColor(color))
 	end
 
 	picker:addEventListener("color_change", OnColorChange)

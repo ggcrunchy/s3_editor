@@ -329,7 +329,7 @@ function M.Init (view)
 
 	--
 	help.AddHelp("_Grid_", {
-		grid = "A marked cell on the grid indicates where the current selection will be appear.",
+		grid = "A marked cell on the grid indicates where the current selection will appear.",
 		offset = "Offset of upper-left cell in grid, from (0, 0).",
 		scroll = "Scrolls the grid, i.e. updates the offset."
 	})
