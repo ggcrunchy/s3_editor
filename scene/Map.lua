@@ -11,8 +11,7 @@
 -- The editor is broken up into several "views", each isolating specific features of the
 -- level. The bulk of the editor logic is implemented in these views' modules, with common
 -- building blocks in @{s3_editor.Common} and @{s3_editor.Dialog}. View-agnostic operations
--- are found in @{s3_editor.Ops} and are used to implement various core behaviors in this
--- scene.
+-- are found in @{s3_editor.Ops} and used to implement various core behaviors in this scene.
 --
 -- @todo Mention enter_menus; also load_level_wip, save_level_wip, level_wip_opened, level_wip_closed events...
 
@@ -40,7 +39,6 @@
 --
 
 -- Standard library imports --
---local ceil = math.ceil
 local ipairs = ipairs
 local pairs = pairs
 
@@ -49,11 +47,11 @@ local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
---local common_ui = require("s3_editor.CommonUI")
 local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
+local layout = require("corona_ui.utils.layout")
 local menu = require("corona_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
 local ops = require("s3_editor.Ops")
@@ -62,14 +60,12 @@ local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
 local strings = require("tektite_core.var.strings")
---local tabs_patterns = require("corona_ui.patterns.tabs")
 local timers = require("corona_utils.timers")
 
 -- Corona globals --
 local display = display
 local native = native
 local Runtime = Runtime
---local transition = transition
 
 -- Corona modules --
 local composer = require("composer")
@@ -115,21 +111,6 @@ end
 
 -- Names of editor views --
 local Names, Prefix, Categories = require_ex.GetNames("config.EditorViews")
---[[
--- Tab buttons to choose views... --
-local TabButtons = {}
-
-for _, name in ipairs(Names) do
-	TabButtons[#TabButtons + 1] = {
-		label = strings.SplitIntoWords(name, "on_pattern"),
-
-		onPress = function()
-			SetCurrent(EditorView[name])
-
-			return true
-		end
-	}
-end]]
 
 local MenuColumns, CurrentHeading = {}
 
@@ -149,9 +130,6 @@ for _, name in ipairs(Names) do
 		MenuColumns[#MenuColumns + 1] = name
 	end
 end
-
--- ... and the tabs themselves --
---local Tabs
 
 -- Scene listener: handles quit requests
 local function Listen (what)
@@ -173,47 +151,104 @@ local TestLevelName = "?TEST?"
 
 -- --
 local HelpOpts = { isModal = true }
---[[
--- --
-local TabsMax = 7
 
--- --
-local TabsToRotate = 3
+local function AddCommands (view, actions, funcs)
+	local cgroup, back, bar, y = common.DraggableStarter()
+	local help = display.newCircle(cgroup, 10, y + 3, 8)
 
--- --
-local TabOptions, TabRotate, TabW
+	help:setFillColor(0, 0, .9)
+	help:setStrokeColor(.7, 0, .3, .9)
 
---
-if #TabButtons > TabsMax then
-	local params = {
-		time = 175,
+	help.strokeWidth = 1
 
-		onComplete = function(object)
-			object.m_going = false
+	display.newText(cgroup, "?", help.x, help.y, native.systemFontBold, 10)
+
+	-- add funcs.Help logic...
+
+	local about = display.newText(cgroup, "MMMMMMMMMMMMMMM", 0, help.y, native.systemFont, 12) -- allocate space for text
+
+	about.m_num_chars = #about.text
+
+	layout.PutRightOf(about, help, 5)
+
+	local selector = menu.Menu{
+		group = cgroup, columns = { "Actions", actions },
+		column_width = 95, heading_height = 18, size = 12
+	}
+
+	view:insert(cgroup)
+
+	local stash = selector:StashDropdowns()
+
+	layout.CenterAtY(selector, help.y)
+	layout.PutRightOf(selector, about, 5)
+
+	selector:addEventListener("menu_item", function(event)
+		funcs[event.text]()
+	end)
+	selector:RestoreDropdowns(stash)
+
+	common.DraggableFinisher(cgroup, back, bar, selector, "30%", "Commands")
+	layout.LeftAlignWith(cgroup, "5%")
+
+	local close = button.Button_XY(cgroup, 0, bar.y, 2 * bar.height, bar.height - 4, scenes.WantsToGoBack, "x")
+
+	layout.RightAlignWith(close, layout.RightOf(bar), -5)
+
+	local function watch_name ()
+		local n, name, star = about.m_num_chars, ops.GetLevelName() or "Untitled scene", common.IsDirty() and " *" or ""
+
+		if #star > 0 then
+			n = n - 2
+		end
+
+		if #name > n then
+			name = name:sub(n - 3) .. "..."
+		end
+
+		about.text = name .. star
+	end
+
+	watch_name()
+
+	common.WatchName(watch_name)
+end
+
+local function AddNavigation (view)
+	local cgroup, back, bar, y = common.DraggableStarter()
+	local vtext = display.newText(cgroup, "Views:", 0, y, native.systemFont, 16)
+	local selector = menu.Menu{
+		group = cgroup, columns = MenuColumns,
+		column_width = 95, heading_height = 18, size = 12,
+
+		get_text = function(name)
+			return strings.SplitIntoWords(name, "on_pattern")
 		end
 	}
 
-	function TabRotate (inc)
-		Tabs.m_going, params.x = true, Tabs.x + inc
+	view:insert(cgroup)
 
-		transition.to(Tabs, params)
-	end
+	local stash = selector:StashDropdowns()
 
-	function TabW (n)
-		return ceil(n * display.contentWidth / TabsMax)
-	end
+	layout.LeftAlignWith(vtext, 5)
+	layout.CenterAtY(selector, y + 3)
+	layout.PutRightOf(selector, vtext, 5)
 
-	TabOptions = { left = TabW(1), width = TabW(#TabButtons) }
+	selector:addEventListener("menu_item", SetCurrentFromMenu)
+	selector:RestoreDropdowns(stash)
+	selector:Select("player")
+
+	common.DraggableFinisher(cgroup, back, bar, selector, "5%", "Navigation")
 end
-]]
+
 -- Show Scene --
 function Scene:show (event)
 	if event.phase == "did" then
 		scenes.SetListenFunc(Listen)
 
 		-- We may enter the scene one of two ways: from the editor setup menu, in which case
-		-- we use the provided scene parameters; or returning from a test, in which case we
-		-- must reconstruct the editor state from various information we left behind.
+		-- we use the provided scene parameters; else returning from a test, where we must
+		-- reconstruct the state from information we left behind.
 		local params
 
 		if scenes.ComingFrom() == "Level" then
@@ -230,12 +265,10 @@ function Scene:show (event)
 			params = event.params
 		end
 
-		-- Load sidebar buttons for editor operations.
-		local sidebar = {}
+		-- Load various master editor operations.
+		local actions, funcs = {}, {}
 
-		for i, func, text in args.ArgsByN(2,
-			scenes.WantsToGoBack, "Back",
-
+		for _, func, text in args.ArgsByN(2,
 			-- Test the level --
 			function()
 				local restore = { was_dirty = common.IsDirty(), common.GetDims() }
@@ -245,10 +278,10 @@ function Scene:show (event)
 				if common.IsVerified() then
 					restore.level_name = ops.GetLevelName()
 
-					-- The user may not want to save the changes being tested, so we introduce
-					-- an intermediate test level instead. The working version of the level may
-					-- already be saved, however, in which case the upcoming save will be a no-
-					-- op unless we manually dirty the level.
+					-- The user might not want to save the changes being tested, thus we
+					-- introduce an intermediate test level instead. The working version of
+					-- the level might already be saved, however, in which case the upcoming
+					-- save will be a no-op unless we manually dirty the level.
 					common.Dirty()
 
 					-- We save the test level: as a WIP, so we can restore up to our most recent
@@ -298,85 +331,9 @@ function Scene:show (event)
 				composer.showOverlay("s3_editor.overlay.Help", HelpOpts)
 			end, "Help"
 		) do
-			local button = button.Button_XY(self.view, "1.25%", "from_bottom -" .. (i * 13.54 - 1.04) .. "%", "12.5%", "10.4%", func, text)
-
-			button:translate(button.width / 2, button.height / 2)
-
-			if text ~= "Help" and text ~= "Back" then
-				sidebar[text] = button
-			end
-
-			-- Add some buttons to a list for e.g. graying out.
-			if text == "Save" or text == "Verify" then
-				common.AddButton(text, button)
-			end
+			actions[#actions + 1], funcs[text] = text, func
 		end
 
-		local selector = menu.Menu{
-			group = self.view, columns = MenuColumns,
-			x = display.contentCenterX, top = 10,
-			column_width = 120, heading_height = 50,
-
-			get_text = function(name)
-				return strings.SplitIntoWords(name, "on_pattern")
-			end
-		}
-
-		selector:addEventListener("menu_item", SetCurrentFromMenu)
---[[
-		-- Load the view-switching tabs.
-		Tabs = tabs_patterns.TabBar(self.view, TabButtons, TabOptions)
-
-		-- If there were enough tab options, add clipping and scroll buttons.
-		if TabOptions then
-			local shown = TabsMax - 2
-			local cont, n = display.newContainer(TabW(shown), Tabs.height), #TabButtons - shown
-
-			self.view:insert(cont)
-			cont:translate(display.contentCenterX, Tabs.height / 2)
-			cont:insert(Tabs, true)
-
-			Tabs.x = TabW(.5 * n)
-
-			local x, w = 0, TabW(1)
-
-			-- TODO: Hack!
-			tabs_patterns.TabsHack(self.view, Tabs, shown, function() return TabW(x + 1), x end, 0, TabW(shown))
-			-- /TODO
-
-			local lscroll = common_ui.ScrollButton(self.view, "lscroll", 0, 0, function()
-				local amount = 0
-
-				for i = 1, Tabs.m_going and 0 or TabsToRotate do
-					if x > 0 then
-						x, amount = x - 1, amount + w
-					end
-				end
-
-				if amount ~= 0 then
-					TabRotate(amount)
-				end
-			end)
-			local rscroll = common_ui.ScrollButton(self.view, "rscroll", 0, 0, function()
-				local amount = 0
-
-				for i = 1, Tabs.m_going and 0 or TabsToRotate do
-					if x < n then
-						x, amount = x + 1, amount - w
-					end
-				end
-
-				if amount ~= 0 then
-					TabRotate(amount)
-				end
-			end)
-
-			lscroll.x, rscroll.x = w / 4, display.contentWidth - TabW(1) + w / 4
-
-			lscroll:translate(lscroll.width / 2, lscroll.height / 2)
-			rscroll:translate(rscroll.width / 2, rscroll.height / 2)
-		end
-]]
 		-- Initialize systems.
 		common.Init(params.main[1], params.main[2])
 		help.Init()
@@ -407,7 +364,7 @@ function Scene:show (event)
 			end
 		end
 
-		--
+		--[[
 		help.AddHelp("Common", {
 			Test = "Builds the level. If successful, launches the level in the game.",
 			Build = "Verifies the scene. If is passes, builds it in game-loadable form.",
@@ -415,6 +372,7 @@ function Scene:show (event)
 			Save = "Saves the current work-in-progress scene."
 		})
 		help.AddHelp("Common", sidebar)
+		]]
 
 		-- Install the views.
 		for _, view in pairs(EditorView) do
@@ -438,9 +396,9 @@ function Scene:show (event)
 			common.Undirty()
 		end
 
-		-- Trigger the default view.
-	--	Tabs:setSelected(1, true)
-		selector:Select("player")
+		-- Install dialogs and trigger the default view.
+		AddCommands(self.view, actions, funcs)
+		AddNavigation(self.view)
 
 		-- If the state was dirty before a test, then re-dirty it.
 		if RestoreState and RestoreState.was_dirty then
@@ -471,8 +429,6 @@ function Scene:hide (event)
 		grid.CleanUp()
 		help.CleanUp()
 		common.CleanUp()
-
-	--	Tabs:removeSelf()
 
 		for i = self.view.numChildren, 1, -1 do
 			self.view:remove(i)

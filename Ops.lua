@@ -203,6 +203,8 @@ M.Save_FollowUp = SaveBody
 -- @see corona_utils.persistence, GetLevelName
 function M.SetLevelName (name)
 	LevelName = name
+
+	common.AlertNameWatchers()
 end
 
 --- Sets or clears an "is temporary" flag. Any level saved by @{Build} or @{Save} while this

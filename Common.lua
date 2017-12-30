@@ -33,8 +33,11 @@ local pairs = pairs
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local config = require("config.Editor")
+local layout = require("corona_ui.utils.layout")
+local menu = require("corona_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
 local sheet = require("corona_utils.sheet")
+local touch = require("corona_ui.utils.touch")
 
 -- Classes --
 local Links = require("tektite_base_classes.Link.Links")
@@ -42,13 +45,17 @@ local Tags = require("tektite_base_classes.Link.Tags")
 
 -- Corona globals --
 local display = display
+local native = native
 local Runtime = Runtime
 local timer = timer
 local transition = transition
 
 -- Cached module references --
+local _AlertNameWatchers_
 local _AttachLinkInfo_
 local _BindRepAndValues_
+local _DraggableStarter_
+local _DraggableFinisher_
 local _SetLabel_
 
 -- Exports --
@@ -66,6 +73,42 @@ function M.AddButton (name, button)
 	Buttons[name] = button
 end
 
+--- DOCME
+function M.AddCommandsBar (params)
+	local cgroup, back, bar, y = _DraggableStarter_()
+	local back_height, prev = back.height - bar.height
+
+	for i = 1, #params, 3 do
+		local str, dparams = display.newText(cgroup, params[i], 0, y, native.systemFont, 16), params[i + 1]
+
+		dparams.group, dparams.heading_height, dparams.size = cgroup, back_height - 8, 12
+
+		local dropdown = menu.Dropdown(dparams)
+
+		layout.PutRightOf(str, prev, 5)
+		layout.PutRightOf(dropdown, str, 5)
+
+		local stash = dropdown:StashDropdowns()
+
+		layout.CenterAtY(dropdown, y)
+
+		local border = display.newRect(cgroup, 0, y, dropdown.width, dropdown.height)
+
+		layout.CenterAtX(border, layout.CenterX(dropdown))
+
+		border:setFillColor(0, 0)
+		border:setStrokeColor(.3)
+
+		border.strokeWidth = 1
+
+		dropdown:RestoreDropdowns(stash)
+
+		cgroup[params[i + 2]], prev = dropdown, dropdown
+	end
+
+	return _DraggableFinisher_(cgroup, back, bar, prev, "87.5%", params.title)
+end
+
 local Instances
 
 --- DOCME
@@ -75,6 +118,16 @@ function M.AddInstance (object, instance)
 	local ilist = Instances[object] or {}
 
 	Instances[object], ilist[#ilist + 1] = ilist, instance
+end
+
+-- List of objects that care about level name --
+local WatchingName
+
+--- DOCME
+function M.AlertNameWatchers ()
+	for _, watcher in ipairs(WatchingName) do
+		watcher()
+	end
 end
 
 --
@@ -152,7 +205,7 @@ local Positions
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Instances, Labels, LinkGroupings, Positions, RepToValues, SessionLinks, ValuesToRep = nil
+	Buttons, Instances, Labels, LinkGroupings, Positions, RepToValues, SessionLinks, ValuesToRep, WatchingName = nil
 end
 
 --- Copies into one table from another.
@@ -185,6 +238,53 @@ function M.Dirty ()
 	M.FadeButton("Verify", IsVerified, 1)
 
 	IsDirty, IsVerified = true, false
+
+	_AlertNameWatchers_()
+end
+
+-- --
+local DragTouch = touch.DragParentTouch{ ref_key = "m_back", to_front = true }
+
+-- --
+local BackHeight, BarHeight = 30, 16
+
+--- DOCME
+function M.DraggableStarter ()
+	local cgroup, h = display.newGroup(), BackHeight + BarHeight
+	local back = display.newRect(cgroup, 0, .5 * h, 1, h)
+	local bar = display.newRect(cgroup, 0, .5 * BarHeight, 1, BarHeight)
+
+	bar:addEventListener("touch", DragTouch)
+	bar:setFillColor(0, 0, .5)
+	bar:setStrokeColor(0, 0, .6)
+	back:setFillColor(.7)
+	back:setStrokeColor(.6, .7)
+
+	back.anchorX, back.x = 0, 0
+	bar.anchorX, bar.x = 0, 0
+	back.strokeWidth, bar.strokeWidth = 2, 1
+
+	bar.m_back = back
+
+	return cgroup, back, bar, h - .5 * BackHeight
+end
+
+--- DOCME
+function M.DraggableFinisher (cgroup, back, bar, prev, top, title)
+	local w = layout.RightOf(prev, 5)
+
+	back.path.width, bar.path.width = w, w
+
+	if title then
+		display.newText(cgroup, title, .5 * w, bar.y, native.systemFontBold, 15)
+	end
+
+	layout.CenterAtX(cgroup, "50%")
+	layout.TopAlignWith(cgroup, top)
+
+	touch.Spoof(cgroup)
+
+	return cgroup
 end
 
 -- Button fade transition --
@@ -358,15 +458,17 @@ local CurrentX, CurrentY
 -- @uint nrows ...and how many rows?
 function M.Init (ncols, nrows)
 	NCols, NRows, CurrentX, CurrentY = ncols, nrows
-
+--[[
 	if Buttons.Save then
 		Buttons.Save.alpha = .4
 	end
-
+]]
 	RepToValues, ValuesToRep, IsDirty, IsVerified = {}, {}, false, false
 	SessionLinks = Links(Tags(), function(object)
 		return object.parent
 	end)
+
+	WatchingName = {}
 
 	-- Do periodic cleanup of links.
 	local index = 1
@@ -553,6 +655,13 @@ function M.Undirty ()
 	M.FadeButton("Save", IsDirty, .4)
 
 	IsDirty = false
+
+	_AlertNameWatchers_()
+end
+
+--- DOCME
+function M.WatchName (func)
+	WatchingName[#WatchingName + 1] = func
 end
 
 --- Sets the editor verified state, if clear, and updates verification-related features.
@@ -564,8 +673,11 @@ function M.Verify ()
 end
 
 -- Cache module members.
+_AlertNameWatchers_ = M.AlertNameWatchers
 _AttachLinkInfo_ = M.AttachLinkInfo
 _BindRepAndValues_ = M.BindRepAndValues
+_DraggableStarter_ = M.DraggableStarter
+_DraggableFinisher_ = M.DraggableFinisher
 _SetLabel_ = M.SetLabel
 
 -- Export the module.
