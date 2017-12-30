@@ -121,7 +121,7 @@ function M:AddString (options)
 end
 
 -- Drag touch listener
-local DragTouch = touch.DragParentTouch_Child(1, { find = utils.GetDialog }) -- brittle, depends on back index...
+local DragTouch = touch.DragParentTouch{ ref_key = "m_back", find = utils.GetDialog }
 
 --- DOCME
 -- @string[opt] thumb
@@ -141,6 +141,8 @@ function M:StockElements (thumb)
 	bar:setStrokeColor(0, 0, .5)
 
 	bar.strokeWidth = 2
+
+	bar.m_back = self:Back()
 
 	utils.SetProperty(bar, "type", "separator", utils.GetNamespace(self))
 

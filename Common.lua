@@ -32,6 +32,7 @@ local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
+local config = require("config.Editor")
 local object_vars = require("config.ObjectVariables")
 local sheet = require("corona_utils.sheet")
 
@@ -41,6 +42,7 @@ local Tags = require("tektite_base_classes.Link.Tags")
 
 -- Corona globals --
 local display = display
+local Runtime = Runtime
 local timer = timer
 local transition = transition
 
@@ -372,6 +374,8 @@ function M.Init (ncols, nrows)
 	SessionLinks.cleanup = timer.performWithDelay(50, function()
 		index = SessionLinks:CleanUp(index)
 	end, 0)
+
+	Runtime:dispatchEvent{ name = "editor_session_init", ncols = ncols, nrows = nrows, w = config.w, h = config.h }
 end
 
 --

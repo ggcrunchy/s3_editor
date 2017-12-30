@@ -73,7 +73,7 @@ function M.ChoiceTrier (names)
 		choices[#choices + 1] = v
 	end
 
-	return function(tabs, unless)
+	return function(tabs--[[dropdown]], unless)
 		local index
 
 		for i, v in ipairs(choices) do
@@ -88,6 +88,7 @@ function M.ChoiceTrier (names)
 
 		if index and choices[index] ~= unless then
 			tabs:setSelected(index, true)
+			-- dropdown:Select(CurrentChoice, "no_op")
 		end
 	end
 end

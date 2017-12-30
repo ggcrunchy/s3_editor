@@ -48,15 +48,74 @@ local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
 local grid1D = require("corona_ui.widgets.grid_1D")
 local help = require("s3_editor.Help")
+local layout = require("corona_ui.utils.layout")
+local menu = require("corona_ui.widgets.menu")
 local sheet = require("corona_utils.sheet")
 local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
+local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
 local display = display
+local native = native
 
 -- Exports --
 local M = {}
+
+-- --
+local DragTouch = touch.DragParentTouch{ ref_key = "m_back" }
+
+-- --
+local BackHeight, BarHeight = 30, 16
+
+--- DOCME
+function M.AddCommandsBar (params)
+	local cgroup, h, prev = display.newGroup(), BackHeight + BarHeight
+	local back = display.newRect(cgroup, 0, .5 * h, 1, h)
+	local bar, y = display.newRect(cgroup, 0, .5 * BarHeight, 1, BarHeight), h - .5 * BackHeight
+
+	bar:addEventListener("touch", DragTouch)
+	bar:setFillColor(0, 0, 1)
+	bar:setStrokeColor(0, 0, .6)
+	back:setFillColor(.7)
+	back:setStrokeColor(.6, .7)
+
+	back.anchorX, back.x = 0, 0
+	bar.anchorX, bar.x = 0, 0
+	back.strokeWidth, bar.strokeWidth = 2, 1
+
+	bar.m_back = back
+
+	for i = 1, #params, 3 do
+		local str, dparams = display.newText(cgroup, params[i], 0, y, native.systemFont, 16), params[i + 1]
+
+		dparams.group, dparams.heading_height, dparams.size = cgroup, BackHeight - 8, 12
+
+		local dropdown = menu.Dropdown(dparams)
+
+		layout.PutRightOf(str, prev, 5)
+		layout.PutRightOf(dropdown, str, 5)
+
+		local stash = dropdown:StashDropdowns()
+
+		layout.CenterAtY(dropdown, y)
+
+		dropdown:RestoreDropdowns(stash)
+
+		cgroup[params[i + 2]], prev = dropdown, dropdown
+	end
+
+	local w = layout.RightOf(prev, 5)
+
+	back.path.width, bar.path.width = w, w
+
+	layout.CenterAtX(cgroup, "50%")
+	layout.TopAlignWith(cgroup, "87.5%")
+
+	touch.Spoof(cgroup)
+
+	return cgroup
+end
 
 --- DOCME
 -- @pgroup group
