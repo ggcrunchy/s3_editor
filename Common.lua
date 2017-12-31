@@ -29,6 +29,7 @@ local max = math.max
 local min = math.min
 local next = next
 local pairs = pairs
+local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
@@ -448,11 +449,14 @@ end
 -- Common "current selection" position --
 local CurrentX, CurrentY
 
+-- Last mode, if any --
+local Mode
+
 --- Initializes various state used pervasively by the editor.
 -- @uint ncols How many columns will be in the working level...
 -- @uint nrows ...and how many rows?
 function M.Init (ncols, nrows)
-	NCols, NRows, CurrentX, CurrentY = ncols, nrows
+	NCols, NRows, Mode, CurrentX, CurrentY = ncols, nrows
 --[[
 	if Buttons.Save then
 		Buttons.Save.alpha = .4
@@ -620,6 +624,18 @@ end
 -- @bool show If true, show the current item.
 function M.ShowCurrent (current, show)
 	if current.isVisible ~= not not show then
+		local mode, mode_list = Mode, current.m_mode
+
+		Mode = nil
+
+		if mode_list then
+			if not show then
+				Mode = mode_list:GetSelection("text")
+			elseif mode and type(show) == "table" then
+				mode_list:Select(mode, "no_op")
+			end
+		end
+
 		if not show then
 			CurrentX, CurrentY = current.x, current.y
 		elseif CurrentX and CurrentY then

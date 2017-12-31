@@ -46,9 +46,7 @@ local type = type
 -- Modules --
 local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
-local grid1D = require("corona_ui.widgets.grid_1D")
 local help = require("s3_editor.Help")
-local sheet = require("corona_utils.sheet")
 local strings = require("tektite_core.var.strings")
 local tabs_patterns = require("corona_ui.patterns.tabs")
 
@@ -103,19 +101,16 @@ end
 
 --
 local function FrameSame (tile, which)
-	return tile and tile.m_filename == which--sheet.GetSpriteSetImageFrame(tile) == which
+	return tile and tile.m_filename == which
 end
 
 -- --
 local Fill = { type = "image" }
 
 --
-local function FrameUpdate (canvas, tile, x, y, cw, ch--[[, tile_images]], which)
-	tile = tile or --[[sheet.NewImage(canvas, tile_images, x, y, ]]display.newRect(canvas, x, y, cw, ch)
-
-	tile.fill, Fill.filename = Fill, which
---	sheet.SetSpriteSetImageFrame(tile, which)
-	tile.m_filename = which
+local function FrameUpdate (canvas, tile, x, y, cw, ch, filename)
+	tile = tile or display.newRect(canvas, x, y, cw, ch)
+	tile.fill, Fill.filename, tile.m_filename = Fill, filename, filename
 
 	return tile
 end
@@ -142,7 +137,7 @@ end
 -- @string[opt=""] palette 
 -- @treturn GridView Editor grid view object.
 function M.EditErase (dialog_wrapper, types, palette)
-	local cells, choices, current, option, pick, tabs, tiles, try_option, tile_images, values
+	local cells, choices, option, pick, tabs, tiles, values
 
 	--
 	local same, update = DefSame
@@ -150,7 +145,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 	if palette == "circle" then
 		update = CircleUpdate
 	elseif #(palette or "") ~= 0 then
-		update, tile_images = ImageUpdate, palette
+		update--[[, TODO?]] = ImageUpdate
 	else
 		same, update = FrameSame, FrameUpdate
 	end
@@ -158,7 +153,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 	--
 	local function Cell (event)
 		local cur_choice = choices.m_cur
-		local key, which = strings.PairToKey(event.col, event.row), cur_choice and cur_choice:GetSelection("filename")--current and current:GetCurrent()
+		local key, which = strings.PairToKey(event.col, event.row), cur_choice and cur_choice:GetSelection("filename")
 		local cur, tile = values[key], tiles[key]
 		local canvas, cw, ch = event.target:GetCanvas(), event.target:GetCellDims()
 
@@ -168,7 +163,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 		--
 		if option == "Edit" then
 			if cur then
-				dialog_wrapper("edit", cur, --[[tabs]]choices.parent, key)
+				dialog_wrapper("edit", cur, choices.parent, key)
 			else
 				dialog_wrapper("close")
 			end
@@ -190,11 +185,11 @@ function M.EditErase (dialog_wrapper, types, palette)
 				common.GetLinks():RemoveTag(tile)
 			end
 
-			local vtype = type(types) == "string" and types or cur_choice:GetSelection("text")--types[which]
+			local vtype = type(types) == "string" and types or cur_choice:GetSelection("text")
 
 			if vtype then
 				values[key] = dialog_wrapper("new_values", vtype, key)
-				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, which)--tile_images, which)
+				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, which)
 
 				--
 				common.BindRepAndValuesWithTag(tiles[key], values[key], dialog_wrapper("get_tag", vtype), dialog_wrapper)
@@ -217,42 +212,23 @@ function M.EditErase (dialog_wrapper, types, palette)
 	--
 	local EditEraseGridView = {}
 
+	-- --
+	local Options = { "Paint", "Edit", "Erase" }
+
 	--- DOCME
 	function EditEraseGridView:Enter ()
 		grid.Show(cells)
-	--	try_option(tabs, option)
---[[
-		if current then
-			common.ShowCurrent(current, option == "Paint")
-		end
-]]
-		choices.isVisible = true
---		tabs.isVisible = true
+		common.ShowCurrent(choices, Options)
 	end
 
 	--- DOCME
 	function EditEraseGridView:Exit ()
 		dialog_wrapper("close")
 
-		grid.SetChoice(option)
---[[
-		if current then
-			common.ShowCurrent(current, false)
-		end
-]]
-		choices.isVisible = false
-	--	tabs.isVisible = false
-
+		common.ShowCurrent(choices, false)
 		grid.Show(false)
 	end
---[[
-	--- DOCME
-	function EditEraseGridView:GetCurrent ()
-		return current
-	end
 
-	-- ^^ RENAME, while about it? (e.g. choice)
-]]
 	--- DOCME
 	function EditEraseGridView:GetChoices ()
 		return choices
@@ -281,15 +257,13 @@ function M.EditErase (dialog_wrapper, types, palette)
 		cells:addEventListener("show", ShowHide)
 
 		--
-		local options = { "Paint", "Edit", "Erase" }
 		local commands = {
 			title = prefix .. " commands",
 
-			"Mode:", { column = options, column_width = 60 }, "m_mode",
+			"Mode:", { column = Options, column_width = 60 }, "m_mode",
 		}
 
 		if update == FrameUpdate then
-		--	current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title, { types = types })
 			local column, editor_event = {}, dialog_wrapper("get_editor_event")
 
 			for _, name in ipairs(types) do
@@ -316,45 +290,12 @@ function M.EditErase (dialog_wrapper, types, palette)
 		group:insert(choices)
 
 		--
---[[
-		tabs = M.AddTabs(group, options, function(label)
-			return function()
-				option = label
-
-				if current then
-					common.ShowCurrent(current, label == "Paint")
-				end
-
-				if label ~= "Edit" then
-					dialog_wrapper("close")
-				end
-
-				return true
-			end
-		end, "37.5%")
-]]
-		--
-		try_option = grid.ChoiceTrier(options)
---[[
-		--
-		if current then
-			tile_images = common.SpriteSetFromThumbs(dialog_wrapper("get_editor_event"), types)
-
-			current:Bind(tile_images, #tile_images)
-			current:toFront()
-
-			common.ShowCurrent(current, false)
-		end
-]]
-		--
 	--	help.AddHelp(prefix, { current = current, tabs = tabs })
 	end
 
 	--- DOCME
 	function EditEraseGridView:Unload ()
-	--	tabs:removeSelf()
-
-		cells, current, option, pick, tabs, tiles, tile_images, try_option, values = nil
+		cells, option, pick, tabs, tiles, values = nil
 	end
 
 	return EditEraseGridView
