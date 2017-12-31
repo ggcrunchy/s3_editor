@@ -70,9 +70,12 @@ local HelpContext = {}
 
 --- DOCME
 function HelpContext:Add (object, help)
-	local n = #Entries
+	assert(not self.m_indices, "Cannot add to registered context")
+	assert(help, "No help text provided")
 
-	assert(n == assert(self.m_n, "Cannot add to registered context"), "Previous context failed to register entries")
+	local n, cur = #Entries, self.m_n
+
+	assert(not cur or n == cur, "Previous context failed to register entries")
 	assert(not self[object], "Help already added")
 
 	Entries[n + 1] = object
@@ -104,7 +107,8 @@ end
 
 --- DOCME
 function HelpContext:Register ()
-	assert(self.m_n, "Already registered")
+	assert(not self.m_indices, "Already registered")
+	assert(self.m_n == #Entries, "Previous context failed to register entries")
 
 	local stage, indices = display.getCurrentStage(), {}
 
@@ -128,14 +132,14 @@ end
 
 --- DOCME
 function HelpContext:Show (show)
-	local indices = assert(self.indices, "Unregistered context")
+	local indices = assert(self.m_indices, "Unregistered context")
 
 	Help[indices] = not not show
 end
 
 --- DOCME
 function M.NewContext ()
-	local context = { m_n = #Entries }
+	local context = {}
 
 	meta.Augment(context, HelpContext)
 

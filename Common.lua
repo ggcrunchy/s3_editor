@@ -75,6 +75,8 @@ function M.AddButton (name, button)
 	Buttons[name] = button
 end
 
+local Temp = {}
+
 --- DOCME
 function M.AddCommandsBar (params)
 	local cgroup, back, bar, y = _DraggableStarter_()
@@ -90,14 +92,24 @@ function M.AddCommandsBar (params)
 		layout.PutRightOf(str, prev, 5)
 		layout.PutRightOf(dropdown, str, 5)
 
-		local stash = _StashAndFrame_(cgroup, dropdown, y)
-
-		dropdown:RestoreDropdowns(stash)
-
+		Temp[#Temp + 1] = dropdown
+		Temp[#Temp + 1] = _StashAndFrame_(cgroup, dropdown, y)
 		cgroup[params[i + 2]], prev = dropdown, dropdown
 	end
 
-	return _DraggableFinisher_(cgroup, back, bar, prev, "45%", params.title)
+	local context, cbar = params.help_context, _DraggableFinisher_(cgroup, back, bar, prev, "45%", params.title)
+
+	if context then
+		context:Add(cbar, params.help_text)
+	end
+
+	for i = #Temp - 1, 1, -2 do
+		Temp[i]:RestoreDropdowns(Temp[i + 1])
+
+		Temp[i], Temp[i + 1] = nil
+	end
+
+	return cbar
 end
 
 local Instances
