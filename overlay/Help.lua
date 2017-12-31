@@ -25,20 +25,17 @@
 
 -- Standard library imports --
 local max = math.max
-local type = type
 
 -- Modules --
-local button = require("corona_ui.widgets.button")
-local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local layout = require("corona_ui.utils.layout")
 local layout_dsl = require("corona_ui.utils.layout_dsl")
 local net = require("corona_ui.patterns.net")
-local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
 local display = display
 local native = native
+local transition = transition
 
 -- Corona modules --
 local composer = require("composer")
@@ -46,9 +43,112 @@ local composer = require("composer")
 -- Help overlay --
 local Overlay = composer.newScene()
 
+-- --
+local RectGroup, RectStash
+
+local function Over (icon)
+	local x, y = icon:localToContent(0, 0)
+
+	for i = 1, RectGroup.numChildren do
+		local rect = RectGroup[i]
+		local cx, cy, dw, dh = rect.x, rect.y, .5 * rect.width, .5 * rect.height
+		local xmin, ymin, xmax, ymax = cx - dw, cy - dh, cx + dw, cy + dh
+
+		if x >= xmin and x <= xmax and y >= ymin and y <= ymax then
+			return rect
+		end
+	end
+end
+
+local ColorParams = { time = 150 }
+
+local function SetColor (rect, r, g, b)
+	ColorParams.r, ColorParams.g, ColorParams.b = r, g, b
+
+	transition.to(rect.fill, ColorParams)
+end
+
+local function SetOver (icon, over)
+	if over then
+		SetColor(over, 1, 0, 0)
+	end
+
+	icon.m_over = over
+end
+
+local function ShowText (over)
+	local mgroup = Overlay.message_group
+	local rect, text = mgroup[1], mgroup[2]
+
+	text.text = over.m_message
+	text.x, text.y = display.contentCenterX, display.contentCenterY
+	rect.height = max(layout.ResolveY("62.5%"), text.contentHeight + layout.ResolveY("2.1%"))
+
+	mgroup.isVisible = true
+end
+
+-- --
+local TouchBodiesOpts = {
+	began = function(icon)
+		SetOver(icon, Over(icon))
+	end,
+
+	ended = function(icon)
+		local over = icon.m_over
+
+		if over then
+			ShowText(over)
+
+			icon.m_over = nil
+		else
+			composer.hideOverlay(true)
+		end
+	end,
+
+	get_overlay_view = function()
+		return Overlay.view
+	end,
+
+	post_move = function(icon)
+		local old, new = icon.m_over, Over(icon)
+
+		if old ~= new then
+			if old then
+				SetColor(old, 1, 1, 0)
+			end
+
+			SetOver(icon, new)
+		end
+	end
+}
+
+-- --
+local BlockerOpts = {
+	on_touch = function(event)
+		if event.phase == "cancelled" or event.phase == "ended" then
+			Overlay.message_group.isVisible = false
+
+			composer.hideOverlay(true)
+		end
+
+		return true
+	end
+}
+
 --
 function Overlay:create ()
-	net.Blocker(self.view)
+	net.Blocker(self.view, BlockerOpts)
+
+	--
+	help.SetTouchFuncBodies(TouchBodiesOpts)
+
+	--
+	RectGroup, RectStash = display.newGroup(), display.newGroup()
+
+	self.view:insert(RectGroup)
+	self.view:insert(RectStash)
+
+	RectGroup.isVisible, RectStash.isVisible = false, false
 
 	--
 	self.help_group = display.newGroup()
@@ -67,102 +167,63 @@ function Overlay:create ()
 	rect.strokeWidth = 5
 
 	local w, tx, ty = layout.ResolveX("6.25%"), layout_dsl.EvalPos("25%", "41.67%")
-	local text = display.newText(self.message_group, "", tx, ty, rect.width - w, 0, native.systemFontBold, layout.ResolveY("5.21%"))
+
+	display.newText(self.message_group, "", tx, ty, rect.width - w, 0, native.systemFontBold, layout.ResolveY("2.5%"))
 
 	self.message_group.isVisible = false
 
 	self.view:insert(self.message_group)
-
-	--
-	button.Button_XY(self.view, "from_right -12.5%", "below 5.2%", "4.375%", "7.3%", function()
-		composer.hideOverlay(true)
-	end, "X")
 end
 
 Overlay:addEventListener("create")
 
+-- --
+local Count, W, H
+
 --
-local ShowText = touch.TouchHelperFunc(function(_, node)
-	local mgroup = Overlay.message_group
-	local rect, text = mgroup[1], mgroup[2]
+local function AssignRects (object, message, w, h)
+	local bounds = object.contentBounds
 
-	text.text = node.m_text
-	text.x, text.y = display.contentCenterX, display.contentCenterY
-	rect.height = max(layout.ResolveY("62.5%"), text.contentHeight + layout.ResolveY("2.1%"))
+	if bounds.xMax >= 0 and bounds.xMin <= W and bounds.yMax >= 0 and bounds.yMin <= H then
+		Count = Count + 1
 
-	net.AddNet_Hide(Overlay.view, mgroup)
+		if Count > RectGroup.numChildren then
+			local n, rect = RectStash.numChildren
 
-	mgroup.isVisible = true
-end)
+			if n > 0 then
+				rect = RectStash[n]
+				rect.width, rect.height = w, h
+
+				RectGroup:insert(rect)
+			else
+				rect = display.newRect(RectGroup, 0, 0, w, h)
+
+				rect:setFillColor(1, 1, 0, .125)
+				rect:setStrokeColor(1, 1, 0)
+
+				rect.strokeWidth = 2
+			end
+
+			layout.CenterAtX(rect, layout.CenterX(object))
+			layout.TopAlignWith(rect, object)
+
+			rect.m_message = message
+		end
+	end
+end
 
 --
 function Overlay:show (event)
 	if event.phase == "did" then
-		local function on_help (_, text, binding)
-			if text and binding and (binding.isVisible or binding.m_is_proxy) then
-				local bounds = binding.contentBounds
+		Count, W, H = 0, display.contentWidth, display.contentHeight
 
-				--
-				local radius = layout.ResolveX("1.875%")
-				local minx, miny = bounds.xMin, bounds.yMin
-				local maxx, maxy = bounds.xMax, bounds.yMax
-				local help = display.newRoundedRect(self.help_group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny, radius)
+		help.Visit(AssignRects)
 
-				help:setFillColor(1, 1, 0, .125)
-				help:setStrokeColor(1, 1, 0)
-
-				help.strokeWidth = 4
-
-				--
-				local dx, dw, n = 0, 0, 1 
-
-				if type(text) ~= "string" then
-					n = #text
-
-					if n > 1 then
-						dw = help.width / n
-						dx = (n - 1) * dw / 2
-					else
-						text = text[1]
-					end
-				end
-
-				--
-				local x, y = help.x - dx, help.y
-
-				for i = 1, n do
-					local node = display.newCircle(self.help_group, x, y, radius)
-
-					node:addEventListener("touch", ShowText)
-					node:setFillColor(0, 0, 1)
-
-					--
-					if n > 1 then
-						node.m_text = text[i]
-
-						if i < n then
-							local x2 = x + .5 * dw
-							local sep = display.newLine(self.help_group, x2, miny, x2, maxy)
-
-							sep:setStrokeColor(1, 1, 0)
-
-							sep.strokeWidth = 4
-						end
-					else
-						node.m_text = text
-					end
-
-					--
-					local qmark = display.newText(self.help_group, "?", node.x, node.y, native.systemFontBold, layout.ResolveY("6.25%"))
-
-					x = x + dw
-				end
-			end
+		for i = RectGroup.numChildren, Count + 1, -1 do
+			RectStash:insert(RectGroup[i])
 		end
 
-		help.GetHelp(on_help)
-		grid.GetHelp(on_help)
-		help.GetHelp(on_help, "Common")
+		RectGroup.isVisible = Count > 0
 	end
 end
 
@@ -174,6 +235,8 @@ function Overlay:hide (event)
 		for i = self.help_group.numChildren, 1, -1 do
 			self.help_group:remove(i)
 		end
+
+		RectGroup.isVisible = false
 	end
 end
 

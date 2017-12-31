@@ -457,11 +457,6 @@ local Mode
 -- @uint nrows ...and how many rows?
 function M.Init (ncols, nrows)
 	NCols, NRows, Mode, CurrentX, CurrentY = ncols, nrows
---[[
-	if Buttons.Save then
-		Buttons.Save.alpha = .4
-	end
-]]
 	RepToValues, ValuesToRep, IsDirty, IsVerified = {}, {}, false, false
 	SessionLinks = Links(Tags(), function(object)
 		return object.parent

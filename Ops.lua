@@ -32,6 +32,7 @@ local write = io.write
 
 -- Modules --
 local common = require("s3_editor.Common")
+local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
@@ -44,7 +45,11 @@ local Runtime = Runtime
 local system = system
 
 -- Cached module references --
+local _Build_
+local _GetLevelName_
+local _Save_
 local _SetLevelName_
+local _SetTemp_
 local _Verify_
 
 -- Corona modules --
@@ -159,9 +164,43 @@ function M.ListenForQuickTest (key_name, scene_name)
 	end)
 end
 
+-- Non-level state to restore when returning from a test --
+local RestoreState
+
+--- DOCME
+function M.MakeReady ()
+	-- If the state was dirty before a test, then re-dirty it.
+	if RestoreState and RestoreState.was_dirty then
+		common.Dirty()
+	end
+
+	-- Remove evidence of any test and alert listeners that the WIP is opened.
+	RestoreState = nil
+
+	Runtime:dispatchEvent{ name = "level_wip_opened" }
+end
+
 --- Quits the editor.
 function M.Quit ()
 	composer.gotoScene("s3_editor.scene.Setup")
+end
+
+-- Name used to store working version of level (WIP and build) in the database --
+local TestLevelName = "?TEST?"
+
+--- DOCME
+function M.Restore ()
+	Runtime:dispatchEvent{ name = "enter_menus" }
+
+	local _, data = persistence.LevelExists(TestLevelName, true)
+
+	-- TODO: Doesn't exist? (Database failure?)
+
+	local params = persistence.Decode(data)
+
+	params.is_loading = RestoreState.level_name
+
+	return params
 end
 
 -- Save logic body
@@ -212,6 +251,74 @@ end
 -- @bool is_temp Is the level temporary, in the operations to follow?
 function M.SetTemp (is_temp)
 	IsTemp = not not is_temp
+end
+
+-- Test the level --
+function M.Test ()
+	local restore = { was_dirty = common.IsDirty(), common.GetDims() }
+
+	_Verify_()
+
+	if common.IsVerified() then
+		restore.level_name = _GetLevelName_()
+
+		-- The user might not want to save the changes being tested, thus we
+		-- introduce an intermediate test level instead. The working version of
+		-- the level might already be saved, however, in which case the upcoming
+		-- save will be a no-op unless we manually dirty the level.
+		common.Dirty()
+
+		-- We save the test level: as a WIP, so we can restore up to our most recent
+		-- changes; and as a build, which will be what we test. Both are loaded into
+		-- the database, in order to take advantage of the loading machinery, under
+		-- a reserved name (this will overwrite any existing entries). The levels are
+		-- marked as temporary so they don't show up in enumerations.
+		_SetTemp_(true)
+		_SetLevelName_(TestLevelName)
+		_Save_()
+		_Build_()
+		-- TODO?: ops.VerifyBuild(), e.g. to test for unmet link subscriptions
+		_SetTemp_(false)
+
+		timers.Defer(function()
+			local exists, data = persistence.LevelExists(TestLevelName)
+
+			if exists then
+				RestoreState = restore
+
+				scenes.GoToScene{ name = editor_config.to_level, params = data, effect = "none" }
+			else
+				native.showAlert("Error!", "Failed to launch test level")
+
+				-- Fix any inconsistent editor state.
+				if restore.was_dirty then
+					common.Dirty()
+				end
+
+				_SetLevelName_(restore.level_name)
+			end
+		end)
+	end
+end
+
+--- DOCME
+function M.TryToLoad (params)
+	-- If we are loading a level, set the working name and dispatch a load event. If we
+	-- tested a new level, it may not have a name yet, but in that case a restore state
+	-- tells us our pre-test WIP is available to reload. Usually the editor state should
+	-- not be dirty after a load.
+	if params.is_loading or RestoreState then
+		_SetLevelName_(params.is_loading)
+
+		params.name = "load_level_wip"
+
+		Runtime:dispatchEvent(params)
+
+		params.name = nil
+
+		events.ResolveLinks_Load(params)
+		common.Undirty()
+	end
 end
 
 -- Safe instance retrieval
@@ -301,7 +408,11 @@ function M.Verify ()
 end
 
 -- Cache module members.
+_Build_ = M.Build
+_GetLevelName_ = M.GetLevelName
+_Save_ = M.Save
 _SetLevelName_ = M.SetLevelName
+_SetTemp_ = M.SetTemp
 _Verify_ = M.Verify
 
 -- Export the module.

@@ -44,12 +44,10 @@ local pairs = pairs
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
-local editor_config = require("config.Editor")
-local events = require("s3_editor.Events")
 local grid = require("s3_editor.Grid")
+local editor_strings = require("s3_editor.Strings")
 local help = require("s3_editor.Help")
 local layout = require("corona_ui.utils.layout")
 local menu = require("corona_ui.widgets.menu")
@@ -60,7 +58,6 @@ local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local scenes = require("corona_utils.scenes")
 local strings = require("tektite_core.var.strings")
-local timers = require("corona_utils.timers")
 
 -- Corona globals --
 local display = display
@@ -143,36 +140,34 @@ local function Listen (what)
 	end
 end
 
--- Non-level state to restore when returning from a test --
-local RestoreState
-
--- Name used to store working version of level (WIP and build) in the database --
-local TestLevelName = "?TEST?"
+-- --
+local HelpContext
 
 -- --
-local HelpOpts = { isModal = true }
+local Actions = { "Test", "Build", "Verify", "Save" }
 
-local function AddCommands (view, actions, funcs)
+local function AddCommands (view)
 	local cgroup, back, bar, y = common.DraggableStarter()
-	local help = display.newCircle(cgroup, 10, y + 3, 8)
+	local hgroup = display.newGroup()
+	local help_icon = display.newCircle(hgroup, 10, y + 3, 8)
 
-	help:setFillColor(0, 0, .9)
-	help:setStrokeColor(.7, 0, .3, .9)
+	cgroup:insert(hgroup)
+	help_icon:addEventListener("touch", help.TouchFunc)
+	help_icon:setFillColor(0, 0, .9)
+	help_icon:setStrokeColor(.7, 0, .3, .9)
 
-	help.strokeWidth = 1
+	help_icon.strokeWidth = 1
 
-	display.newText(cgroup, "?", help.x, help.y, native.systemFontBold, 10)
+	display.newText(hgroup, "?", help_icon.x, help_icon.y, native.systemFontBold, 10)
 
-	-- add funcs.Help logic...
-
-	local about = display.newText(cgroup, "MMMMMMMMMMMMMMM", 0, help.y, native.systemFont, 12) -- allocate space for text
+	local about = display.newText(cgroup, "MMMMMMMMMMMMMMM", 0, help_icon.y, native.systemFont, 12) -- allocate space for text
 
 	about.m_num_chars = #about.text
 
-	layout.PutRightOf(about, help, 5)
+	layout.PutRightOf(about, help_icon, 5)
 
 	local selector = menu.Menu{
-		group = cgroup, columns = { "Actions", actions },
+		group = cgroup, columns = { "Actions", Actions },
 		column_width = 95, heading_height = 18, size = 12
 	}
 
@@ -180,11 +175,12 @@ local function AddCommands (view, actions, funcs)
 
 	layout.PutRightOf(selector, about, 5)
 
-	local stash = common.StashAndFrame(cgroup, selector, help.y)
+	local stash = common.StashAndFrame(cgroup, selector, help_icon.y)
 
 	selector:addEventListener("menu_item", function(event)
-		funcs[event.text]()
+		ops[event.text]()
 	end)
+
 	selector:RestoreDropdowns(stash)
 
 	common.DraggableFinisher(cgroup, back, bar, selector, "87.5%", "Commands")
@@ -193,10 +189,10 @@ local function AddCommands (view, actions, funcs)
 		text = "x", skin = "small_text_button"
 	})
 
-	layout.RightAlignWith(close, layout.RightOf(bar), -5)
+	layout.RightAlignWith(close, bar, -5)
 
 	local function watch_name ()
-		local n, name, star = about.m_num_chars, ops.GetLevelName() or "Untitled scene", common.IsDirty() and " *" or ""
+		local n, name, star = about.m_num_chars, ops.GetLevelName() or "Untitled level", common.IsDirty() and " *" or ""
 
 		if #star > 0 then
 			n = n - 2
@@ -212,6 +208,8 @@ local function AddCommands (view, actions, funcs)
 	watch_name()
 
 	common.WatchName(watch_name)
+
+	HelpContext:Add(back, editor_strings("commands"))
 end
 
 local function AddNavigation (view)
@@ -238,6 +236,8 @@ local function AddNavigation (view)
 	selector:Select("player")
 
 	common.DraggableFinisher(cgroup, back, bar, selector, "5%", "Navigation")
+
+	HelpContext:Add(back, editor_strings("navigation"))
 end
 
 -- Show Scene --
@@ -251,86 +251,9 @@ function Scene:show (event)
 		local params
 
 		if scenes.ComingFrom() == "Level" then
-			Runtime:dispatchEvent{ name = "enter_menus" }
-
-			local _, data = persistence.LevelExists(TestLevelName, true)
-
-			-- TODO: Doesn't exist? (Database failure?)
-
-			params = persistence.Decode(data)
-
-			params.is_loading = RestoreState.level_name
+			params = ops.Restore()
 		else
 			params = event.params
-		end
-
-		-- Load various master editor operations.
-		local actions, funcs = {}, {}
-
-		for _, func, text in args.ArgsByN(2,
-			-- Test the level --
-			function()
-				local restore = { was_dirty = common.IsDirty(), common.GetDims() }
-
-				ops.Verify()
-
-				if common.IsVerified() then
-					restore.level_name = ops.GetLevelName()
-
-					-- The user might not want to save the changes being tested, thus we
-					-- introduce an intermediate test level instead. The working version of
-					-- the level might already be saved, however, in which case the upcoming
-					-- save will be a no-op unless we manually dirty the level.
-					common.Dirty()
-
-					-- We save the test level: as a WIP, so we can restore up to our most recent
-					-- changes; and as a build, which will be what we test. Both are loaded into
-					-- the database, in order to take advantage of the loading machinery, under
-					-- a reserved name (this will overwrite any existing entries). The levels are
-					-- marked as temporary so they don't show up in enumerations.
-					ops.SetTemp(true)
-					ops.SetLevelName(TestLevelName)
-					ops.Save()
-					ops.Build()
-					-- TODO?: ops.VerifyBuild(), e.g. to test for unmet link subscriptions
-					ops.SetTemp(false)
-
-					timers.Defer(function()
-						local exists, data = persistence.LevelExists(TestLevelName)
-
-						if exists then
-							RestoreState = restore
-
-							scenes.GoToScene{ name = editor_config.to_level, params = data, effect = "none" }
-						else
-							native.showAlert("Error!", "Failed to launch test level")
-
-							-- Fix any inconsistent editor state.
-							if restore.was_dirty then
-								common.Dirty()
-							end
-
-							ops.SetLevelName(restore.level_name)
-						end
-					end)
-				end
-			end, "Test",
-
-			-- Build a game-ready version of the level --
-			ops.Build, "Build",
-
-			-- Verify the game-ready integrity of the level --
-			ops.Verify, "Verify",
-
-			-- Save the working version of the level --
-			ops.Save, "Save",
-
-			-- Bring up a help overlay --
-			function()
-				composer.showOverlay("s3_editor.overlay.Help", HelpOpts)
-			end, "Help"
-		) do
-			actions[#actions + 1], funcs[text] = text, func
 		end
 
 		-- Initialize systems.
@@ -338,6 +261,8 @@ function Scene:show (event)
 		help.Init()
 		grid.Init(self.view)
 		ops.Init(self.view)
+
+		HelpContext = help.NewContext()
 
 		--
 		local tags = common.GetLinks():GetTagDatabase()
@@ -363,51 +288,20 @@ function Scene:show (event)
 			end
 		end
 
-		--[[
-		help.AddHelp("Common", {
-			Test = "Builds the level. If successful, launches the level in the game.",
-			Build = "Verifies the scene. If is passes, builds it in game-loadable form.",
-			Verify = "Checks the scene for errors that would prevent a build.",
-			Save = "Saves the current work-in-progress scene."
-		})
-		help.AddHelp("Common", sidebar)
-		]]
-
-		-- Install the views.
+		-- Install the views and load any scene.
 		for _, view in pairs(EditorView) do
 			view.Load(self.view)
 		end
 
-		-- If we are loading a level, set the working name and dispatch a load event. If we
-		-- tested a new level, it may not have a name yet, but in that case a restore state
-		-- tells us our pre-test WIP is available to reload. Usually the editor state should
-		-- not be dirty after a load.
-		if params.is_loading or RestoreState then
-			ops.SetLevelName(params.is_loading)
+		ops.TryToLoad(params)
 
-			params.name = "load_level_wip"
-
-			Runtime:dispatchEvent(params)
-
-			params.name = nil
-
-			events.ResolveLinks_Load(params)
-			common.Undirty()
-		end
-
-		-- Install dialogs and trigger the default view.
-		AddCommands(self.view, actions, funcs)
+		-- Install dialogs, trigger the default view, and announce readiness.
+		AddCommands(self.view)
 		AddNavigation(self.view)
 
-		-- If the state was dirty before a test, then re-dirty it.
-		if RestoreState and RestoreState.was_dirty then
-			common.Dirty()
-		end
+		HelpContext:Register()
 
-		-- Remove evidence of any test and alert listeners that the WIP is opened.
-		RestoreState = nil
-
-		Runtime:dispatchEvent{ name = "level_wip_opened" }
+		ops.MakeReady()
 	end
 end
 
@@ -434,6 +328,8 @@ function Scene:hide (event)
 		end
 
 		Runtime:dispatchEvent{ name = "level_wip_closed" }
+
+		HelpContext = nil
 	end
 end
 

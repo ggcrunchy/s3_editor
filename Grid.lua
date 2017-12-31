@@ -61,13 +61,6 @@ function M.CleanUp ()
 	Grid, Offset, Targets = nil
 end
 
---- DOCME
-function M.GetHelp (func)
-	if Grid.group.isVisible then
-		help.GetHelp(func, "_Grid_")
-	end
-end
-
 -- Number of columns and rows shown in the grid (maximum) and used as baseline for metrics --
 local ColBase, RowBase = 9, 9
 
@@ -296,7 +289,7 @@ function M.Init (view)
 
 	UpdateCoord(Col, Row, -1)
 
-	--
+	--[[
 	help.AddHelp("_Grid_", {
 		grid = "A marked cell on the grid indicates where the current selection will appear.",
 		offset = "Offset of upper-left cell in grid, from (0, 0).",
@@ -304,7 +297,7 @@ function M.Init (view)
 	})
 
 	help.AddHelp("_Grid_", { grid = grid_proxy, offset = Offset, scroll = scroll_proxy })
-
+]]
 	-- Start out in the hidden state.
 	M.Show(false)
 end
