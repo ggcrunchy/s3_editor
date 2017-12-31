@@ -102,15 +102,20 @@ local function DefSame (tile)
 end
 
 --
-local function FrameSame (tile, which, cur) -- TODO: can 'tile' sub for 'cur' ?(then we have a pattern...)
-	return cur and sheet.GetSpriteSetImageFrame(tile) == which
+local function FrameSame (tile, which)
+	return tile and tile.m_filename == which--sheet.GetSpriteSetImageFrame(tile) == which
 end
 
---
-local function FrameUpdate (canvas, tile, x, y, cw, ch, tile_images, which)
-	tile = tile or sheet.NewImage(canvas, tile_images, x, y, cw, ch)
+-- --
+local Fill = { type = "image" }
 
-	sheet.SetSpriteSetImageFrame(tile, which)
+--
+local function FrameUpdate (canvas, tile, x, y, cw, ch--[[, tile_images]], which)
+	tile = tile or --[[sheet.NewImage(canvas, tile_images, x, y, ]]display.newRect(canvas, x, y, cw, ch)
+
+	tile.fill, Fill.filename = Fill, which
+--	sheet.SetSpriteSetImageFrame(tile, which)
+	tile.m_filename = which
 
 	return tile
 end
@@ -137,7 +142,7 @@ end
 -- @string[opt=""] palette 
 -- @treturn GridView Editor grid view object.
 function M.EditErase (dialog_wrapper, types, palette)
-	local cells, current, option, pick, tabs, tiles, try_option, tile_images, values
+	local cells, choices, current, option, pick, tabs, tiles, try_option, tile_images, values
 
 	--
 	local same, update = DefSame
@@ -152,7 +157,8 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 	--
 	local function Cell (event)
-		local key, which = strings.PairToKey(event.col, event.row), current and current:GetCurrent()
+		local cur_choice = choices.m_cur
+		local key, which = strings.PairToKey(event.col, event.row), cur_choice and cur_choice:GetSelection("filename")--current and current:GetCurrent()
 		local cur, tile = values[key], tiles[key]
 		local canvas, cw, ch = event.target:GetCanvas(), event.target:GetCellDims()
 
@@ -162,7 +168,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 		--
 		if option == "Edit" then
 			if cur then
-				dialog_wrapper("edit", cur, tabs.parent, key)
+				dialog_wrapper("edit", cur, --[[tabs]]choices.parent, key)
 			else
 				dialog_wrapper("close")
 			end
@@ -179,16 +185,16 @@ function M.EditErase (dialog_wrapper, types, palette)
 			values[key], tiles[key] = nil
 
 		--
-		elseif not same(tile, which, cur) then
+		elseif not same(tile, which) then
 			if tile then
 				common.GetLinks():RemoveTag(tile)
 			end
 
-			local vtype = type(types) == "string" and types or types[which]
+			local vtype = type(types) == "string" and types or cur_choice:GetSelection("text")--types[which]
 
 			if vtype then
 				values[key] = dialog_wrapper("new_values", vtype, key)
-				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, tile_images, which)
+				tiles[key] = update(canvas, tile, event.x, event.y, cw, ch, which)--tile_images, which)
 
 				--
 				common.BindRepAndValuesWithTag(tiles[key], values[key], dialog_wrapper("get_tag", vtype), dialog_wrapper)
@@ -214,13 +220,14 @@ function M.EditErase (dialog_wrapper, types, palette)
 	--- DOCME
 	function EditEraseGridView:Enter ()
 		grid.Show(cells)
-		try_option(tabs, option)
-
+	--	try_option(tabs, option)
+--[[
 		if current then
 			common.ShowCurrent(current, option == "Paint")
 		end
-
-		tabs.isVisible = true
+]]
+		choices.isVisible = true
+--		tabs.isVisible = true
 	end
 
 	--- DOCME
@@ -228,22 +235,28 @@ function M.EditErase (dialog_wrapper, types, palette)
 		dialog_wrapper("close")
 
 		grid.SetChoice(option)
-
+--[[
 		if current then
 			common.ShowCurrent(current, false)
 		end
-
-		tabs.isVisible = false
+]]
+		choices.isVisible = false
+	--	tabs.isVisible = false
 
 		grid.Show(false)
 	end
-
+--[[
 	--- DOCME
 	function EditEraseGridView:GetCurrent ()
 		return current
 	end
 
 	-- ^^ RENAME, while about it? (e.g. choice)
+]]
+	--- DOCME
+	function EditEraseGridView:GetChoices ()
+		return choices
+	end
 
 	--- DOCME
 	function EditEraseGridView:GetGrid ()
@@ -261,21 +274,50 @@ function M.EditErase (dialog_wrapper, types, palette)
 	end
 
 	--- DOCME
-	function EditEraseGridView:Load (group, prefix, title)
+	function EditEraseGridView:Load (group, prefix)
 		values, tiles, cells = {}, {}, grid.NewGrid()
 
 		cells:addEventListener("cell", Cell)
 		cells:addEventListener("show", ShowHide)
 
 		--
+		local options = { "Paint", "Edit", "Erase" }
+		local commands = {
+			title = prefix .. " commands",
+
+			"Mode:", { column = options, column_width = 60 }, "m_mode",
+		}
+
 		if update == FrameUpdate then
-			current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title, { types = types })
+		--	current = grid1D.OptionsHGrid(group, "18.75%", "10.4%", "25%", "20.8%", title, { types = types })
+			local column, editor_event = {}, dialog_wrapper("get_editor_event")
+
+			for _, name in ipairs(types) do
+				column[#column + 1] = { filename = editor_event(name, "get_thumb_filename"), text = name }
+			end
+
+			commands[#commands + 1] = prefix .. ":"
+			commands[#commands + 1] = { column = column }
+			commands[#commands + 1] = "m_cur"
 		end
 
-		--
-		local choices = { "Paint", "Edit", "Erase" }
+		choices, option = common.AddCommandsBar(commands), "Paint"
+		choices.isVisible = false
 
-		tabs = M.AddTabs(group, choices, function(label)
+		choices.m_mode:addEventListener("item_change", function(event)
+			local label = event.text
+
+			if label ~= "Edit" then
+				dialog_wrapper("close")
+			end
+
+			option = label
+		end)
+		group:insert(choices)
+
+		--
+--[[
+		tabs = M.AddTabs(group, options, function(label)
 			return function()
 				option = label
 
@@ -290,10 +332,10 @@ function M.EditErase (dialog_wrapper, types, palette)
 				return true
 			end
 		end, "37.5%")
-
+]]
 		--
-		try_option = grid.ChoiceTrier(choices)
-
+		try_option = grid.ChoiceTrier(options)
+--[[
 		--
 		if current then
 			tile_images = common.SpriteSetFromThumbs(dialog_wrapper("get_editor_event"), types)
@@ -303,14 +345,14 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 			common.ShowCurrent(current, false)
 		end
-
+]]
 		--
-		help.AddHelp(prefix, { current = current, tabs = tabs })
+	--	help.AddHelp(prefix, { current = current, tabs = tabs })
 	end
 
 	--- DOCME
 	function EditEraseGridView:Unload ()
-		tabs:removeSelf()
+	--	tabs:removeSelf()
 
 		cells, current, option, pick, tabs, tiles, tile_images, try_option, values = nil
 	end

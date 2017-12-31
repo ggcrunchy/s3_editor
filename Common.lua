@@ -57,6 +57,7 @@ local _BindRepAndValues_
 local _DraggableStarter_
 local _DraggableFinisher_
 local _SetLabel_
+local _StashAndFrame_
 
 -- Exports --
 local M = {}
@@ -88,25 +89,14 @@ function M.AddCommandsBar (params)
 		layout.PutRightOf(str, prev, 5)
 		layout.PutRightOf(dropdown, str, 5)
 
-		local stash = dropdown:StashDropdowns()
-
-		layout.CenterAtY(dropdown, y)
-
-		local border = display.newRect(cgroup, 0, y, dropdown.width, dropdown.height)
-
-		layout.CenterAtX(border, layout.CenterX(dropdown))
-
-		border:setFillColor(0, 0)
-		border:setStrokeColor(.3)
-
-		border.strokeWidth = 1
+		local stash = _StashAndFrame_(cgroup, dropdown, y)
 
 		dropdown:RestoreDropdowns(stash)
 
 		cgroup[params[i + 2]], prev = dropdown, dropdown
 	end
 
-	return _DraggableFinisher_(cgroup, back, bar, prev, "87.5%", params.title)
+	return _DraggableFinisher_(cgroup, back, bar, prev, "45%", params.title)
 end
 
 local Instances
@@ -273,11 +263,16 @@ end
 function M.DraggableFinisher (cgroup, back, bar, prev, top, title)
 	local w = layout.RightOf(prev, 5)
 
-	back.path.width, bar.path.width = w, w
-
 	if title then
-		display.newText(cgroup, title, .5 * w, bar.y, native.systemFontBold, 15)
+		local str = display.newText(cgroup, title, .5 * w, bar.y, native.systemFontBold, 15)
+
+		if str.width > w then
+			w = str.width + 20
+			str.x = .5 * w
+		end
 	end
+
+	back.path.width, bar.path.width = w, w
 
 	layout.CenterAtX(cgroup, "50%")
 	layout.TopAlignWith(cgroup, top)
@@ -649,6 +644,24 @@ function M.SpriteSetFromThumbs (on_editor_event, types)
 	return sheet.NewSpriteSetFromImages(thumbs)
 end
 
+--- DOCME
+function M.StashAndFrame (cgroup, dropdown, y)
+	local stash = dropdown:StashDropdowns()
+
+	layout.CenterAtY(dropdown, y)
+
+	local border = display.newRect(cgroup, 0, y, dropdown.width, dropdown.height)
+
+	layout.CenterAtX(border, layout.CenterX(dropdown))
+
+	border:setFillColor(0, 0)
+	border:setStrokeColor(.3)
+
+	border.strokeWidth = 1
+
+	return stash
+end
+
 --- Clears the editor dirty state, if set, and updates dirty-related features.
 -- @see Dirty, IsDirty
 function M.Undirty ()
@@ -679,6 +692,7 @@ _BindRepAndValues_ = M.BindRepAndValues
 _DraggableStarter_ = M.DraggableStarter
 _DraggableFinisher_ = M.DraggableFinisher
 _SetLabel_ = M.SetLabel
+_StashAndFrame_ = M.StashAndFrame
 
 -- Export the module.
 return M

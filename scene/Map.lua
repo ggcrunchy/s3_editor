@@ -178,20 +178,20 @@ local function AddCommands (view, actions, funcs)
 
 	view:insert(cgroup)
 
-	local stash = selector:StashDropdowns()
-
-	layout.CenterAtY(selector, help.y)
 	layout.PutRightOf(selector, about, 5)
+
+	local stash = common.StashAndFrame(cgroup, selector, help.y)
 
 	selector:addEventListener("menu_item", function(event)
 		funcs[event.text]()
 	end)
 	selector:RestoreDropdowns(stash)
 
-	common.DraggableFinisher(cgroup, back, bar, selector, "30%", "Commands")
-	layout.LeftAlignWith(cgroup, "5%")
+	common.DraggableFinisher(cgroup, back, bar, selector, "87.5%", "Commands")
 
-	local close = button.Button_XY(cgroup, 0, bar.y, 2 * bar.height, bar.height - 4, scenes.WantsToGoBack, "x")
+	local close = button.Button_XY(cgroup, 0, bar.y, 2 * bar.height - 5, bar.height - 6, scenes.WantsToGoBack, {
+		text = "x", skin = "small_text_button"
+	})
 
 	layout.RightAlignWith(close, layout.RightOf(bar), -5)
 
@@ -228,11 +228,10 @@ local function AddNavigation (view)
 
 	view:insert(cgroup)
 
-	local stash = selector:StashDropdowns()
-
 	layout.LeftAlignWith(vtext, 5)
-	layout.CenterAtY(selector, y + 3)
 	layout.PutRightOf(selector, vtext, 5)
+
+	local stash = common.StashAndFrame(cgroup, selector, y + 3)
 
 	selector:addEventListener("menu_item", SetCurrentFromMenu)
 	selector:RestoreDropdowns(stash)
