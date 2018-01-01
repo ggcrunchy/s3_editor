@@ -78,7 +78,7 @@ end
 --- DOCME
 function M.AddCommandsBar (params)
 	local cgroup, back, bar_height, y = _DraggableStarter_(params)
-	local context, back_height, prev = params.help_context, back.height - bar_height
+	local context, back_height, h, prev = params.help_context, back.height - bar_height, 0
 
 	for i = 1, #params, 3 + (context and 1 or 0) do
 		local text, dparams, str = params[i], params[i + 1]
@@ -103,12 +103,14 @@ function M.AddCommandsBar (params)
 			context:Add(dropdown, params[i + 3])
 		end
 
+		h = max(h, dropdown.height)
+
 		dropdown:RestoreDropdowns(stash)
 
 		cgroup[params[i + 2]], prev = dropdown, dropdown
 	end
 
-	return _DraggableFinisher_(params, cgroup, back, bar_height, prev, params.top or "45%", params.title)
+	return _DraggableFinisher_(params, cgroup, back, bar_height, prev, params.top or "45%", params.title), back.height
 end
 
 local Instances
@@ -456,6 +458,14 @@ function M.GetTag (etype, on_editor_event)
 	return tname
 end
 
+-- --
+local TopHeight
+
+--- DOCME
+function M.GetTopHeight ()
+	return TopHeight
+end
+
 --- DOCME
 -- @pobject rep
 -- @treturn table T
@@ -628,6 +638,11 @@ function M.SetPositions (object, positions)
 		Positions = Positions or {}
 		Positions[object] = positions
 	end
+end
+
+--- DOCME
+function M.SetTopHeight (height)
+	TopHeight = height
 end
 
 --- Shows or hides the current selection widget. As a convenience, the last position of a

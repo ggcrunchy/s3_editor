@@ -50,7 +50,6 @@ local grid = require("s3_editor.Grid")
 local editor_strings = require("config.EditorStrings")
 local help = require("s3_editor.Help")
 local layout = require("corona_ui.utils.layout")
-local menu = require("corona_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
 local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
@@ -141,21 +140,18 @@ local function Listen (what)
 end
 
 -- --
-local HelpContext
-
--- --
 local Actions = { "Save", "Verify", "Build", "Test" }
 
-local BarHeight, TitleOffset = 20, 4
+local BarHeight = 20
 
-local function AddCloseButton (group, y)
+local function AddCloseButton (group, help_context)
 	local close = button.Button_XY(group, 0, .5 * BarHeight, 2 * BarHeight, BarHeight - 6, scenes.WantsToGoBack, {
 		text = "x", skin = "small_text_button"
 	})
 
 	layout.RightAlignWith(close, display.contentWidth - 5)
 
-	HelpContext:Add(close, editor_strings("editor_close"))
+	help_context:Add(close, editor_strings("editor_close"))
 end
 
 local function AddHelpIcon (group)
@@ -175,18 +171,19 @@ end
 local WideString = "MMMMMMMMMMMMMMM" -- allocate space for the visible part of the level name, using wider character
 
 local function AddMenu (view)
-	local commands = common.AddCommandsBar{
+	local help_context = help.NewContext()
+	local commands, h = common.AddCommandsBar{
 		not_draggable = true, not_rounded = true,
-		help_context = HelpContext, title = WideString,
+		help_context = help_context, title = WideString,
 		bar_height = 20, title_offset = 2, full_width = display.contentWidth, top = 0,
 
 		with_title = function(title)
 			title.m_num_chars = #title.text
 
-			HelpContext:Add(title, editor_strings("editor_level_name"))
+			help_context:Add(title, editor_strings("editor_level_name"))
 
-			AddHelpIcon(title.parent, title.y)
-			AddCloseButton(title.parent, title.y)
+			AddHelpIcon(title.parent)
+			AddCloseButton(title.parent, help_context)
 
 			local function watch_name ()
 				local n, name, star = title.m_num_chars, ops.GetLevelName() or "Untitled", common.IsDirty() and " *" or ""
@@ -226,9 +223,13 @@ local function AddMenu (view)
 		ops[event.text]()
 	end)
 	commands.m_views:addEventListener("menu_item", SetCurrentFromMenu)
-	commands.m_views:Select("player")
 
 	view:insert(commands)
+	help_context:Register()
+
+	common.SetTopHeight(h)
+
+	return commands
 end
 
 -- Show Scene --
@@ -252,8 +253,6 @@ function Scene:show (event)
 		help.Init()
 		grid.Init(self.view)
 		ops.Init(self.view)
-
-		HelpContext = help.NewContext()
 
 		--
 		local tags = common.GetLinks():GetTagDatabase()
@@ -280,16 +279,17 @@ function Scene:show (event)
 		end
 
 		-- Install the views and load any scene.
+		local commands = AddMenu(self.view)
+
 		for _, view in pairs(EditorView) do
 			view.Load(self.view)
 		end
 
 		ops.TryToLoad(params)
 
-		-- Install menu, trigger the default view, and announce readiness.
-		AddMenu(self.view)
-
-		HelpContext:Register()
+		-- Trigger the default view and announce readiness.
+		commands:toFront()
+		commands.m_views:Select("player")
 
 		ops.MakeReady()
 	end
@@ -318,8 +318,6 @@ function Scene:hide (event)
 		end
 
 		Runtime:dispatchEvent{ name = "level_wip_closed" }
-
-		HelpContext = nil
 	end
 end
 
