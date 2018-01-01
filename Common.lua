@@ -75,41 +75,40 @@ function M.AddButton (name, button)
 	Buttons[name] = button
 end
 
-local Temp = {}
-
 --- DOCME
 function M.AddCommandsBar (params)
-	local cgroup, back, bar, y = _DraggableStarter_()
-	local back_height, prev = back.height - bar.height
+	local cgroup, back, bar_height, y = _DraggableStarter_(params)
+	local context, back_height, prev = params.help_context, back.height - bar_height
 
-	for i = 1, #params, 3 do
-		local str, dparams = display.newText(cgroup, params[i], 0, y, native.systemFont, 16), params[i + 1]
+	for i = 1, #params, 3 + (context and 1 or 0) do
+		local text, dparams, str = params[i], params[i + 1]
+
+		if text then
+			str = display.newText(cgroup, text, 0, y, native.systemFont, 16)
+		end
 
 		dparams.group, dparams.heading_height, dparams.size = cgroup, back_height - 8, 12
 
-		local dropdown = menu.Dropdown(dparams)
+		local dropdown = menu[dparams.is_menu and "Menu" or "Dropdown"](dparams)
 
-		layout.PutRightOf(str, prev, 5)
-		layout.PutRightOf(dropdown, str, 5)
+		if str then
+			layout.PutRightOf(str, prev, 5)
+		end
 
-		Temp[#Temp + 1] = dropdown
-		Temp[#Temp + 1] = _StashAndFrame_(cgroup, dropdown, y)
+		layout.PutRightOf(dropdown, str or prev, 5)
+
+		local stash = _StashAndFrame_(cgroup, dropdown, y)
+
+		if context then
+			context:Add(dropdown, params[i + 3])
+		end
+
+		dropdown:RestoreDropdowns(stash)
+
 		cgroup[params[i + 2]], prev = dropdown, dropdown
 	end
 
-	local context, cbar = params.help_context, _DraggableFinisher_(cgroup, back, bar, prev, "45%", params.title)
-
-	if context then
-		context:Add(cbar, params.help_text)
-	end
-
-	for i = #Temp - 1, 1, -2 do
-		Temp[i]:RestoreDropdowns(Temp[i + 1])
-
-		Temp[i], Temp[i + 1] = nil
-	end
-
-	return cbar
+	return _DraggableFinisher_(params, cgroup, back, bar_height, prev, params.top or "45%", params.title)
 end
 
 local Instances
@@ -245,47 +244,27 @@ function M.Dirty ()
 	_AlertNameWatchers_()
 end
 
--- --
-local DragTouch = touch.DragParentTouch{ ref_key = "m_back", to_front = true }
-
--- --
-local BackHeight, BarHeight = 30, 16
+local TitleOffset = 2
 
 --- DOCME
-function M.DraggableStarter ()
-	local cgroup, h = display.newGroup(), BackHeight + BarHeight
-	local back = display.newRect(cgroup, 0, .5 * h, 1, h)
-	local bar = display.newRect(cgroup, 0, .5 * BarHeight, 1, BarHeight)
-
-	bar:addEventListener("touch", DragTouch)
-	bar:setFillColor(0, 0, .5)
-	bar:setStrokeColor(0, 0, .6)
-	back:setFillColor(.7)
-	back:setStrokeColor(.6, .7)
-
-	back.anchorX, back.x = 0, 0
-	bar.anchorX, bar.x = 0, 0
-	back.strokeWidth, bar.strokeWidth = 2, 1
-
-	bar.m_back = back
-
-	return cgroup, back, bar, h - .5 * BackHeight
-end
-
---- DOCME
-function M.DraggableFinisher (cgroup, back, bar, prev, top, title)
-	local w = layout.RightOf(prev, 5)
+function M.DraggableFinisher (params, cgroup, back, bar_height, prev, top, title)
+	local w = max(layout.RightOf(prev, 5), params and params.full_width or 0)
 
 	if title then
-		local str = display.newText(cgroup, title, .5 * w, bar.y, native.systemFontBold, 15)
+		local offset = params and params.title_offset or TitleOffset
+		local str = display.newText(cgroup, title, .5 * w, .5 * bar_height + offset, native.systemFontBold, 14)
 
 		if str.width > w then
 			w = str.width + 20
 			str.x = .5 * w
 		end
+
+		if params and params.with_title then
+			params.with_title(str)
+		end
 	end
 
-	back.path.width, bar.path.width = w, w
+	back.width = w
 
 	layout.CenterAtX(cgroup, "50%")
 	layout.TopAlignWith(cgroup, top)
@@ -293,6 +272,32 @@ function M.DraggableFinisher (cgroup, back, bar, prev, top, title)
 	touch.Spoof(cgroup)
 
 	return cgroup
+end
+
+-- --
+local DragTouch = touch.DragParentTouch{ to_front = true }
+
+-- --
+local BackHeight, BarHeight = 30, 16
+
+--- DOCME
+function M.DraggableStarter (params)
+	local bar_height = params and params.bar_height or BarHeight
+	local cgroup, h = display.newGroup(), BackHeight + bar_height
+	local rtype = (params and params.not_rounded) and "newRect" or "newRoundedRect"
+	local back = display[rtype](cgroup, 0, .5 * h, 1, h, 5)
+
+	if not (params and params.not_draggable) then
+		back:addEventListener("touch", DragTouch)
+	end
+
+	back:setFillColor(.5)
+	back:setStrokeColor(.6, .9)
+
+	back.anchorX, back.x = 0, 0
+	back.strokeWidth = 2
+
+	return cgroup, back, bar_height, h - .5 * BackHeight
 end
 
 -- Button fade transition --

@@ -81,8 +81,7 @@ local function ShowText (over)
 	local rect, text = mgroup[1], mgroup[2]
 
 	text.text = over.m_message
-	text.x, text.y = display.contentCenterX, display.contentCenterY
-	rect.height = max(layout.ResolveY("62.5%"), text.contentHeight + layout.ResolveY("2.1%"))
+	rect.height = max(layout.ResolveY("10.5%"), text.contentHeight + layout.ResolveY("2.1%"))
 
 	mgroup.isVisible = true
 end
@@ -166,9 +165,9 @@ function Overlay:create ()
 	rect.x, rect.y = display.contentCenterX, display.contentCenterY
 	rect.strokeWidth = 5
 
-	local w, tx, ty = layout.ResolveX("6.25%"), layout_dsl.EvalPos("25%", "41.67%")
+	local w = layout.ResolveX("6.25%")
 
-	display.newText(self.message_group, "", tx, ty, rect.width - w, 0, native.systemFontBold, layout.ResolveY("2.5%"))
+	display.newText(self.message_group, "", rect.x, rect.y, rect.width - w, 0, native.systemFontBold, layout.ResolveY("2.5%"))
 
 	self.message_group.isVisible = false
 

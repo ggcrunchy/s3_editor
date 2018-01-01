@@ -144,100 +144,91 @@ end
 local HelpContext
 
 -- --
-local Actions = { "Test", "Build", "Verify", "Save" }
+local Actions = { "Save", "Verify", "Build", "Test" }
 
-local function AddCommands (view)
-	local cgroup, back, bar, y = common.DraggableStarter()
-	local hgroup = display.newGroup()
-	local help_icon = display.newCircle(hgroup, 10, y + 3, 8)
+local BarHeight, TitleOffset = 20, 4
 
-	cgroup:insert(hgroup)
+local function AddCloseButton (group, y)
+	local close = button.Button_XY(group, 0, .5 * BarHeight, 2 * BarHeight, BarHeight - 6, scenes.WantsToGoBack, {
+		text = "x", skin = "small_text_button"
+	})
+
+	layout.RightAlignWith(close, display.contentWidth - 5)
+
+	HelpContext:Add(close, editor_strings("editor_close"))
+end
+
+local function AddHelpIcon (group)
+	local hgroup, y = display.newGroup(), .5 * BarHeight
+	local help_icon = display.newCircle(hgroup, 15, y, 8)
+
+	group:insert(hgroup)
 	help_icon:addEventListener("touch", help.TouchFunc)
 	help_icon:setFillColor(0, 0, .9)
 	help_icon:setStrokeColor(.7, 0, .3, .9)
 
 	help_icon.strokeWidth = 1
 
-	display.newText(hgroup, "?", help_icon.x, help_icon.y, native.systemFontBold, 10)
-
-	local about = display.newText(cgroup, "MMMMMMMMMMMMMMM", 0, help_icon.y, native.systemFont, 12) -- allocate space for text
-
-	about.m_num_chars = #about.text
-
-	layout.PutRightOf(about, help_icon, 5)
-
-	local selector = menu.Menu{
-		group = cgroup, columns = { "Actions", Actions },
-		column_width = 95, heading_height = 18, size = 12
-	}
-
-	view:insert(cgroup)
-
-	layout.PutRightOf(selector, about, 5)
-
-	local stash = common.StashAndFrame(cgroup, selector, help_icon.y)
-
-	selector:addEventListener("menu_item", function(event)
-		ops[event.text]()
-	end)
-
-	selector:RestoreDropdowns(stash)
-
-	common.DraggableFinisher(cgroup, back, bar, selector, "87.5%", "Commands")
-
-	local close = button.Button_XY(cgroup, 0, bar.y, 2 * bar.height - 5, bar.height - 6, scenes.WantsToGoBack, {
-		text = "x", skin = "small_text_button"
-	})
-
-	layout.RightAlignWith(close, bar, -5)
-
-	local function watch_name ()
-		local n, name, star = about.m_num_chars, ops.GetLevelName() or "Untitled level", common.IsDirty() and " *" or ""
-
-		if #star > 0 then
-			n = n - 2
-		end
-
-		if #name > n then
-			name = name:sub(n - 3) .. "..."
-		end
-
-		about.text = name .. star
-	end
-
-	watch_name()
-
-	common.WatchName(watch_name)
-
-	HelpContext:Add(back, editor_strings("commands"))
+	display.newText(hgroup, "?", help_icon.x, y, native.systemFontBold, 10)
 end
 
-local function AddNavigation (view)
-	local cgroup, back, bar, y = common.DraggableStarter()
-	local vtext = display.newText(cgroup, "Views:", 0, y, native.systemFont, 16)
-	local selector = menu.Menu{
-		group = cgroup, columns = MenuColumns,
-		column_width = 95, heading_height = 18, size = 12,
+local WideString = "MMMMMMMMMMMMMMM" -- allocate space for the visible part of the level name, using wider character
 
-		get_text = function(name)
-			return strings.SplitIntoWords(name, "on_pattern")
-		end
+local function AddMenu (view)
+	local commands = common.AddCommandsBar{
+		not_draggable = true, not_rounded = true,
+		help_context = HelpContext, title = WideString,
+		bar_height = 20, title_offset = 2, full_width = display.contentWidth, top = 0,
+
+		with_title = function(title)
+			title.m_num_chars = #title.text
+
+			HelpContext:Add(title, editor_strings("editor_level_name"))
+
+			AddHelpIcon(title.parent, title.y)
+			AddCloseButton(title.parent, title.y)
+
+			local function watch_name ()
+				local n, name, star = title.m_num_chars, ops.GetLevelName() or "Untitled", common.IsDirty() and " *" or ""
+
+				if #star > 0 then
+					n = n - 2
+				end
+
+				if #name > n then
+					name = name:sub(1, n - 3) .. "..."
+				end
+
+				title.text = name .. star
+			end
+
+			watch_name()
+
+			common.WatchName(watch_name)
+		end,
+
+		false, {
+			columns = { "Actions", Actions }, is_menu = true,
+			column_width = 95, heading_height = 18, size = 12
+		}, "m_actions", editor_strings("editor_actions"),
+
+		"Views:", {
+			columns = MenuColumns, is_menu = true,
+			column_width = 95, heading_height = 18, size = 12,
+
+			get_text = function(name)
+				return strings.SplitIntoWords(name, "on_pattern")
+			end
+		}, "m_views", editor_strings("editor_views")
 	}
 
-	view:insert(cgroup)
+	commands.m_actions:addEventListener("menu_item", function(event)
+		ops[event.text]()
+	end)
+	commands.m_views:addEventListener("menu_item", SetCurrentFromMenu)
+	commands.m_views:Select("player")
 
-	layout.LeftAlignWith(vtext, 5)
-	layout.PutRightOf(selector, vtext, 5)
-
-	local stash = common.StashAndFrame(cgroup, selector, y + 3)
-
-	selector:addEventListener("menu_item", SetCurrentFromMenu)
-	selector:RestoreDropdowns(stash)
-	selector:Select("player")
-
-	common.DraggableFinisher(cgroup, back, bar, selector, "5%", "Navigation")
-
-	HelpContext:Add(back, editor_strings("navigation"))
+	view:insert(commands)
 end
 
 -- Show Scene --
@@ -295,9 +286,8 @@ function Scene:show (event)
 
 		ops.TryToLoad(params)
 
-		-- Install dialogs, trigger the default view, and announce readiness.
-		AddCommands(self.view)
-		AddNavigation(self.view)
+		-- Install menu, trigger the default view, and announce readiness.
+		AddMenu(self.view)
 
 		HelpContext:Register()
 

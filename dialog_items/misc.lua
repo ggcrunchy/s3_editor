@@ -126,15 +126,7 @@ local DragTouch = touch.DragParentTouch{ ref_key = "m_back", find = utils.GetDia
 --- DOCME
 -- @string[opt] thumb
 function M:StockElements (thumb)
-	--
-	local exit = button.Button(self:ItemGroup(), "3.125%", "5.2%", function()
-		self:RemoveSelf()
-	end, "X")
-
-	self:CommonAdd(exit, { continue_line = true })
-
-	--
-	local bar = display.newRoundedRect(self:ItemGroup(), 0, 0, 1, exit.height, layout.ResolveY("2.5%"))
+	local bar = display.newRoundedRect(self:ItemGroup(), 0, 0, 1, layout.ResolveY("5%"), layout.ResolveY("2.5%"))
 
 	bar:addEventListener("touch", DragTouch)
 	bar:setFillColor(0, 0, 1)

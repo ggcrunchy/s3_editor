@@ -211,12 +211,17 @@ function M.EditErase (dialog_wrapper, types, palette)
 	local EditEraseGridView = {}
 
 	-- --
+	local help_context
+
+	-- --
 	local Options = { "Paint", "Edit", "Erase" }
 
 	--- DOCME
 	function EditEraseGridView:Enter ()
 		grid.Show(cells)
 		common.ShowCurrent(choices, Options)
+
+		help_context:Show(true)
 	end
 
 	--- DOCME
@@ -225,6 +230,8 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		common.ShowCurrent(choices, false)
 		grid.Show(false)
+
+		help_context:Show(false)
 	end
 
 	--- DOCME
@@ -248,29 +255,36 @@ function M.EditErase (dialog_wrapper, types, palette)
 	end
 
 	--- DOCME
-	function EditEraseGridView:Load (group, prefix)
+	function EditEraseGridView:Load (group, prefix, mode_help, cur_help)
 		values, tiles, cells = {}, {}, grid.NewGrid()
 
 		cells:addEventListener("cell", Cell)
 		cells:addEventListener("show", ShowHide)
 
+		help_context = help.NewContext()
+
 		--
 		local commands = {
-			title = prefix .. " commands",
+			title = prefix .. " commands", help_context = help_context,
 
-			"Mode:", { column = Options, column_width = 60 }, "m_mode",
+			"Mode:", { column = Options, column_width = 60 }, "m_mode", mode_help
 		}
 
 		if update == FrameUpdate then
-			local column, editor_event = {}, dialog_wrapper("get_editor_event")
+			local column, editor_event, w = {}, dialog_wrapper("get_editor_event")
+
+			if type(cur_help) == "table" then
+				cur_help, w = cur_help.help, cur_help.column_width
+			end
 
 			for _, name in ipairs(types) do
 				column[#column + 1] = { filename = editor_event(name, "get_thumb_filename"), text = name }
 			end
 
 			commands[#commands + 1] = prefix .. ":"
-			commands[#commands + 1] = { column = column }
+			commands[#commands + 1] = { column = column, column_width = w }
 			commands[#commands + 1] = "m_cur"
+			commands[#commands + 1] = cur_help
 		end
 
 		choices, option = common.AddCommandsBar(commands), "Paint"
@@ -287,13 +301,13 @@ function M.EditErase (dialog_wrapper, types, palette)
 		end)
 		group:insert(choices)
 
-		--
-	--	help.AddHelp(prefix, { current = current, tabs = tabs })
+		help_context:Register()
+		help_context:Show(false)
 	end
 
 	--- DOCME
 	function EditEraseGridView:Unload ()
-		cells, option, pick, tabs, tiles, values = nil
+		cells, help_context, option, pick, tabs, tiles, values = nil
 	end
 
 	return EditEraseGridView
