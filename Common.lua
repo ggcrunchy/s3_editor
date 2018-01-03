@@ -37,7 +37,6 @@ local config = require("config.Editor")
 local layout = require("corona_ui.utils.layout")
 local menu = require("corona_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
-local sheet = require("corona_utils.sheet")
 local touch = require("corona_ui.utils.touch")
 
 -- Classes --
@@ -527,34 +526,46 @@ function M.IsVerified ()
 	return IsVerified
 end
 
---- DOCMEMORE
--- Circle helper: since "group" may not be a group...
-function M.NewCircle (group, x, y, radius)
-	local circle = display.newCircle(x, y, radius)
+-- DOCME
+function M.NewScreenSizeContainer (group, items, offset, opts)
+	local cont = display.newContainer(display.contentWidth, display.contentHeight - TopHeight)
 
-	group:insert(circle)
+	group:insert(cont)
 
-	return circle
-end
+	--
+	local cw, ch, x0, y0 = cont.width, cont.height
 
---- DOCMEMORE
--- ...rect helper...
-function M.NewRect (group, x, y, w, h)
-	local rect = display.newRect(x, y, w, h)
+	cont:insert(items)
 
-	group:insert(rect)
+	x0, y0, offset.x, offset.y = -cw / 2, -ch / 2, 0, 0
 
-	return rect
-end
+	items:translate(x0, y0)
 
---- DOCMEMORE
--- ...rounded rect helper
-function M.NewRoundedRect (group, x, y, w, h, corner)
-	local rrect = display.newRoundedRect(x, y, w, h, corner)
+	if opts and opts.layers then
+		for _, layer in ipairs(opts.layers) do
+			cont:insert(layer)
+			layer:translate(x0, y0 - TopHeight)
+		end
+	end
 
-	group:insert(rrect)
+	layout.LeftAlignWith(cont, 0)
+	layout.TopAlignWith(cont, TopHeight)
 
-	return rrect
+	-- Draggable thing...
+	local drag = display.newRect(group, cont.x, cont.y, cw, ch)
+
+	drag:addEventListener("touch", touch.DragViewTouch(items, {
+		x0 = "cur", y0 = "cur", xclamp = "view_max", yclamp = "view_max",
+-- opts.maxw,maxh...
+		on_post_move = function(ig)
+			offset.x, offset.y = x0 - ig.x, y0 - ig.y
+		end
+	}))
+	drag:toBack()
+
+	drag.isHitTestable, drag.isVisible = true, false
+-- ^^^ TODO: if not large enough, nothing
+	return cont, drag
 end
 
 --- DOCME
@@ -585,7 +596,7 @@ end
 
 --- DOCME
 function M.ProxyRect (group, minx, miny, maxx, maxy)
-	local rect = M.NewRect(group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny)
+	local rect = display.newRect(group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny)
 
 	rect.isVisible = false
 
@@ -671,20 +682,6 @@ function M.ShowCurrent (current, show)
 
 		current.isVisible = show
 	end
-end
-
---- DOCMAYBE
--- @callable on_editor_event
--- @array types
--- @treturn SpriteImages Y
-function M.SpriteSetFromThumbs (on_editor_event, types)
-	local thumbs = {}
-
-	for _, name in ipairs(types) do
-		thumbs[#thumbs + 1] = on_editor_event(name, "get_thumb_filename")
-	end
-
-	return sheet.NewSpriteSetFromImages(thumbs)
 end
 
 --- DOCME

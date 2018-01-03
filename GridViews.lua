@@ -43,38 +43,16 @@ local type = type
 
 -- Modules --
 local common = require("s3_editor.Common")
+local editor_strings = require("config.EditorStrings")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local strings = require("tektite_core.var.strings")
-local tabs_patterns = require("corona_ui.patterns.tabs")
 
 -- Corona globals --
 local display = display
 
 -- Exports --
 local M = {}
-
---- DOCME
--- @pgroup group
--- @array names
--- @callable func
--- @uint w
--- @treturn DisplayObject X
-function M.AddTabs (group, names, func, w)
-	local buttons = {}
-
-	for i, label in ipairs(names) do
-		buttons[i] = { label = label, onPress = func(label) }
-	end
-
-	local tabs = tabs_patterns.TabBar(group, buttons, { y = "from_bottom_align -.625%", left = "15%", width = w })
-
-	tabs.isVisible = false
-
-	tabs:setSelected(1, true)
-
-	return tabs
-end
 
 --
 local function CircleUpdate (canvas, tile, x, y, cw, ch)
@@ -135,7 +113,7 @@ end
 -- @string[opt=""] palette 
 -- @treturn GridView Editor grid view object.
 function M.EditErase (dialog_wrapper, types, palette)
-	local cells, choices, option, pick, tabs, tiles, values
+	local cells, choices, option, pick, tiles, values
 
 	--
 	local same, update = DefSame
@@ -264,18 +242,20 @@ function M.EditErase (dialog_wrapper, types, palette)
 		help_context = help.NewContext()
 
 		--
-		local commands = {
+		local commands, w, grid_help = {
 			title = prefix .. " commands", help_context = help_context,
 
 			"Mode:", { column = Options, column_width = 60 }, "m_mode", mode_help
 		}
 
-		if update == FrameUpdate then
-			local column, editor_event, w = {}, dialog_wrapper("get_editor_event")
+		if type(cur_help) == "table" then
+			cur_help, grid_help, w = cur_help.help, cur_help.grid_help, cur_help.column_width
+		end
 
-			if type(cur_help) == "table" then
-				cur_help, w = cur_help.help, cur_help.column_width
-			end
+		help_context:Add(cells, grid_help or editor_strings("grid"))
+
+		if update == FrameUpdate then
+			local column, editor_event = {}, dialog_wrapper("get_editor_event")
 
 			for _, name in ipairs(types) do
 				column[#column + 1] = { filename = editor_event(name, "get_thumb_filename"), text = name }
@@ -307,7 +287,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 	--- DOCME
 	function EditEraseGridView:Unload ()
-		cells, help_context, option, pick, tabs, tiles, values = nil
+		cells, help_context, option, pick, tiles, values = nil
 	end
 
 	return EditEraseGridView

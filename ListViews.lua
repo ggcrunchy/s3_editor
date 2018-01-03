@@ -31,6 +31,7 @@ local type = type
 -- Modules --
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
+local editor_strings = require("config.EditorStrings")
 local layout = require("corona_ui.utils.layout")
 local match_slot_id = require("tektite_core.array.match_slot_id")
 local strings = require("tektite_core.var.strings")
@@ -149,7 +150,7 @@ function M.EditErase (dialog_wrapper, vtype)
 	end
 
 	--- DOCME
-	function ListView:Load (group, top, left)
+	function ListView:Load (group, top, left, help_context)
 		--
 		list, values = table_view_patterns.Listbox(group, {
 			width = "30%", height = "50%", text_rect_height = "6%", text_size = "3.25%",
@@ -217,6 +218,10 @@ function M.EditErase (dialog_wrapper, vtype)
 		list.m_edit, list.m_delete, delete.alpha, edit.alpha = edit, delete, 0, 0
 
 		layout.PutRightOf(edit, delete, "1.25%")
+
+		help_context:Add(delete, editor_strings("list_view_delete"))
+		help_context:Add(edit, editor_strings("list_view_edit"))
+		help_context:Add(new, editor_strings("list_view_new"))
 
 		--
 		watch_name = timer.performWithDelay(150, function()

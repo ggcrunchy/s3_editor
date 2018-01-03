@@ -34,7 +34,6 @@ local pairs = pairs
 local common = require("s3_editor.Common")
 local common_ui = require("s3_editor.CommonUI")
 local grid2D = require("corona_ui.widgets.grid")
-local help = require("s3_editor.Help")
 local layout = require("corona_ui.utils.layout")
 local layout_dsl = require("corona_ui.utils.layout_dsl")
 local strings = require("tektite_core.var.strings")
@@ -289,15 +288,6 @@ function M.Init (view)
 
 	UpdateCoord(Col, Row, -1)
 
-	--[[
-	help.AddHelp("_Grid_", {
-		grid = "A marked cell on the grid indicates where the current selection will appear.",
-		offset = "Offset of upper-left cell in grid, from (0, 0).",
-		scroll = "Scrolls the grid, i.e. updates the offset."
-	})
-
-	help.AddHelp("_Grid_", { grid = grid_proxy, offset = Offset, scroll = scroll_proxy })
-]]
 	-- Start out in the hidden state.
 	M.Show(false)
 end

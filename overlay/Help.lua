@@ -181,9 +181,9 @@ local Count, W, H
 
 --
 local function AssignRects (object, message, w, h)
-	local bounds = object.contentBounds
+	local bounds = (object.isVisible and object.alpha > 0) and object.contentBounds
 
-	if bounds.xMax >= 0 and bounds.xMin <= W and bounds.yMax >= 0 and bounds.yMin <= H then
+	if bounds and bounds.xMax >= 0 and bounds.xMin <= W and bounds.yMax >= 0 and bounds.yMin <= H then
 		Count = Count + 1
 
 		if Count > RectGroup.numChildren then
