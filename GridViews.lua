@@ -192,7 +192,7 @@ function M.EditErase (dialog_wrapper, types, palette)
 	local help_context
 
 	-- --
-	local Options = { "Paint", "Edit", "Erase" }
+	local Options = { "Paint", "Move", "Edit", "Erase" }
 
 	--- DOCME
 	function EditEraseGridView:Enter ()
@@ -272,6 +272,8 @@ function M.EditErase (dialog_wrapper, types, palette)
 
 		choices.m_mode:addEventListener("item_change", function(event)
 			local label = event.text
+
+			grid.SetDraggable(label == "Move")
 
 			if label ~= "Edit" then
 				dialog_wrapper("close")

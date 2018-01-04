@@ -26,7 +26,6 @@
 -- Standard library imports --
 local ipairs = ipairs
 local max = math.max
-local min = math.min
 local next = next
 local pairs = pairs
 local type = type
@@ -48,7 +47,6 @@ local display = display
 local native = native
 local Runtime = Runtime
 local timer = timer
-local transition = transition
 
 -- Cached module references --
 local _AlertNameWatchers_
@@ -61,18 +59,6 @@ local _StashAndFrame_
 
 -- Exports --
 local M = {}
-
--- Buttons that editor elements need to access --
-local Buttons
-
---- Registers a button for general editor use.
--- @string name Name used to access button.
--- @pgroup button @{corona_ui.widgets.button} object.
-function M.AddButton (name, button)
-	Buttons = Buttons or {}
-
-	Buttons[name] = button
-end
 
 --- DOCME
 function M.AddCommandsBar (params)
@@ -208,22 +194,7 @@ local Positions
 function M.CleanUp ()
 	timer.cancel(SessionLinks.cleanup)
 
-	Buttons, Instances, Labels, LinkGroupings, Positions, RepToValues, SessionLinks, ValuesToRep, WatchingName = nil
-end
-
---- Copies into one table from another.
--- @ptable dt Destination table.
--- @ptable t Source table. If absent, _dt_.
--- @param ignore If present, a key to skip during copying.
--- @return table _dt_.
-function M.CopyInto (dt, t, ignore)
-	for k, v in M.PairsIf(t) do
-		if k ~= ignore then
-			dt[k] = v
-		end
-	end
-
-	return dt
+	Instances, Labels, LinkGroupings, Positions, RepToValues, SessionLinks, ValuesToRep, WatchingName = nil
 end
 
 -- Are there changes in need of saving? --
@@ -237,9 +208,6 @@ local IsVerified
 -- The working level must also be re-verified.
 -- @see IsDirty, IsVerified, Undirty, Verify
 function M.Dirty ()
-	M.FadeButton("Save", not IsDirty, 1)
-	M.FadeButton("Verify", IsVerified, 1)
-
 	IsDirty, IsVerified = true, false
 
 	_AlertNameWatchers_()
@@ -299,21 +267,6 @@ function M.DraggableStarter (params)
 	back.strokeWidth = 2
 
 	return cgroup, back, bar_height, h - .5 * BackHeight
-end
-
--- Button fade transition --
-local FadeParams = {}
-
---- Fades a button, if available, in or out to a given opacity.
--- @param name Name of a button added by @{AddButton}.
--- @bool check If false, no fade is performed.
--- @number alpha Final alpha value &isin; [0, 1].
-function M.FadeButton (name, check, alpha)
-	if check and Buttons[name] then
-		FadeParams.alpha = alpha
-
-		transition.to(Buttons[name], FadeParams)
-	end
 end
 
 -- How many columns wide and how many rows tall is the working level? --
@@ -500,18 +453,6 @@ function M.Init (ncols, nrows)
 	Runtime:dispatchEvent{ name = "editor_session_init", ncols = ncols, nrows = nrows, w = config.w, h = config.h }
 end
 
---
-local function NoOp () end
-
---- DOCME
-function M.IpairsIf (t)
-	if t then
-		return ipairs(t)
-	else
-		return NoOp
-	end
-end
-
 --- Predicate.
 -- @treturn boolean Are there unsaved changes to the working level?
 -- @see Dirty, Undirty
@@ -527,17 +468,21 @@ function M.IsVerified ()
 end
 
 -- DOCME
-function M.NewScreenSizeContainer (group, items, offset, opts)
+function M.NewScreenSizeContainer (group, items, opts)
 	local cont = display.newContainer(display.contentWidth, display.contentHeight - TopHeight)
 
 	group:insert(cont)
 
 	--
-	local cw, ch, x0, y0 = cont.width, cont.height
+	local cw, ch, offset, x0, y0 = cont.width, cont.height, opts and opts.offset
 
 	cont:insert(items)
 
-	x0, y0, offset.x, offset.y = -cw / 2, -ch / 2, 0, 0
+	x0, y0 = -cw / 2, -ch / 2
+
+	if offset then
+		offset.x, offset.y = 0, 0
+	end
 
 	items:translate(x0, y0)
 
@@ -556,53 +501,16 @@ function M.NewScreenSizeContainer (group, items, offset, opts)
 
 	drag:addEventListener("touch", touch.DragViewTouch(items, {
 		x0 = "cur", y0 = "cur", xclamp = "view_max", yclamp = "view_max",
--- opts.maxw,maxh...
-		on_post_move = function(ig)
+		dx = opts and opts.dx, dy = opts and opts.dy,
+
+		on_post_move = offset and function(ig)
 			offset.x, offset.y = x0 - ig.x, y0 - ig.y
 		end
 	}))
-	drag:toBack()
 
 	drag.isHitTestable, drag.isVisible = true, false
 -- ^^^ TODO: if not large enough, nothing
 	return cont, drag
-end
-
---- DOCME
-function M.PairsIf (t)
-	if t then
-		return pairs(t)
-	else
-		return NoOp
-	end
-end
-
---- DOCME
-function M.Proxy (group, ...)
-	local minx, miny, maxx, maxy
-
-	for _, widget in M.IpairsIf{ ... } do
-		local bounds = widget.contentBounds
-
-		if minx then
-			minx, miny, maxx, maxy = min(minx, bounds.xMin), min(miny, bounds.yMin), max(maxx, bounds.xMax), max(maxy, bounds.yMax)
-		else
-			minx, miny, maxx, maxy = bounds.xMin, bounds.yMin, bounds.xMax, bounds.yMax
-		end
-	end
-
-	return minx and M.ProxyRect(group, minx, miny, maxx, maxy)
-end
-
---- DOCME
-function M.ProxyRect (group, minx, miny, maxx, maxy)
-	local rect = display.newRect(group, .5 * (minx + maxx), .5 * (miny + maxy), maxx - minx, maxy - miny)
-
-	rect.isVisible = false
-
-	rect.m_is_proxy = true
-
-	return rect
 end
 
 --- DOCME
@@ -705,8 +613,6 @@ end
 --- Clears the editor dirty state, if set, and updates dirty-related features.
 -- @see Dirty, IsDirty
 function M.Undirty ()
-	M.FadeButton("Save", IsDirty, .4)
-
 	IsDirty = false
 
 	_AlertNameWatchers_()
@@ -720,7 +626,7 @@ end
 --- Sets the editor verified state, if clear, and updates verification-related features.
 -- @see IsVerified
 function M.Verify ()
-	M.FadeButton("Verify", not IsVerified, .4)
+--	M.FadeButton("Verify", not IsVerified, .4)
 
 	IsVerified = true
 end

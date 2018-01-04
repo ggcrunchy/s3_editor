@@ -35,6 +35,7 @@ local pairs = pairs
 local common = require("s3_editor.Common")
 local grid = require("s3_editor.Grid")
 local strings = require("tektite_core.var.strings")
+local table_funcs = require("tektite_core.table.funcs")
 
 -- Cached module references --
 local _CheckForNameDups_
@@ -76,7 +77,7 @@ local M = {}
 function M.BuildEntry (level, mod, entry, acc)
 	acc = acc or {}
 
-	local built, instances = common.CopyInto({}, entry), entry.instances
+	local built, instances = table_funcs.Copy(entry), entry.instances
 
 	if instances then
 		built.instances = nil
@@ -308,7 +309,10 @@ function M.LoadValuesFromEntry (level, mod, values, entry)
 	-- Copy the editor state into the values, alert any listeners, and add defaults as necessary.
 	entry.instances = nil
 
-	common.CopyInto(values, entry)
+	for k, v in pairs(entry) do
+		values[k] = v
+	end
+
 	mod.EditorEvent(ValueType, "load", level, entry, values)
 
 	AssignDefs(values)
@@ -559,7 +563,10 @@ function M.SaveValuesIntoEntry (level, mod, values, entry)
 	end
 
 	-- Copy the values into the editor state, alert any listeners, and add defaults as necessary.
-	common.CopyInto(entry, values)
+	for k, v in pairs(values) do
+		entry[k] = v
+	end
+
 	mod.EditorEvent(ValueType, "save", level, entry, values)
 
 	AssignDefs(entry)

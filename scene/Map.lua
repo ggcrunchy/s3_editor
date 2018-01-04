@@ -251,7 +251,6 @@ function Scene:show (event)
 		-- Initialize systems.
 		common.Init(params.main[1], params.main[2])
 		help.Init()
-		grid.Init(self.view)
 		ops.Init(self.view)
 
 		--
@@ -280,6 +279,8 @@ function Scene:show (event)
 
 		-- Install the views and load any scene.
 		local commands = AddMenu(self.view)
+
+		grid.Init(self.view)
 
 		for _, view in pairs(EditorView) do
 			view.Load(self.view)

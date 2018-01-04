@@ -25,23 +25,16 @@
 
 -- Standard library imports --
 local ceil = math.ceil
-local format = string.format
 local max = math.max
-local min = math.min
 local pairs = pairs
 
 -- Modules --
 local common = require("s3_editor.Common")
-local common_ui = require("s3_editor.CommonUI")
 local grid2D = require("corona_ui.widgets.grid")
-local layout = require("corona_ui.utils.layout")
-local layout_dsl = require("corona_ui.utils.layout_dsl")
 local strings = require("tektite_core.var.strings")
 
 -- Corona globals --
 local display = display
-local native = native
-local transition = transition
 
 -- Exports --
 local M = {}
@@ -65,35 +58,9 @@ local ColBase, RowBase = 9, 9
 
 --
 local function GetCellDims ()
-	local gw, gh = layout_dsl.EvalDims("70%", "66.67%")
+	local gw, gh = display.contentWidth, display.contentHeight - common.GetTopHeight()
 
 	return gw / ColBase, gh / RowBase
-end
-
---
-local function GetShowHide (old, new, nvis)
-	local delta, past = new - old, old + nvis
-
-	if delta < 0 then
-		return delta, new + 1, past
-	end
-
-	return delta, past + 1, old + 1
-end
-
---
-local function UpdatePair (diff, coord, extent, nname, pname)
-	local ncoord, pcoord, nalpha, palpha = 0, extent - 1, .4, 1
-
-	if diff == 0 then
-		return
-	elseif diff > 0 then
-		ncoord, pcoord = ncoord + 1, pcoord + 1
-		nalpha, palpha = palpha, nalpha
-	end
-
-	common.FadeButton(nname, coord == ncoord, nalpha)
-	common.FadeButton(pname, coord == pcoord, palpha)
 end
 
 -- Should multiple layers be shown? --
@@ -115,178 +82,33 @@ local function Iter (v)
 	end
 end
 
--- --
-local ShowHideEvent = { name = "show" }
-
--- Helper to show or hide one or more layers
-local function AuxShow (how, col, row)
-	ShowHideEvent.show, ShowHideEvent.col, ShowHideEvent.row = how == "show", col, row
-
-	for grid in Iter(Grid.active) do
-		grid:dispatchEvent(ShowHideEvent)
-	end
-end
-
--- --
-local Hide = {}
-
 -- Column and row of upper-left cell --
 local Col, Row
 
 -- How many columns and rows are viewable on the grid? --
 local VCols, VRows
 
--- Grid scroll transition --
-local To = {
-	time = 150,
-
-	onComplete = function()
-		if Hide.what == "col" then
-			for row = 1, VRows do
-				AuxShow("hide", Hide.which, Row + row)
-			end
-		else
-			for col = 1, VCols do
-				AuxShow("hide", Col + col, Hide.which)
-			end
-		end
-	end
-}
-
---
-local function UpdateCoord (col, row, diff)
-	local ncols, nrows = common.GetDims()
-	local cdelta, crange = 0, ncols - ColBase
-	local rdelta, rrange = 0, nrows - RowBase
-
-	if Grid.active then
-		col = max(0, min(col, crange))
-		row = max(0, min(row, rrange))
-
-		--
-		local canvas = Grid.active:GetCanvas()
-		local cw, ch = GetCellDims()
-
-		To.x, To.y = nil
-
-		if col ~= Col then
-			local dc, show, hide = GetShowHide(Col, col, VCols)
-
-			Col = col
-
-			for grid in pairs(Targets) do
-				grid:SetColOffset(col)
-			end
-
-			-- 
-			for row = 1, VRows do
-				AuxShow("show", show, Row + row)
-			end
-
-			Hide.what, Hide.which = "col", hide
-
-			To.x, cdelta = canvas.x - dc * cw, dc
-		end
-
-		if row ~= Row then
-			local dr, show, hide = GetShowHide(Row, row, VRows)
-
-			Row = row
-
-			for grid in pairs(Targets) do
-				grid:SetRowOffset(row)
-			end
-
-			-- 
-			for col = 1, VCols do
-				AuxShow("show", Col + col, show)
-			end
-
-			Hide.what, Hide.which = "row", hide
-
-			To.y, rdelta = canvas.y - dr * ch, dr
-		end
-
-		--
-		if To.x or To.y then
-			for grid in pairs(Targets) do
-				transition.to(grid:GetCanvas(), To)
-			end
-		end
-	end
-
-	--
-	UpdatePair(diff or cdelta, Col, crange, "lscroll", "rscroll")
-	UpdatePair(diff or rdelta, Row, rrange, "uscroll", "dscroll")
-
-	--
-	Offset.text = format("Offset col = %i, row = %i", col, row)
-end
-
---
-local function UpdateDir (button)
-	UpdateCoord(Col + button.m_dc, Row + button.m_dr)
-end
-
---
-local function AddButton (name, x, y)
-	local button = common_ui.ScrollButton(Grid.group, name, x, y, UpdateDir)
-
-	button:translate(button.width / 2, button.height / 2)
-
-	common.AddButton(name, button)
-end
-
 --
 local function GridRect ()
-	local x, y = layout_dsl.EvalPos("15%", "16.67%")
 	local cw, ch = GetCellDims()
 
-	return x, y, ceil(cw * VCols), ceil(ch * VRows)
+	return ceil(cw * VCols), ceil(ch * VRows)
 end
 
 --- Initializes various state used by editor grid operations.
 -- @pgroup view Map editor scene view.
 function M.Init (view)
-	Grid, Targets, Col, Row = {}, {}, 0, 0
-
-	local ncols, nrows = common.GetDims()
-
-	VCols, VRows = min(ncols, ColBase), min(nrows, RowBase)
+	Grid, Targets, Col, Row, VCols, VRows = {}, {}, 0, 0, common.GetDims()
 
 	-- Consolidate grid and related interface elements into a group.
 	Grid.group = display.newGroup()
 
-	view:insert(Grid.group)
+	local gw, gh = GridRect()
+	local _, drag = common.NewScreenSizeContainer(view, Grid.group, {
+		dx = max(0, gw - display.contentWidth), dy = max(0, gh - (display.contentHeight - common.GetTopHeight()))
+	})
 
-	--
-	local gx, gy, gw, gh = GridRect()
-	local grid_proxy = common.ProxyRect(view, gx, gy, gx + gw, gy + gh)
-
-	-- Add scroll buttons for each dimension where the level exceeds the grid.
-	local dy, x, y = layout.ResolveY("13.5%"), layout_dsl.EvalPos("87.5%", "52.1%")
-
-	if nrows > RowBase then
-		AddButton("uscroll", x, y)
-		AddButton("dscroll", x, y + dy)
-
-		y = y - 2 * dy
-	end
-
-	if ncols > ColBase then
-		AddButton("lscroll", x, y)
-		AddButton("rscroll", x, y + dy)
-	end
-
-	local n = Grid.group.numChildren
-	local scroll_proxy = common.Proxy(view, Grid.group[n], Grid.group[n - 1], Grid.group[n - 2], Grid.group[n - 3])
-
-	-- Add the offset text and initialize it and the scroll button opacities.
-	local tx, ty = layout_dsl.EvalPos("78.75%", "91.67%")
-
-	Offset = display.newText(Grid.group, "", tx, ty, native.systemFont, layout.ResolveY("5%"))
-
-	UpdateCoord(Col, Row, -1)
+	Grid.drag, drag.isHitTestable = drag, false
 
 	-- Start out in the hidden state.
 	M.Show(false)
@@ -294,8 +116,8 @@ end
 
 --- DOCME
 function M.NewGrid ()
-	local gx, gy, gw, gh = GridRect()
-	local grid = grid2D.Grid_XY(Grid.group, gx, gy, gw, gh, VCols, VRows)
+	local gw, gh = GridRect()
+	local grid = grid2D.Grid_XY(Grid.group, 0, 0, gw, gh, VCols, VRows)
 
 	grid:ShowBack(false)
 
@@ -304,6 +126,11 @@ function M.NewGrid ()
 	Targets[grid] = true
 
 	return grid
+end
+
+--- DOCME
+function M.SetDraggable (draggable)
+	Grid.drag.isHitTestable = not not draggable
 end
 
 ---DOCME
@@ -354,6 +181,7 @@ end
 -- @ptable items
 -- @callable func
 function M.ShowOrHide (items, func)
+	do return end
 	func = func or DefShowOrHide
 
 	local redge, bedge = Col + VCols, Row + VRows
