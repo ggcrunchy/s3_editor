@@ -36,7 +36,6 @@ local tonumber = tonumber
 -- Modules --
 local args = require("iterator_ops.args")
 local button = require("corona_ui.widgets.button")
-local common_ui = require("s3_editor.CommonUI")
 local editable_patterns = require("corona_ui.patterns.editable")
 local editor_config = require("config.Editor")
 local layout = require("corona_ui.utils.layout")
@@ -114,7 +113,7 @@ end
 
 -- Clean up (conditional) elements used for scene loading
 local function CleanupLoadElements ()
-	for _, what in args.Args("m_current", "m_delete", "m_frame", "m_levels_list", "m_load") do
+	for _, what in args.Args("m_current", "m_delete", "m_levels_list", "m_load") do
 		display.remove(Scene[what])
 
 		Scene[what] = nil
@@ -166,8 +165,8 @@ function Scene:show (event)
 			layout.LeftAlignWith(self.m_levels_list, self.m_new_scene)
 
 			self.m_current = display.newText(self.view, "", 0, 0, native.systemFont, layout.ResolveY("4.6%"))
-			self.m_frame = common_ui.Frame(self.m_levels_list, 0, 0, 1)
 
+			self.m_levels_list:Frame(0, 0, 1)
 			self.m_levels_list:AssignList(levels)
 
 			UpdateCurrent(self, levels, 1)

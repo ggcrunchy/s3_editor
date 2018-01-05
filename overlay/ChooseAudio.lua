@@ -26,7 +26,6 @@
 -- Modules --
 local audio_patterns = require("corona_ui.patterns.audio")
 local button = require("corona_ui.widgets.button")
-local common_ui = require("s3_editor.CommonUI")
 local directories = require("config.Directories")
 local layout = require("corona_ui.utils.layout")
 local layout_dsl = require("corona_ui.utils.layout_dsl")
@@ -103,7 +102,7 @@ function Overlay:create (event)
 		base = Base, path = dir, on_reload = Reload
 	})
 
-	common_ui.Frame(choices, 1, 0, 0)
+	choices:Frame(1, 0, 0)
 
 	--
 	local bottom, left = layout.Below(backdrop, "-2.1%"), layout.LeftOf(choices)
