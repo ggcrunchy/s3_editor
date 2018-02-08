@@ -27,7 +27,6 @@
 --
 
 -- Standard library imports --
-local assert = assert
 local ipairs = ipairs
 local pairs = pairs
 
@@ -39,10 +38,8 @@ local table_funcs = require("tektite_core.table.funcs")
 
 -- Cached module references --
 local _CheckForNameDups_
-local _GetIndex_
 local _LoadValuesFromEntry_
 local _SaveValuesIntoEntry_
-local _SetCurrentIndex_
 
 -- Export --
 local M = {}
@@ -151,28 +148,6 @@ function M.CheckNamesInValues (what, verify, view)
 	return false
 end
 
---- Getter.
--- @array types An array of type name strings.
--- @string name The name to find.
--- @treturn uint Index of _name_ in _types_.
-function M.GetIndex (types, name)
-	local index = types[name]
-
-	if not index then
-		for i, type in ipairs(types) do
-			if type == name then
-				index = i
-
-				break
-			end
-		end
-
-		types[name] = assert(index, "Missing type")
-	end
-
-	return index
-end
-
 --- Helper to load a group of value blobs, which values are assumed to be grid-bound in the
 -- editor. Some concomitant work is performed in order to produce a consistent grid.
 -- @ptable level Loaded level state, as per @{LoadValuesFromEntry}.
@@ -194,12 +169,14 @@ function M.LoadGroupOfValues_Grid (level, what, mod, grid_view)
 	level[what].version = nil
 
 	local values, tiles = grid_view:GetValues(), grid_view:GetTiles()
-	local gcfunc, gtfunc = grid_view.GetCurrent, mod.GetTypes
-	local current, types = gcfunc and gcfunc(grid_view), gtfunc and gtfunc()
+	local gcfunc = grid_view.GetChoices
+	local current = gcfunc and gcfunc(grid_view)
+
+	current = current and current.m_cur
 
 	for k, entry in pairs(level[what].entries) do
-		if current and types then
-			_SetCurrentIndex_(current, types, entry.type)
+		if current then
+			current:Select(entry.type)
 		end
 
 		cells:TouchCell(strings.KeyToPair(k))
@@ -208,7 +185,7 @@ function M.LoadGroupOfValues_Grid (level, what, mod, grid_view)
 	end
 
 	if current then
-		current:SetCurrent(1)
+		current:Select(nil, "first_in_first_column")
 	end
 
 	grid.ShowOrHide(tiles)
@@ -576,14 +553,6 @@ function M.SaveValuesIntoEntry (level, mod, values, entry)
 	return entry
 end
 
---- Setter.
--- @pobject current The "current choice" @{corona_ui.widgets.grid_1D} widget for the current editor view.
--- @array types An array of strings, corresponding to the images in _current_.
--- @string name A name to find in _types_.
-function M.SetCurrentIndex (current, types, name)
-	current:SetCurrent(_GetIndex_(types, name))
-end
-
 --- Verify all values (i.e. blobs of editor-side object data) in a given module.
 -- @ptable verify Verify block.
 -- @ptable mod Module, assumed to contain an **EditorEvent** function corresponding to the
@@ -602,10 +571,8 @@ end
 
 -- Cache module members.
 _CheckForNameDups_ = M.CheckForNameDups
-_GetIndex_ = M.GetIndex
 _LoadValuesFromEntry_ = M.LoadValuesFromEntry
 _SaveValuesIntoEntry_ = M.SaveValuesIntoEntry
-_SetCurrentIndex_ = M.SetCurrentIndex
 
 -- Export the module.
 return M
