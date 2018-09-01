@@ -42,6 +42,11 @@
 local ipairs = ipairs
 local pairs = pairs
 
+-- Load the editor pieces lazily to avoid a hard stall.
+local old_require, lazy_require = require, require("tektite_core.require_ex").Lazy
+
+require = lazy_require
+
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local button = require("corona_ui.widgets.button")
@@ -324,7 +329,9 @@ end
 
 Scene:addEventListener("hide")
 
--- Finally, install the editor views.
+-- Finally, install the editor views and restore old loading.
 EditorView = require_ex.DoList_Names(Names, Prefix)
+
+require = old_require
 
 return Scene
