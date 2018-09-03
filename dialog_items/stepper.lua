@@ -28,9 +28,11 @@ local assert = assert
 local max = math.max
 local min = math.min
 local pairs = pairs
-local round = math.round
 local tonumber = tonumber
 local type = type
+
+-- Extension imports --
+local round = math.round
 
 -- Modules --
 local button = require("corona_ui.widgets.button")

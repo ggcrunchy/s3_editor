@@ -23,7 +23,7 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Standard library imports --
+-- Extension imports --
 local round = math.round
 
 -- Modules --
