@@ -159,8 +159,8 @@ end
 -- before that entry's cell is loaded.
 -- @tparam GridView grid_view Supplies the module's current tile grid, values, and tiles.
 --
--- If _grid\_view_ does not contain a **GetCurrent** method, or if it returns **nil**, the
--- current tile grid is considered unavailable and ignored during loading.
+-- If _grid\_view_ does not contain a **GetChoices method, or if it returns **nil**, the
+-- current menu is considered unavailable and ignored during loading.
 function M.LoadGroupOfValues_Grid (level, what, mod, grid_view)
 	local cells = grid_view:GetGrid()
 

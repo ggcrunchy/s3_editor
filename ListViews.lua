@@ -1,5 +1,5 @@
 --- Logic associated with listbox-based views. These are similar to the views as described in
--- @{s3_editor.GridViews}, but do not define **GetCurrent**, **GetGrid**, or **GetTiles** methods.
+-- @{s3_editor.GridViews}, but do not define **GetChoices**, **GetGrid**, or **GetTiles** methods.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
