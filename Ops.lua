@@ -190,7 +190,7 @@ local TestLevelName = "?TEST?"
 
 --- DOCME
 function M.Restore ()
-	Runtime:dispatchEvent{ name = "enter_menus" }
+	Runtime:dispatchEvent{ name = "unloaded" }
 
 	local _, data = persistence.LevelExists(TestLevelName, true)
 
