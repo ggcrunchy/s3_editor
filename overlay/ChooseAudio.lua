@@ -122,7 +122,7 @@ function Overlay:create (event)
 	--
 	local below_choices, done = layout.Below(choices, "2.1%")
 	local opts_complete = {
-		onComplete = function()
+		onComplete = function() -- TODO: is this okay when it doesn't finish?
 			done = true
 		end
 	}
