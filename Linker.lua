@@ -92,6 +92,7 @@ end
 local LinkInfo -- TODO!
 
 --- DOCME
+-- TODO: actually bind type (or just do when making values, really...)
 function Linker:BindIdentifierAndValuesWithTag (id, values, tag, dialog)
 	if tag then
 		self:BindIdentifierAndValues(id, values)
