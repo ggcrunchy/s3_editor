@@ -31,12 +31,12 @@ local assert = assert
 local concat = table.concat
 local ipairs = ipairs
 local pairs = pairs
+local setmetatable = setmetatable
 local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local array_funcs = require("tektite_core.array.funcs")
-local class = require("tektite_core.class")
 local iterator_utils = require("iterator_ops.utils")
 
 -- Unique member keys (Sublink) --
@@ -49,7 +49,6 @@ local _template = {}
 -- Unique member keys (Tags) --
 local _implemented_by = {}
 local _implies = {}
-local _tags = {}
 
 -- Iterator over a list of strings (tags or sublinks)
 local IterStrList = iterator_utils.InstancedAutocacher(function()
@@ -94,40 +93,18 @@ local IterStrList = iterator_utils.InstancedAutocacher(function()
 end)
 
 -- Tags class definition --
-return class.Define(function(Tags)
+--return class.Define(function(Tags)
+
+local Type = {}
+
+Type.__index = Type
+
 	-- Forward references --
 	local GetTemplate, ReplaceSingleInstance
 
-	--- Predicate.
-	-- @string name Tag name.
-	-- @treturn boolean The name has been registered with @{Tags:New}?
-	function Tags:Exists (name)
-		return self[_tags][name] ~= nil
-	end
---[[
-	-- Helper to distinguish prospective property keys
-	local function IsProp (what)
-		return type(what) == "string" and what ~= "instances" and what ~= "sub_links"
-	end
-
-	--- DOCME
-	-- @string name
-	-- @string what
-	-- @return
-	function Tags:GetProperty (name, what)
-		local tag = self[_tags][name]
-
-		if tag and IsProp(what) then
-			return tag[what]
-		else
-			return nil
-		end
-	end
-]]
-	--
-	local function IsTemplate (name)
-		return type(name) == "string" and name:sub(-1) == "*"
-	end
+local function IsTemplate (name)
+	return type(name) == "string" and name:sub(-1) == "*"
+end
 
 	-- Nothing to iterate
 	local function NoOp () end
@@ -216,22 +193,24 @@ return class.Define(function(Tags)
 
 			return false, why or "", not not is_cont
 		end
+-- ^^ sort of used elsewhere
+--- DOCME
+function Type:GetTemplate (name)
+	local pi, nodes = name:find("|"), self.m_nodes
+	local template = (pi and nodes) and name:sub(1, pi - 1) .. "*"
 
-		--- DOCME
-		function Tags:GetTemplate (name, instance)
-			local pi, sub_links = instance:find("|"), self[_tags][name].sub_links
-			local template = (pi and sub_links) and instance:sub(1, pi - 1) .. "*"
+	return nodes[template] and template
+end
 
-			return sub_links[template] and template
-		end
+local Node = {}
 
-		--- DOCME
-		-- @string name
-		-- @string sub
-		-- @treturn boolean
-		function Tags:HasSublink (name, sub)
-			return FindSublink(self, name, sub) ~= nil
-		end
+Node.__index = Node
+
+--- Getter.
+-- @treturn string Name.
+function Node:GetName ()
+	return self[_name]
+end
 
 		--- Predicate.
 		-- @param name
@@ -243,68 +222,14 @@ return class.Define(function(Tags)
 
 			return sub_link ~= nil and sub_link:Implements(what)
 		end
+-- ^^ one use in link.lua
 
-		--- DOCME
-		-- @string name
-		-- @string sub
-		-- @treturn ?|string|nil X
-		function Tags:Instantiate (name, sub)
-			if IsTemplate(sub) then
-				local template, _, ilist = FindSublink(self, name, sub)
-				local id = (self.counters[sub] or 0) + 1
-				local instance = ("%s|%i|"):format(sub:sub(1, -2), id)
-
-				ilist[instance], self.counters[sub] = class.Clone(template, instance), id
-
-				return instance
-			else
-				return nil
-			end
-		end
-
-		--- DOCME
-		-- @string name
-		-- @string instance
-		-- @treturn boolean X
-		function Tags:Release (name, instance)
-			local sublink, _, ilist = FindSublink(self, name, instance)
-
-			if sublink then
-				ilist[instance] = nil
-
-				return true
-			else
-				return false
-			end
-		end
-
-		--- DOCME
-		function Tags:ReplaceInstances (tag, instances)
-			local replacements = {}
-
-			for k in Pairs(instances) do
-				replacements[k] = ReplaceSingleInstance(self, tag, k)
-			end
-
-			return replacements
-		end
-
-		--- DOCME
-		function Tags:ReplaceSingleInstance (tag, instance)
-			local template = GetTemplate(self, tag, instance)
-
-			return template and self:Instantiate(tag, template)
-		end
 	end
 
 	do
 		-- Sublink class definition --
 		local SublinkClass = class.Define(function(Sublink)
-			--- Getter.
-			-- @treturn string Sublink name.
-			function Sublink:GetName ()
-				return self[_name]
-			end
+
 
 			--- Predicate.
 			-- @param what
@@ -312,7 +237,7 @@ return class.Define(function(Tags)
 			function Sublink:Implements (what)
 				return adaptive.InSet((self[_template] or self)[_interfaces], what)
 			end
-
+-- ^^ used here...
 			--- Class cloner.
 			-- @string name Instance name.
 			function Sublink:__clone (S, name)
@@ -370,7 +295,7 @@ return class.Define(function(Tags)
 		function Tags:ImplyInterface (name, what)
 			adaptive.AddToSet_Member(self[_implies], name, what)
 		end
-
+-- used for type reciprocity...
 		--
 		local function AddImplementor (T, name, what)
 			local implemented_by = T[_implemented_by]
@@ -481,13 +406,6 @@ return class.Define(function(Tags)
 						AddImplementor(self, name, what)
 					end
 				end
-
-				-- Record anything else that could be a property.
-				for k, v in pairs(options) do
-					if IsProp(k) then
-						tag[k] = v
-					end
-				end
 			end
 
 			--
@@ -499,7 +417,7 @@ return class.Define(function(Tags)
 		--
 		local Template
 
-		local function InstanceOf (name)
+		local function GeneratedFrom (name)
 			local where = name:find("|")
 
 			return where and name:sub(where - 1) == Template
@@ -557,7 +475,7 @@ return class.Define(function(Tags)
 		function Tags:Sublinks (name, filter)
 			if filter then
 				if IsTemplate(filter) then
-					filter, Template = InstanceOf, filter:sub(1, -2)
+					filter, Template = GeneratedFrom, filter:sub(1, -2)
 				else
 					filter = Filters[filter]
 				end
@@ -571,9 +489,72 @@ return class.Define(function(Tags)
 	function Tags:__cons ()
 		self[_implemented_by] = {}
 		self[_implies] = {}
-		self[_tags] = {}
 	end
 
 	-- Bind references.
 	GetTemplate, ReplaceSingleInstance = Tags.GetTemplate, Tags.ReplaceSingleInstance
 end)
+
+-- Type:Iter (...)
+--  IterTemplates (...)
+--  IterNonTemplates (...)
+
+-- M.EnumNamesGeneratedFrom (template, list) -- "instances"
+-- M.EnumNamesNotGeneratedFrom (template, list) -- "no_instances"
+-- M.NewType ({ methods, before, instead }, { export_nodes }, { import_nodes })
+-- M.ReplaceGeneratedName (list, name) -- need type?
+-- M.ReplaceNames...
+-- M.RemoveGeneratedName (...) -- ????
+-- M.GenerateName (list, template)
+
+	--- DOCME
+	-- @string name
+	-- @string sub
+	-- @treturn ?|string|nil X
+	function Tags:Instantiate (name, sub)
+		if IsTemplate(sub) then
+			local template, _, ilist = FindSublink(self, name, sub)
+			local id = (self.counters[sub] or 0) + 1
+			local instance = ("%s|%i|"):format(sub:sub(1, -2), id)
+
+			ilist[instance], self.counters[sub] = class.Clone(template, instance), id
+
+			return instance
+		else
+			return nil
+		end
+	end
+
+	--- DOCME
+	-- @string name
+	-- @string instance
+	-- @treturn boolean X
+	function Tags:Release (name, instance)
+		local sublink, _, ilist = FindSublink(self, name, instance)
+
+		if sublink then
+			ilist[instance] = nil
+
+			return true
+		else
+			return false
+		end
+	end
+
+	--- DOCME
+	function Tags:ReplaceInstances (tag, instances)
+		local replacements = {}
+
+		for k in Pairs(instances) do
+			replacements[k] = ReplaceSingleInstance(self, tag, k)
+		end
+
+		return replacements
+	end
+
+	--- DOCME
+	function Tags:ReplaceSingleInstance (tag, instance)
+		local template = GetTemplate(self, tag, instance)
+
+		return template and self:Instantiate(tag, template)
+	end
