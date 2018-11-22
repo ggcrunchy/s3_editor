@@ -1,7 +1,4 @@
---- This class provides a way to label a set of types, suggest any general behaviors they
--- implement, and describe what connections are allowed among them, horizontally as well
--- as hierarchically.
--- @module Tags
+--- TODO!
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -28,11 +25,18 @@
 
 -- Standard library imports --
 local assert = assert
+local error = error
+local getmetatable = getmetatable
 local pairs = pairs
+local pcall = pcall
+local rawequal = rawequal
 local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
+
+-- Cached module references --
+local _GetState_
 
 -- Exports --
 local M = {}
@@ -43,13 +47,57 @@ local M = {}
 
 local State = {}
 
+local Sets = {}
+
+local Work
+
 --- DOCME
 function M.GetState (name)
-	assert(name ~= nil, "Invalid type name")
+	local state = State[name]
 
-	local state = State[name] or {}
+	if state == nil then
+		local set = assert(Sets[name], "Set not found")
+		local make = set._state
+
+		if make then
+			Work = Work or {}
+			Work.name, set._state = name
+
+			make(Work)
+
+			state, Work.result = Work.result or false
+		else
+			state = {}
+		end
+	end
 
 	State[name] = state
+
+	return state
+end
+
+local function AuxFindName (instance)
+	local mt = getmetatable(instance)
+
+	for name, set in pairs(Sets) do
+		if rawequal(set, mt) then
+			return _GetState_(name)
+		end
+	end
+end
+
+--- DOCME
+function M.GetNameFromInstance (instance)
+	return (AuxFindName(instance)) -- return nil if missing
+end
+
+--- DOCME
+function M.GetStateFromInstance (instance)
+	local name, state = AuxFindName(instance)
+
+	if name ~= nil then
+		state = _GetState_(name)
+	end
 
 	return state
 end
@@ -73,7 +121,7 @@ local function PrototypeEntry (proto, name)
 	return adaptive.IterArray(entry)
 end
 
-local function AddCallAfterProtoCalls (def, name, func, proto)
+local function AddFunctionAfterProtoEntry (def, name, func, proto)
 	local arr = def[name]
 
 	if not arr then -- prototype calls not already merged by "before" logic?
@@ -85,7 +133,7 @@ local function AddCallAfterProtoCalls (def, name, func, proto)
 	def[name] = adaptive.Append(arr, func)
 end
 
-local function AddCallBeforeProtoCalls (def, name, func, proto)
+local function AddFunctionBeforeProtoEntry (def, name, func, proto)
 	local arr = adaptive.Append(nil, func)
 
 	for _, ev in PrototypeEntry(proto, name) do
@@ -95,7 +143,7 @@ local function AddCallBeforeProtoCalls (def, name, func, proto)
 	def[name] = arr
 end
 
-local function AddCallDirectly (def, name, func)
+local function AddFunctionDirectly (def, name, func)
 	def[name] = func
 end
 
@@ -119,7 +167,7 @@ local function WrapCallLists (def)
 	def._list = list
 end
 
-local function AddNewCalls (def, params, add, proto)
+local function AddNewFunctions (def, params, add, proto)
 	for k, v in pairs(params) do
 		if not Reserved[k] then
 			add(def, k, v, proto)
@@ -129,18 +177,17 @@ local function AddNewCalls (def, params, add, proto)
 	WrapCallLists(def)
 end
 
-local Types = {}
-
 --- DOCME
 -- @ptable params
+-- @treturn table S
 -- @return N
-function M.NewType (params)
+function M.New (params)
 	assert(type(params) == "table", "Invalid params")
 
 	local name = params._name
 
 	assert(name ~= nil and name == name, "Invalid name")
-	assert(not Types[name], "Name already in use")
+	assert(not Sets[name], "Name already in use")
 
 	local before, instead, pname, def = params._before, params._instead, params._prototype, {}
 
@@ -148,12 +195,12 @@ function M.NewType (params)
 		assert(not before, "Prototype must be available for `before` calls")
 		assert(not instead, "Prototype must be available for `instead` calls")
 
-		AddNewCalls(def, params, AddCallDirectly)
+		AddNewFunctions(def, params, AddFunctionDirectly)
 	else
-		local proto = assert(Types[pname], "Invalid prototype")
+		local proto = assert(Sets[pname], "Prototype not found")
 
 		if instead then
-			assert(not instead._pre_init, "Instead list may not contain `pre_init` call")
+			assert(not instead._state, "Instead list may not contain `state` call")
 
 			for k, v in pairs(instead) do
 				assert(not (before and before[k] ~= nil), "Entry in `instead` also in `before`")
@@ -164,35 +211,34 @@ function M.NewType (params)
 		end
 
 		if before then
-			assert(not before._pre_init, "Before list may not contain `pre_init` call")
+			assert(not before._state, "Before list may not contain `state` call")
 
 			for k, v in pairs(before) do
-				AddCallBeforeProtoCalls(def, k, v, proto)
+				AddFunctionBeforeProtoEntry(def, k, v, proto)
 			end
 		end
 
-		AddNewCalls(def, params, AddCallAfterProtoCalls, proto)
+		AddNewFunctions(def, params, AddFunctionAfterProtoEntry, proto)
 		MergePrototype(def, proto)
 	end
 
-	local pre_init, init = def._pre_init, def._init
+	Sets[name] = def -- add provisionally for GetState()...
 
-	if pre_init or init then
-		if pre_init then
-			pre_init(name)
-		end
+	local init = def._init
 
-		if init then
-			init(name)
+	if init then
+		local ok, err = pcall(init, name)
+
+		if not ok then
+			Sets[name] = nil -- ...but remove if something went wrong
+
+			error(err)
 		end
 	end
 
-	Types[name] = def
-
-	return name
+	return def, name
 end
 
--- TODO: stuff to apply it...
+_GetState_ = M.GetState
 
--- Export the module.
 return M

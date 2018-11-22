@@ -320,5 +320,4 @@ function M.New ()
 	return setmetatable(linker, Linker)
 end
 
--- Export the module.
 return M

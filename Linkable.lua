@@ -23,8 +23,11 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local setmetatable = setmetatable
+
 -- Modules --
-local TYPE = require("s3_editor.type")
+local function_set = require("s3_editor.FunctionSet")
 
 -- ^^ TODO: better name? e.g. method bundle or something?
 
@@ -232,12 +235,6 @@ end
 				end
 
 				self[_name], self[_template] = name, S
-			end
-
-			--- Class constructor.
-			-- @string name Sublink name.
-			function Sublink:__cons (name)
-				self[_name] = name
 			end
 		end)
 			
@@ -467,12 +464,6 @@ end
 		end
 	end
 
-	--- Class constructor.
-	function Tags:__cons ()
-		self[_implemented_by] = {}
-		self[_implies] = {}
-	end
-
 	-- Bind references.
 	GetTemplate, ReplaceSingleInstance = Tags.GetTemplate, Tags.ReplaceSingleInstance
 --end)
@@ -545,21 +536,76 @@ end
 --
 --
 
-TYPE.NewType{
-    _name = "LinkableType",
+local Node = {}
 
-    _pre_init = function(name)
-        local state = TYPE.GetState(name)
-        -- link network, etc.
-        -- setmetatable(state, LinkTree)???
+Node.__index = Node
+
+---
+-- @ptable params
+-- @treturn boolean X
+function Node:CanLinkTo (params)
+	-- already linked?
+	-- !!!
+end
+
+---
+-- @return Name.
+function Node:GetName ()
+	return self.m_name
+end
+-- ^^ TODO: is this important enough to keep, in light of the redundancy and imposed structure?
+
+--[[
+CanLink (id1, name1, pred1, id2, name2, pred2, linker)
+	
+end
+]]
+
+local function AddNode (NG, name, key, what, params)
+	local node, list = {}, NG[name] or { m_name = name }
+
+	if type(params) == "table" then
+		--
+	end
+
+	NG[name], list[key] = list, setmetatable(node, Node)
+end
+
+local NodeGraph = {}
+
+NodeGraph.__index = NodeGraph
+
+function NodeGraph:AddExportNode (name, what, params)
+	AddNode(self, name, "m_export_nodes", what, params)
+end
+
+function NodeGraph:AddImportNode (name, what, params)
+	AddNode(self, name, "m_import_nodes", what, params)
+end
+
+function_set.New{
+    _name = "Linkable",
+
+    _state = function(event)
+		event.result = setmetatable({}, NodeGraph)
     end,
 
     -- _init = ? (Add{Ex|Im}portNode, ...)
 
-    -- default can_link
-    -- default build, load, save
-    -- default prep_link...
-    -- default verify...
+    -- default can_link (mostly just hooking up types, with or without 1-item limit)
+		-- can_link (node, other, name, oname[, linker]) also ids
+			-- ids needed e.g. for 1-item limit (check link count) or "link to any when empty, else compat"
+		-- result = ...
+			-- else: reason, is_contradiction
+	-- ^^ if doing this with components, try to make cases that don't proliferate tables
+		-- so maybe ask for interfaces? e.g. for uint -> int -> number
+		-- components such as: boolean, event, etc.; is / is not limited to 1
+		-- take id, etc. for "any" case, where there is sometimes flexibility
+	-- ^^ also of course is node-level stuff
+    -- default build, load, save (not sure how safe this is, unless hinted in node info)
+    -- default prep_link... (use streamlined version of pubsub_utils stuff)
+		-- result = true if resolved...
+    -- default verify... (give hints in node info?)
 }
 
 -- derived by:
