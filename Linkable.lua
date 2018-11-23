@@ -24,12 +24,18 @@
 --
 
 -- Standard library imports --
+local assert = assert
 local setmetatable = setmetatable
+local tostring = tostring
+local type = type
 
 -- Modules --
+local adaptive = require("tektite_core.table.adaptive")
+local component = require("tektite_core.component")
 local function_set = require("s3_editor.FunctionSet")
 
--- ^^ TODO: better name? e.g. method bundle or something?
+-- Exports --
+local M = {}
 
 --
 --
@@ -561,6 +567,108 @@ CanLink (id1, name1, pred1, id2, name2, pred2, linker)
 end
 ]]
 
+local Components = { exports = {}, imports = {} }
+
+local InterfaceLists = { exports = {}, imports = {} }
+
+local MangledLists = {}
+
+local function MangleName (name, which)
+	return "IFX:" .. which .. ":" .. type(name) .. ":" .. tostring(name) -- reasonably unique name
+end
+
+local LimitedToOne = {}
+
+local function GetInterfaces (name, which)
+	local ifx_list = InterfaceLists[which]
+	local interfaces = ifx_list[name]
+
+	if type(interfaces) == "number" then -- index?
+		return MangledLists[interfaces]
+	else
+		local index, list = #MangledLists + 1
+
+		if not interfaces then
+			list = adaptive.Append(nil, MangleName(name))
+		else
+			for i = 1, #interfaces do
+				list = adaptive.Append(list, MangleName(interfaces[i]))
+			end
+		end
+
+		MangledLists[index], ifx_list[name] = list, index
+
+		return list
+	end
+end
+
+local Rules = {}
+
+local function MakeRule (name, which, adjust)
+	local other, list = which == "imports" and "exports" or "imports"
+	local sifxs, oifxs = GetInterfaces(name, which), GetInterfaces(name, other)
+
+	for _, ifx in adaptive.IterArray(sifxs) do
+		list = adaptive.Append(list, ifx)
+	end
+
+	if name == "func" then -- import an event that calls func, or call func that exports event
+		--
+		if adjust == "-" then
+			-- LimitToOne...
+			-- add limiter interface to self
+		else
+			--
+		end
+	else
+		--
+		if which == "imports" and adjust == "+" then
+			-- use 
+		elseif which == "exports" and adjust == "-" then
+			-- ????
+			-- add limiter to self...
+		else
+			--
+		end
+	end
+end
+
+local function ListInterfaces (name, which, ...)
+	local list = InterfaceLists[which]
+
+	assert(not list[name], "List already provided")
+
+	list[name] = { ... }
+end
+
+function M.ListExportInterfaces (name, ...)
+	ListInterfaces(name, "exports", ...)
+end
+
+function M.ListImportInterfaces (name, ...)
+	ListInterfaces(name, "imports", ...)
+end
+
+local function GetRule (name, which)
+	if type(name) == "function" then -- already a rule, essentially
+		return name
+	else
+		local rule = Rules[name]
+
+		if not rule then
+			local last = name:sub(-1)
+
+			if last == "-" or last == "+" then
+				name = name:sub(1, -2)
+			end
+
+			rule = MakeRule(name, which, last)
+		end
+
+		return rule
+	end
+end
+
 local function AddNode (NG, name, key, what, params)
 	local node, list = {}, NG[name] or { m_name = name }
 
@@ -582,6 +690,23 @@ end
 function NodeGraph:AddImportNode (name, what, params)
 	AddNode(self, name, "m_import_nodes", what, params)
 end
+
+function NodeGraph:Generate (tname)
+	-- probably just inc counter, make name, hand it out?
+	-- need way to make counters consistent with load, or can be done same way?
+end
+
+function NodeGraph:IterNodes (how)
+	if how == "exports" then
+		--
+	elseif how == "imports" then
+		--
+	else
+		--
+	end
+end
+
+-- also Templates (...), NonTemplates (...)
 
 function_set.New{
     _name = "Linkable",
@@ -607,6 +732,8 @@ function_set.New{
 		-- result = true if resolved...
     -- default verify... (give hints in node info?)
 }
+
+return M
 
 -- derived by:
     -- Action
