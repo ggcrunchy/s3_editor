@@ -25,6 +25,9 @@
 
 -- Standard library imports --
 local assert = assert
+local next = next
+local pairs = pairs
+local rawget = rawget
 local setmetatable = setmetatable
 local tostring = tostring
 local type = type
@@ -542,46 +545,23 @@ end
 --
 --
 
-local Node = {}
-
-Node.__index = Node
-
----
--- @ptable params
--- @treturn boolean X
-function Node:CanLinkTo (params)
-	-- already linked?
-	-- !!!
-end
-
----
--- @return Name.
-function Node:GetName ()
-	return self.m_name
-end
--- ^^ TODO: is this important enough to keep, in light of the redundancy and imposed structure?
-
 --[[
 CanLink (id1, name1, pred1, id2, name2, pred2, linker)
 	
 end
 ]]
 
-local Components = { exports = {}, imports = {} }
-
 local InterfaceLists = { exports = {}, imports = {} }
 
 local MangledLists = {}
 
-local function MangleName (name, which)
-	return "IFX:" .. which .. ":" .. type(name) .. ":" .. tostring(name) -- reasonably unique name
+local function Mangle (what, which)
+	return "IFX:" .. which .. ":" .. type(what) .. ":" .. tostring(what) -- reasonably unique name
 end
 
-local LimitedToOne = {}
-
-local function GetInterfaces (name, which)
+local function GetInterfaces (what, which)
 	local ifx_list = InterfaceLists[which]
-	local interfaces = ifx_list[name]
+	local interfaces = ifx_list[what]
 
 	if type(interfaces) == "number" then -- index?
 		return MangledLists[interfaces]
@@ -589,106 +569,136 @@ local function GetInterfaces (name, which)
 		local index, list = #MangledLists + 1
 
 		if not interfaces then
-			list = adaptive.Append(nil, MangleName(name))
+			list = adaptive.Append(nil, Mangle(what))
 		else
 			for i = 1, #interfaces do
-				list = adaptive.Append(list, MangleName(interfaces[i]))
+				list = adaptive.Append(list, Mangle(interfaces[i]))
 			end
 		end
 
-		MangledLists[index], ifx_list[name] = list, index
+		MangledLists[index], ifx_list[what] = list, index
 
 		return list
 	end
 end
 
-local Rules = {}
-
-local function MakeRule (name, which, adjust)
-	local other, list = which == "imports" and "exports" or "imports"
-	local sifxs, oifxs = GetInterfaces(name, which), GetInterfaces(name, other)
-
-	for _, ifx in adaptive.IterArray(sifxs) do
-		list = adaptive.Append(list, ifx)
-	end
-
-	if name == "func" then -- import an event that calls func, or call func that exports event
-		--
-		if adjust == "-" then
-			-- LimitToOne...
-			-- add limiter interface to self
+local function BasicLink (oifx_primary)
+	return function(event)
+		if component.ImplementedByObject(event.target, oifx_primary) then
+			return true
 		else
-			--
-		end
-	else
-		--
-		if which == "imports" and adjust == "+" then
-			-- use 
-		elseif which == "exports" and adjust == "-" then
-			-- ????
-			-- add limiter to self...
-		else
-			--
+			return false, "Incompatible type"
 		end
 	end
 end
 
-local function ListInterfaces (name, which, ...)
+local function SingleTargetLink (oifx_primary)
+	return function(event)
+		if component.ImplementedByObject(event.target, oifx_primary) then
+			if not event.linker:HasLinks(event.from_id, event.from_name) then
+				return true
+			else
+				return false, "Single-link node already bound"
+			end
+		else
+			return false, "Incompatible type"
+		end
+	end
+
+local function MakeRule (what, which, adjust)
+	local last, limit = type(what) == "string" and what:sub(-1)
+
+	if last == "-" or last == "+" then
+		what = what:sub(1, -2)
+	end
+
+	if what == "func" -- import an event that calls func, or call func that exports event
+	or which == "exports" then
+		limit = adjust == "-"	-- usually fine to export value to multiple recipients,
+								-- to broadcast an event,
+								-- or to make a func callable from disparate events
+	else
+		limit = adjust ~= "+" -- usually only makes sense to import one value
+	end
+
+	local other, rule = which == "imports" and "exports" or "imports"
+	local iter, state, index = adaptive.IterArray(GetInterfaces(what, other))
+	local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
+
+	if limit then
+		rule = SingleTargetLink
+	else
+		rule = BasicLink
+	end
+	-- TODO: add rules when "any" taken into account (need to work out constraints, etc.)
+
+	return rule, GetInterfaces(what, which)
+end
+
+local function ListInterfaces (what, which, ...)
 	local list = InterfaceLists[which]
 
-	assert(not list[name], "List already provided")
+	assert(not list[what], "List already provided")
 
-	list[name] = { ... }
+	list[what] = { ... }
 end
 
-function M.ListExportInterfaces (name, ...)
-	ListInterfaces(name, "exports", ...)
+--- DOCME
+function M.ListExportInterfaces (what, ...)
+	ListInterfaces(what, "exports", ...)
 end
 
-function M.ListImportInterfaces (name, ...)
-	ListInterfaces(name, "imports", ...)
+--- DOCME
+function M.ListImportInterfaces (what, ...)
+	ListInterfaces(what, "imports", ...)
 end
 
-local function GetRule (name, which)
-	if type(name) == "function" then -- already a rule, essentially
-		return name
+local Rules = { exports = {}, imports = {} }
+
+local function GetRule (what, which)
+	if type(what) == "function" then -- already a rule, essentially
+		return what
 	else
-		local rule = Rules[name]
+		local rule_list = Rules[which]
+		local rule = rule_list[what]
 
 		if not rule then
-			local last = name:sub(-1)
+			local name, interfaces = {}
 
-			if last == "-" or last == "+" then
-				name = name:sub(1, -2)
-			end
+			rule, interfaces = MakeRule(what, which)
 
-			rule = MakeRule(name, which, last)
+			component.RegisterType{ name = name, interfaces = interfaces }
+			component.AddToObject(rule, name)
+			component.LockInObject(rule, name)
+
+			rule_list[what] = rule
 		end
 
 		return rule
 	end
 end
 
-local function AddNode (NG, name, key, what, params)
-	local node, list = {}, NG[name] or { m_name = name }
+local function AddNode (NG, name, key, what)
+	local elist, ilist = NG.m_export_nodes, NG.m_import_nodes
 
-	if type(params) == "table" then
-		--
-	end
+	assert(not (elist and elist[name]), "Name already used in exports list")
+	assert(not (ilist and ilist[name]), "Name already used in imports list")
 
-	NG[name], list[key] = list, setmetatable(node, Node)
+	local list = NG[key] or {}
+
+	NG[key], list[name] = list, GetRule(what, key == "m_export_nodes" and "exports" or "imports")
 end
 
 local NodeGraph = {}
 
 NodeGraph.__index = NodeGraph
 
-function NodeGraph:AddExportNode (name, what, params)
-	AddNode(self, name, "m_export_nodes", what, params)
+function NodeGraph:AddExportNode (name, what)
+	AddNode(self, name, "m_export_nodes", what)
 end
 
-function NodeGraph:AddImportNode (name, what, params)
-	AddNode(self, name, "m_import_nodes", what, params)
+function NodeGraph:AddImportNode (name, what)
+	AddNode(self, name, "m_import_nodes", what)
 end
 
 function NodeGraph:Generate (tname)
@@ -696,17 +706,70 @@ function NodeGraph:Generate (tname)
 	-- need way to make counters consistent with load, or can be done same way?
 end
 
-function NodeGraph:IterNodes (how)
-	if how == "exports" then
-		--
-	elseif how == "imports" then
-		--
+local function AuxIterBoth (NG, name)
+	local ilist = NG.m_import_nodes
+
+	if not rawget(ilist, name) then -- nil or in export list?
+		local k, v = next(NG.m_export_nodes, name)
+
+		if k == nil then -- switch from export to import list?
+			return next(ilist, nil)
+		else
+			return k, v
+		end
 	else
-		--
+		return next(ilist, nil)
 	end
 end
 
--- also Templates (...), NonTemplates (...)
+local function DefIter () end
+
+local function IterBoth (NG)
+	local elist, ilist = NG.m_export_nodes, NG.m_import_nodes
+
+	if elist and ilist then
+		return AuxIterBoth, NG, nil
+	elseif elist or ilist do
+		return adaptive.IterSet(elist or ilist)
+	else
+		return DefIter
+	end
+end
+
+--- DOCME
+function NodeGraph:IterNodes (how)
+	if how == "exports" or how == "imports" then
+		return adaptive.IterSet(self[how == "exports" and "m_export_nodes" or "m_import_nodes"])
+	else
+		return IterBoth(self)
+	end
+end
+
+--- DOCME
+function NodeGraph:IterNonTemplateNodes (how)
+	local list = {}
+
+	for k, v in IterBoth(self) do
+		if not IsTemplate(k) then
+			list[k] = v
+		end
+	end
+
+	return pairs(list)
+end
+
+--- DOCME
+function NodeGraph:IterNonTemplateNodes (how)
+	local list = {}
+
+	for k, v in IterBoth(self) do
+		if IsTemplate(k) then
+			list[k] = v
+		end
+	end
+
+	return pairs(list)
+end
 
 function_set.New{
     _name = "Linkable",
@@ -722,11 +785,7 @@ function_set.New{
 			-- ids needed e.g. for 1-item limit (check link count) or "link to any when empty, else compat"
 		-- result = ...
 			-- else: reason, is_contradiction
-	-- ^^ if doing this with components, try to make cases that don't proliferate tables
-		-- so maybe ask for interfaces? e.g. for uint -> int -> number
-		-- components such as: boolean, event, etc.; is / is not limited to 1
-		-- take id, etc. for "any" case, where there is sometimes flexibility
-	-- ^^ also of course is node-level stuff
+
     -- default build, load, save (not sure how safe this is, unless hinted in node info)
     -- default prep_link... (use streamlined version of pubsub_utils stuff)
 		-- result = true if resolved...
