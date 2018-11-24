@@ -44,55 +44,6 @@ local M = {}
 --
 --
 
--- Iterator over a list of strings (tags or sublinks)
-local IterStrList = iterator_utils.InstancedAutocacher(function()
-	local str_list = {}
-
-	-- Body --
-	return function(_, i)
-		return i + 1, str_list[i + 1]
-	end,
-
-	-- Done --
-	function(_, i)
-		return str_list[i + 1] == nil
-	end,
-
-	-- Setup --
-	function(T, enum, name_, as_set, filter)
-		-- Build up the list of strings, accommodating the form of the source.
-		local count = 0
-
-		if as_set then
-			for base in adaptive.IterSet(name_) do
-				count = enum(T, str_list, base, count, filter)
-			end
-		else
-			for _, base in adaptive.IterArray(name_) do
-				count = enum(T, str_list, base, count, filter)
-			end
-		end
-
-		-- Enumeration will overwrite the old elements, but if the previous iteration was
-		-- longer than this one, the list will still contain leftover elements at the tail
-		-- end, so trim the list as needed. Remove any duplicates to get the final list.
-		for i = #str_list, count + 1, -1 do
-			str_list[i] = nil
-		end
-
-		array_funcs.RemoveDups(str_list)
-
-		return nil, 0
-	end
-end)
-
--- Tags class definition --
---return class.Define(function(Tags)
-
-local Type = {}
-
-Type.__index = Type
-
 	-- Forward references --
 	local GetTemplate, ReplaceSingleInstance
 
@@ -196,16 +147,6 @@ function Type:GetTemplate (name)
 	return nodes[template] and template
 end
 
-local Node = {}
-
-Node.__index = Node
-
---- Getter.
--- @treturn string Name.
-function Node:GetName ()
-	return self[_name]
-end
-
 		--- Predicate.
 		-- @param name
 		-- @string sub
@@ -221,9 +162,6 @@ end
 	end
 
 	do
-		-- Sublink class definition --
-		local SublinkClass = class.Define(function(Sublink)
-
 
 			--- Predicate.
 			-- @param what
@@ -245,7 +183,7 @@ end
 
 				self[_name], self[_template] = name, S
 			end
-		end)
+	--	end)
 			
 		--
 		local function AddInterface (sub, what)
@@ -477,35 +415,11 @@ end
 	GetTemplate, ReplaceSingleInstance = Tags.GetTemplate, Tags.ReplaceSingleInstance
 --end)
 
--- Type:Iter (...)
---  IterTemplates (...)
---  IterNonTemplates (...)
-
 -- M.EnumNamesGeneratedFrom (template, list) -- "instances"
 -- M.EnumNamesNotGeneratedFrom (template, list) -- "no_instances"
--- M.NewType ({ methods, before, instead }, { export_nodes }, { import_nodes })
 -- M.ReplaceGeneratedName (list, name) -- need type?
 -- M.ReplaceNames...
 -- M.RemoveGeneratedName (...) -- ????
--- M.GenerateName (list, template)
-
-	--- DOCME
-	-- @string name
-	-- @string sub
-	-- @treturn ?|string|nil X
-	function Tags:Instantiate (name, sub)
-		if IsTemplate(sub) then
-			local template, _, ilist = FindSublink(self, name, sub)
-			local id = (self.counters[sub] or 0) + 1
-			local instance = ("%s|%i|"):format(sub:sub(1, -2), id)
-
-			ilist[instance], self.counters[sub] = class.Clone(template, instance), id
-
-			return instance
-		else
-			return nil
-		end
-	end
 
 	--- DOCME
 	-- @string name
@@ -604,33 +518,72 @@ local function SingleTargetLink (oifx_primary)
 			return false, "Incompatible type"
 		end
 	end
+end
 
-local function MakeRule (what, which, adjust)
-	local last, limit = type(what) == "string" and what:sub(-1)
+local Modifiers = {
+	["-"] = "limit", ["+"] = "limit",
+	["!"] = "wildcard", ["?"] = "wildcard"
+}
 
-	if last == "-" or last == "+" then
-		what = what:sub(1, -2)
+local function ExtractModifiers (what)
+	local prev, limit, wildcard -- n.b. if more than two modifiers, more sophistication needed
+
+	for _ = 1, 2 do
+		local last = what:sub(-1)
+		local modifier = Modifiers[last]
+
+		assert(prev ~= modifier, "Two of same kind of modifier")
+
+		if modifier == "limit" then
+			limit = last
+		elseif modifier == "wildcard" then
+			wildcard = last
+			-- ?: accept any type (in class, "any" by default) when empty, then match successors
+			-- !: ditto, but without the "then ..." part
+			-- both are equivalent when limit in effect
+		else
+			break
+		end
+
+		what, prev = what:sub(1, -2), modifier
+	end
+
+	assert(#what > 0, "Empty rule name")
+
+	return what, limit, wildcard
+end
+
+local function MakeRule (what, which)
+	local limit, wildcard
+
+	if type(what) == "string" then
+		what, limit, wildcard = ExtractModifiers(what)
 	end
 
 	if what == "func" -- import an event that calls func, or call func that exports event
 	or which == "exports" then
-		limit = adjust == "-"	-- usually fine to export value to multiple recipients,
-								-- to broadcast an event,
-								-- or to make a func callable from disparate events
+		limit = limit == "-"-- usually fine to export value to multiple recipients,
+							-- to broadcast an event,
+							-- or to make a func callable from disparate events
 	else
-		limit = adjust ~= "+" -- usually only makes sense to import one value
+		limit = limit ~= "+" -- usually only makes sense to import one value
 	end
 
 	local other, rule = which == "imports" and "exports" or "imports"
 	local iter, state, index = adaptive.IterArray(GetInterfaces(what, other))
 	local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
 
-	if limit then
-		rule = SingleTargetLink
+	if limit and wildcard then -- n.b. with limit both wildcard forms equivalent
+		-- rule = SingleTargetWildcardLink(oifx_primary, any)
+	elseif limit then
+		rule = SingleTargetLink(oifx_primary)
+	elseif wildcard == "?" then
+		-- UniformWildcardLink(oifx_primary, any)
+	elseif wildcard == "!" then
+		-- MixtureWildcardLink(oifx_primary, any)
 	else
-		rule = BasicLink
+		rule = BasicLink(oifx_primary)
 	end
-	-- TODO: add rules when "any" taken into account (need to work out constraints, etc.)
 
 	return rule, GetInterfaces(what, which)
 end
@@ -693,17 +646,34 @@ local NodeGraph = {}
 
 NodeGraph.__index = NodeGraph
 
+--- DOCME
 function NodeGraph:AddExportNode (name, what)
 	AddNode(self, name, "m_export_nodes", what)
 end
 
+--- DOCME
 function NodeGraph:AddImportNode (name, what)
 	AddNode(self, name, "m_import_nodes", what)
 end
 
-function NodeGraph:Generate (tname)
-	-- probably just inc counter, make name, hand it out?
-	-- need way to make counters consistent with load, or can be done same way?
+--- DOCME
+function NodeGraph:Generate (name)
+	if IsTemplate(name) then
+		local elist, ilist = self.m_export_nodes, self.m_import_nodes
+		local rule = (elist and elist[name]) or (ilist and ilist[name])
+
+		if rule then
+			local counters = self.m_counters
+			local id = (counters[name] or 0) + 1
+			local gend = ("%s|%i|"):format(name:sub(1, -2), id)
+
+			counters[name] = id
+
+			return gend, rule
+		end
+	end
+
+	return nil
 end
 
 local function AuxIterBoth (NG, name)
@@ -729,7 +699,7 @@ local function IterBoth (NG)
 
 	if elist and ilist then
 		return AuxIterBoth, NG, nil
-	elseif elist or ilist do
+	elseif elist or ilist then
 		return adaptive.IterSet(elist or ilist)
 	else
 		return DefIter
@@ -749,7 +719,7 @@ end
 function NodeGraph:IterNonTemplateNodes (how)
 	local list = {}
 
-	for k, v in IterBoth(self) do
+	for k, v in self:IterNodes(how) do
 		if not IsTemplate(k) then
 			list[k] = v
 		end
@@ -762,7 +732,7 @@ end
 function NodeGraph:IterNonTemplateNodes (how)
 	local list = {}
 
-	for k, v in IterBoth(self) do
+	for k, v in self:IterNodes(how) do
 		if IsTemplate(k) then
 			list[k] = v
 		end
@@ -775,9 +745,23 @@ function_set.New{
     _name = "Linkable",
 
     _state = function(event)
-		event.result = setmetatable({}, NodeGraph)
+		local graph = setmetatable({}, NodeGraph)
+
+		event.result, graph.m_counters = graph, {}
     end,
 
+	build_link = function(entry, other, name, other_name)
+		-- stuff from prep link helper, basically
+			-- but can probably mostly streamline, accounting for "func" and generated names
+		-- check for "is resolved" something or other, exit if set
+		-- otherwise, set it ourself if successful
+		-- locations might be defaulted but overrideable in Add*Node?
+	end,
+
+	post_build_link = function(...)
+		-- clean anything up from build_link
+		-- might not be anything in default version
+	end,
     -- _init = ? (Add{Ex|Im}portNode, ...)
 
     -- default can_link (mostly just hooking up types, with or without 1-item limit)
@@ -787,8 +771,6 @@ function_set.New{
 			-- else: reason, is_contradiction
 
     -- default build, load, save (not sure how safe this is, unless hinted in node info)
-    -- default prep_link... (use streamlined version of pubsub_utils stuff)
-		-- result = true if resolved...
     -- default verify... (give hints in node info?)
 }
 
