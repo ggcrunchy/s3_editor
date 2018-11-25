@@ -496,6 +496,8 @@ local function GetInterfaces (what, which)
 	end
 end
 
+local OptOut = {}
+
 local function BasicLink (oifx_primary)
 	return function(event)
 		if component.ImplementedByObject(event.target, oifx_primary) then
@@ -520,44 +522,61 @@ local function SingleTargetLink (oifx_primary)
 	end
 end
 
-local Modifiers = {
-	["-"] = "limit", ["+"] = "limit",
-	["!"] = "wildcard", ["?"] = "wildcard"
-}
+local Modifiers = { ["-"] = "limit", ["+"] = "limit", ["="] = "opt_out", ["!"] = "unconstrained" }
 
 local function ExtractModifiers (what)
-	local prev, limit, wildcard -- n.b. if more than two modifiers, more sophistication needed
+	local limit, mods
 
-	for _ = 1, 2 do
+	for _ = 1, #what do
 		local last = what:sub(-1)
 		local modifier = Modifiers[last]
 
-		assert(prev ~= modifier, "Two of same kind of modifier")
-
 		if modifier == "limit" then
+			assert(not limit or limit == last, "Conflicting limit modifiers")
+
 			limit = last
-		elseif modifier == "wildcard" then
-			wildcard = last
-			-- ?: accept any type (in class, "any" by default) when empty, then match successors
-			-- !: ditto, but without the "then ..." part
-			-- both are equivalent when limit in effect
+		elseif modifier then
+			mods = mods or {}
+			mods[modifier] = true
 		else
 			break
 		end
 
-		what, prev = what:sub(1, -2), modifier
+		what = what:sub(1, -2)
 	end
 
 	assert(#what > 0, "Empty rule name")
 
-	return what, limit, wildcard
+	return what, limit, mods
 end
 
+local function DefCanStillLink () return true end
+
+local function SynthesizeRule (limit, wildcard, oifx_primary)
+	local can_match, can_still_link = nil, DefCanStillLink
+
+	if limit and wildcard then -- n.b. with limit wildcard forms are equivalent
+		-- return SingleTargetWildcardLink(oifx_primary, any)
+	elseif limit then
+		return SingleTargetLink(oifx_primary)
+	elseif wildcard then
+		-- return UniformWildcardLink(oifx_primary, any)
+	elseif wildcard == "!" then
+		-- return MixtureWildcardLink(oifx_primary, any)
+	else
+		return BasicLink(oifx_primary)
+	end
+end
+-- argh, realizing this is all wrong...
+-- just need "any" (or predef'd alternatives) for 'what", where "any" just excludes "func"
+-- then "!" would make wide open, else the restrictive version
+-- two "any"s cannot link, even if restrictively resolved
+-- what's a good opt-out sigil, then?
 local function MakeRule (what, which)
-	local limit, wildcard
+	local limit, mods
 
 	if type(what) == "string" then
-		what, limit, wildcard = ExtractModifiers(what)
+		what, limit, mods = ExtractModifiers(what)
 	end
 
 	if what == "func" -- import an event that calls func, or call func that exports event
@@ -569,23 +588,16 @@ local function MakeRule (what, which)
 		limit = limit ~= "+" -- usually only makes sense to import one value
 	end
 
-	local other, rule = which == "imports" and "exports" or "imports"
+	local other = which == "imports" and "exports" or "imports"
 	local iter, state, index = adaptive.IterArray(GetInterfaces(what, other))
 	local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
+	local interfaces = GetInterfaces(what, which)
 
-	if limit and wildcard then -- n.b. with limit both wildcard forms equivalent
-		-- rule = SingleTargetWildcardLink(oifx_primary, any)
-	elseif limit then
-		rule = SingleTargetLink(oifx_primary)
-	elseif wildcard == "?" then
-		-- UniformWildcardLink(oifx_primary, any)
-	elseif wildcard == "!" then
-		-- MixtureWildcardLink(oifx_primary, any)
-	else
-		rule = BasicLink(oifx_primary)
+	if mods and mods.opt_out then
+		interfaces = adaptive.Append(interfaces, OptOut)
 	end
 
-	return rule, GetInterfaces(what, which)
+	return SynthesizeRule(limit, mods, oifx_primary), interfaces
 end
 
 local function ListInterfaces (what, which, ...)
@@ -604,6 +616,32 @@ end
 --- DOCME
 function M.ListImportInterfaces (what, ...)
 	ListInterfaces(what, "imports", ...)
+end
+
+local OpenKinds = { any = { blacklist = "func" } }
+
+--- DOCME
+function M.MakeOpenKind (params)
+	assert(type(params) == "table", "Non-table params")
+
+	local name = params.name
+
+	assert(name ~= nil, "Missing name")
+	assert(not OpenKinds[name], "Name already in use")
+
+	local pwlist, blist, wlist = params.whitelist
+
+	for what in adaptive.IterSet(params.blacklist) do
+		assert(not adaptive.InSet(pwlist, what), "Entry in both blacklist and whitelist")
+
+		blist = adaptive.AddToSet(blist, what)
+	end
+
+	for what in adaptive.IterSet(pwlist) do
+		wlist = adaptive.AddToSet(wlist, what)
+	end
+
+	OpenKinds[name] = { blacklist = blist, whitelist = wlist }
 end
 
 local Rules = { exports = {}, imports = {} }
@@ -639,7 +677,7 @@ local function AddNode (NG, name, key, what)
 
 	local list = NG[key] or {}
 
-	NG[key], list[name] = list, GetRule(what, key == "m_export_nodes" and "exports" or "imports")
+	NG[key], list[name] = GetRule(what, key == "m_export_nodes" and "exports" or "imports")
 end
 
 local NodeGraph = {}
