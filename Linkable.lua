@@ -465,6 +465,28 @@ CanLink (id1, name1, pred1, id2, name2, pred2, linker)
 end
 ]]
 
+
+
+local WildcardFilters = {}
+
+--- DOCME
+function M.AddWildcardFilter (name, filter)
+	assert(type(name) == "string", "Non-string filter name") -- since must accompany modifier
+	assert(type(filter) == "function", "Non-function filter")
+	assert(not WildcardFilters[name], "Name already in use")
+
+	WildcardFilters[name] = filter
+end
+
+local Value = {}
+
+--- DOCME
+function M.ImplementsValue (target)
+	return component.ImplementedByObject(target, Value)
+end
+
+M.AddWildcardType("value", M.ImplementsValue)
+
 local InterfaceLists = { exports = {}, imports = {} }
 
 local MangledLists = {}
@@ -496,48 +518,24 @@ local function GetInterfaces (what, which)
 	end
 end
 
-local OptOut = {}
-
-local function BasicLink (oifx_primary)
-	return function(event)
-		if component.ImplementedByObject(event.target, oifx_primary) then
-			return true
-		else
-			return false, "Incompatible type"
-		end
-	end
-end
-
-local function SingleTargetLink (oifx_primary)
-	return function(event)
-		if component.ImplementedByObject(event.target, oifx_primary) then
-			if not event.linker:HasLinks(event.from_id, event.from_name) then
-				return true
-			else
-				return false, "Single-link node already bound"
-			end
-		else
-			return false, "Incompatible type"
-		end
-	end
-end
-
-local Modifiers = { ["-"] = "limit", ["+"] = "limit", ["="] = "opt_out", ["!"] = "unconstrained" }
+local Modifiers = {
+	["-"] = "limit", ["+"] = "limit",
+	["="] = "strict",
+	["!"] = "wildcard", ["?"] = "wildcard"
+}
 
 local function ExtractModifiers (what)
-	local limit, mods
+	local mods
 
 	for _ = 1, #what do
 		local last = what:sub(-1)
 		local modifier = Modifiers[last]
 
-		if modifier == "limit" then
-			assert(not limit or limit == last, "Conflicting limit modifiers")
+		if modifier then
+			assert(not (mods and mods[modifier]) or mods[modifier] == last, "Conflicting modifiers")
 
-			limit = last
-		elseif modifier then
 			mods = mods or {}
-			mods[modifier] = true
+			mods[modifier] = last
 		else
 			break
 		end
@@ -547,57 +545,125 @@ local function ExtractModifiers (what)
 
 	assert(#what > 0, "Empty rule name")
 
-	return what, limit, mods
+	return what, mods
 end
 
-local function DefCanStillLink () return true end
+local Wildcard = {}
 
-local function SynthesizeRule (limit, wildcard, oifx_primary)
-	local can_match, can_still_link = nil, DefCanStillLink
+local function ImplementsInterface (ifx, strict)
+	return function(event)
+		if component.ImplementedByObject(event.target, ifx) then
+			return true
+		else
+			return not strict and component.ImplementedByObject(event.target, Wildcard)
+		end
+	end
+end
 
-	if limit and wildcard then -- n.b. with limit wildcard forms are equivalent
-		-- return SingleTargetWildcardLink(oifx_primary, any)
-	elseif limit then
-		return SingleTargetLink(oifx_primary)
-	elseif wildcard then
-		-- return UniformWildcardLink(oifx_primary, any)
-	elseif wildcard == "!" then
-		-- return MixtureWildcardLink(oifx_primary, any)
+local function DefFineMatch () return true end
+
+local function HasNoLinks (event)
+	return not event.linker:HasLinks(event.from_id, event.from_name)
+end
+
+local function SynthesizeRule (limit, mods, oifx_primary)
+	local coarse = ImplementsInterface(oifx_primary, mods and mods.strict)
+	local fine = limit and HasNoLinks or DefFineMatch
+
+	return function(event)
+		if coarse(event) then
+			if fine(event) then
+				return true
+			else
+				return false, "Single-link node already bound" -- n.b. currently only possible failure
+			end
+		else
+			return false, "Incompatible type"
+		end
+	end
+end
+
+local function SynthesizeWildcardRule (limit, mods, filter)
+	if limit then
+		return function(event)
+			if HasNoLinks(event) then
+				if filter(event.target) then
+					return true
+				else
+					return false, "Type not covered by wildcard"
+				end
+			else
+				return false, "Single-link node already bound"
+			end
+		end
+	elseif mods.wildcard == "?" then
+		local operative_ifx
+
+		return function(event)
+			if filter(event.target) then
+				if HasNoLinks(event) then
+					-- speculatively bind operative_ifx
+					return true
+				elseif component.ImplementedByObject(event.target, operative_ifx) then
+					return true
+				else
+					return false, "Type incompatible with operative interface"
+				end
+			else
+				return false, "Type not covered by wildcard"
+			end
+		end
 	else
-		return BasicLink(oifx_primary)
+		return function(event)
+			if filter(event.target) then
+				return true
+			else
+				return false, "Type not covered by wildcard"
+			end
+		end
 	end
 end
--- argh, realizing this is all wrong...
--- just need "any" (or predef'd alternatives) for 'what", where "any" just excludes "func"
--- then "!" would make wide open, else the restrictive version
--- two "any"s cannot link, even if restrictively resolved
--- what's a good opt-out sigil, then?
-local function MakeRule (what, which)
-	local limit, mods
 
-	if type(what) == "string" then
-		what, limit, mods = ExtractModifiers(what)
-	end
+local function IgnoredByWildcards (what, mods)
+	return what == "func" or (mods and mods.strict) -- at the moment wildcards only accept values
+end
 
+local function ResolveLimit (what, which, mods)
 	if what == "func" -- import an event that calls func, or call func that exports event
 	or which == "exports" then
-		limit = limit == "-"-- usually fine to export value to multiple recipients,
-							-- to broadcast an event,
-							-- or to make a func callable from disparate events
+		return (mods and mods.limit) == "-"	-- usually fine to export value to multiple recipients,
+												-- to broadcast an event,
+												-- or to make a func callable from disparate events
 	else
-		limit = limit ~= "+" -- usually only makes sense to import one value
+		return (mods and mods.limit) ~= "+" -- usually only makes sense to import one value
+	end
+end
+
+local function MakeRule (what, which)
+	local mods
+
+	if type(what) == "string" then
+		what, mods = ExtractModifiers(what)
 	end
 
-	local other = which == "imports" and "exports" or "imports"
-	local iter, state, index = adaptive.IterArray(GetInterfaces(what, other))
-	local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
-	local interfaces = GetInterfaces(what, which)
+	local limit = ResolveLimit(what, which, mods)
 
-	if mods and mods.opt_out then
-		interfaces = adaptive.Append(interfaces, OptOut)
+	if mods and mods.wildcard then
+		local filter = assert(WildcardFilters[what], "Invalid wildcard filter")
+
+		return SynthesizeWildcardRule(limit, mods, filter), Wildcard
+	else
+		local other = which == "imports" and "exports" or "imports"
+		local iter, state, index = adaptive.IterArray(GetInterfaces(what, other))
+		local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
+		local interfaces = GetInterfaces(what, which)
+
+		if not IgnoredByWildcards(what, mods) then
+			interfaces = adaptive.Append(interfaces, Value)
+		end
+
+		return SynthesizeRule(limit, mods, oifx_primary), interfaces
 	end
-
-	return SynthesizeRule(limit, mods, oifx_primary), interfaces
 end
 
 local function ListInterfaces (what, which, ...)
@@ -616,32 +682,6 @@ end
 --- DOCME
 function M.ListImportInterfaces (what, ...)
 	ListInterfaces(what, "imports", ...)
-end
-
-local OpenKinds = { any = { blacklist = "func" } }
-
---- DOCME
-function M.MakeOpenKind (params)
-	assert(type(params) == "table", "Non-table params")
-
-	local name = params.name
-
-	assert(name ~= nil, "Missing name")
-	assert(not OpenKinds[name], "Name already in use")
-
-	local pwlist, blist, wlist = params.whitelist
-
-	for what in adaptive.IterSet(params.blacklist) do
-		assert(not adaptive.InSet(pwlist, what), "Entry in both blacklist and whitelist")
-
-		blist = adaptive.AddToSet(blist, what)
-	end
-
-	for what in adaptive.IterSet(pwlist) do
-		wlist = adaptive.AddToSet(wlist, what)
-	end
-
-	OpenKinds[name] = { blacklist = blist, whitelist = wlist }
 end
 
 local Rules = { exports = {}, imports = {} }
