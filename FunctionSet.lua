@@ -1,4 +1,8 @@
---- TODO!
+--- **FunctionSet**s are bundles of related functions.
+--
+-- Inheritance is supported, with functions being strung together in sequence if they
+-- share the same name. The aim of this is to facilitate certain code patterns that
+-- recur among editor-side representations of game objects.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -45,36 +49,7 @@ local M = {}
 --
 --
 
-local State = {}
-
 local Sets = {}
-
-local Work
-
---- DOCME
-function M.GetState (name)
-	local state = State[name]
-
-	if state == nil then
-		local set = assert(Sets[name], "Set not found")
-		local make = set._state
-
-		if make then
-			Work = Work or {}
-			Work.name, set._state = name
-
-			make(Work)
-
-			state, Work.result = Work.result or false
-		else
-			state = {}
-		end
-	end
-
-	State[name] = state
-
-	return state
-end
 
 local function AuxFindName (instance)
 	local mt = getmetatable(instance)
@@ -86,12 +61,58 @@ local function AuxFindName (instance)
 	end
 end
 
---- DOCME
+---
+-- @param instance
+-- @return If _instance_ has a metatable created by @{New}, its name as supplied in the
+-- **_name** parameter; otherwise, **nil**.
+-- @see GetStateFromInstance
 function M.GetNameFromInstance (instance)
-	return (AuxFindName(instance)) -- return nil if missing
+	return (AuxFindName(instance)) -- ensure nil if missing
 end
 
---- DOCME
+local State = {}
+
+--- Get the state associated with a set.
+--
+-- If it already exists, the state is returned.
+--
+-- Otherwise, if the parameters to @{New} contain a **_state** member, this is called as
+-- `state{ name = name }`. After the call, _work_.**result** is used for the state (or
+-- **false**, if it happens to be **nil**).
+--
+-- Failing that, an empty table is created.
+--
+-- **N.B.** This may be called within **_init**, cf. @{New}, with the same provisos.
+-- @param name Name of set.
+-- @return State.
+function M.GetState (name)
+	local state = State[name]
+
+	if state == nil then
+		local set = assert(Sets[name], "Set not found")
+		local make = set._state
+
+		if make then
+			local work = { name = name }
+
+			make(work)
+
+			state, set._state = work.result or false
+		else
+			state = {}
+		end
+	end
+
+	State[name] = state
+
+	return state
+end
+
+---
+-- @param instance
+-- @return If _instance_ has a metatable created by @{New}, the state returned by @{GetState};
+-- otherwise, **nil**.
+-- @see GetNameFromInstance
 function M.GetStateFromInstance (instance)
 	local name, state = AuxFindName(instance)
 
@@ -177,10 +198,42 @@ local function AddNewFunctions (def, params, add, proto)
 	WrapCallLists(def)
 end
 
---- DOCME
--- @ptable params
--- @treturn table S
--- @return N
+--- Instantiate a **FunctionSet**.
+-- @ptable params Functions and parameters for the set.
+--
+-- String keys beginning with an underscore are reserved. In particular, **_name** is
+-- required and will be used as the name of the set.
+--
+-- The remainder of the params are key-value pairs, with the value being a function and the
+-- key its name. These will be added under the same names in the definition.
+--
+-- The name of a previously defined set may be supplied under **_prototype**, in which case
+-- the definition will also incorporate the functions in that set. A prototype may also be
+-- accompanied by **_before** and **_instead** tables, described in what follows.
+--
+-- In the absence of a name clash, either the prototype's function or the new one, whichever
+-- actually exists, will be added to the definition.
+--
+-- Otherwise, the two functions are usually sequenced, i.e. the final function will invoke
+-- one then the other. By default, new functions come after those from the prototype; a
+-- function found under the same name in **_before** will precede them. It is fine to supply
+-- either or both. (**N.B.** Prototype entries might themselves be sequences. For composition
+-- purposes they are interpreted as a unit.)
+--
+-- Any functions found in **_instead**, on the other hand, will override anything coming from
+-- the prototype. A name in **_instead** may not also be in the "before" or "after" entries.
+--
+-- A prototype might not provide a function found in any of the provided tables. In this
+-- case, the aforementioned "after", "before", and "instead" logic behave as if given a
+-- do-nothing function.
+--
+-- A **_state** function may be made available for @{GetState}.
+--
+-- If an **_init** function is provided, it is called as `init(name)` once the rest of the
+-- definition has been established. This might error, so the definition is not yet registered
+-- (and thus available as a prototype); `GetState(name)` is allowed, though.
+-- @treturn table Set definition, suitable as a methods metatable.
+-- @return _params_.**name**, as a convenience.
 function M.New (params)
 	assert(type(params) == "table", "Invalid params")
 
@@ -198,6 +251,8 @@ function M.New (params)
 		AddNewFunctions(def, params, AddFunctionDirectly)
 	else
 		local proto = assert(Sets[pname], "Prototype not found")
+
+		assert(proto._initialized, "Prototype still being initialized")
 
 		if instead then
 			assert(not instead._state, "Instead list may not contain `state` call")
@@ -235,6 +290,8 @@ function M.New (params)
 			error(err)
 		end
 	end
+
+	def._initialized = true
 
 	return def, name
 end

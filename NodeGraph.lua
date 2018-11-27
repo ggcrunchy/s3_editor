@@ -27,6 +27,7 @@
 local assert = assert
 local next = next
 local pairs = pairs
+local rawequal = rawequal
 local rawget = rawget
 local setmetatable = setmetatable
 local tostring = tostring
@@ -35,7 +36,6 @@ local type = type
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local component = require("tektite_core.component")
-local meta = require("tektite_core.table.meta")
 
 -- Exports --
 local M = {}
@@ -44,15 +44,11 @@ local M = {}
 --
 --
 
-
-
-
-
-
-
-local PrimaryInterfaceOf = meta.Weak("k")
+local Value = {}
 
 --- DOCME
+-- @ptable event
+-- @treturn boolean
 function M.ImplementsValue (event)
 	return component.ImplementedByObject(event.target, Value)
 end
@@ -117,11 +113,19 @@ end
 local Wildcard = {}
 
 local function ImplementsInterface (ifx, strict)
-	return function(event)
-		if component.ImplementedByObject(event.target, ifx) then
-			return true
-		else
-			return not strict and component.ImplementedByObject(event.target, Wildcard)
+	if strict then
+		return function(event)
+			return component.ImplementedByObject(event.target, ifx)
+		end
+	else
+		return function(event)
+			if rawequal(event, Value) then -- TODO: fragile? cf. RestrictedWildcard
+				return ifx
+			elseif component.ImplementedByObject(event.target, ifx) then
+				return true
+			else
+				return component.ImplementedByObject(event.target, Wildcard)
+			end
 		end
 	end
 end
@@ -132,61 +136,61 @@ local function HasNoLinks (event)
 	return not event.linker:HasLinks(event.from_id, event.from_name)
 end
 
-local function SynthesizeRule (limit, mods, oifx_primary)
+local function SynthesizeStandardRule (limit, mods, oifx_primary)
 	local coarse = ImplementsInterface(oifx_primary, mods and mods.strict)
 	local fine = limit and HasNoLinks or DefFineMatch
 
 	return function(event)
 		if coarse(event) then
-			if fine(event) then
-				return true
-			else
-				return false, "Single-link node already bound" -- n.b. currently only possible failure
-			end
+			return fine(event), "Single-link node already bound" -- n.b. currently only possible failure
 		else
 			return false, "Incompatible type"
 		end
 	end
 end
 
-local function SynthesizeWildcardRule (limit, mods, filter)
-	if limit then
-		return function(event)
-			if HasNoLinks(event) then
-				if filter(event) then
-					return true
-				else
-					return false, "Type not covered by wildcard"
-				end
-			else
-				return false, "Single-link node already bound"
-			end
+local function SingleLinkWildcard (predicate)
+	return function(event)
+		if HasNoLinks(event) then
+			return predicate(event), "Type not covered by wildcard"
+		else
+			return false, "Single-link node already bound"
 		end
-	elseif mods.wildcard == "?" then
-		local operative_ifx
+	end
+end
 
-		return function(event)
-			if filter(event) then
-				if HasNoLinks(event) then
-					-- speculatively bind operative_ifx
-					return true
-				elseif component.ImplementedByObject(event.target, operative_ifx) then
-					return true
-				else
-					return false, "Type incompatible with operative interface"
-				end
-			else
-				return false, "Type not covered by wildcard"
-			end
-		end
-	else
-		return function(event)
-			if filter(event) then
+local function MixtureWildcard (predicate)
+	return function(event)
+		return predicate(event), "Type not covered by wildcard"
+	end
+end
+
+local function RestrictedWildcard (predicate)
+	local current_ifx
+
+	return function(event)
+		if predicate(event) then
+			if HasNoLinks(event) then
+				current_ifx = event.target(Value) -- TODO: fragile? cf. ImplementsInterface
+
 				return true
 			else
-				return false, "Type not covered by wildcard"
+				return component.ImplementedByObject(event.target, current_ifx),
+						"Type incompatible with interface in effect"
 			end
+		else
+			return false, "Type not covered by wildcard"
 		end
+	end
+end
+
+local function SynthesizeWildcardRule (limit, mods, predicate)
+	if limit then
+		return SingleLinkWildcard(predicate)
+	elseif mods.wildcard == "?" then
+		return RestrictedWildcard(predicate)
+	else
+		return MixtureWildcard(predicate)
 	end
 end
 
@@ -216,9 +220,9 @@ local function MakeRule (NG, what, which)
 
 	if mods and mods.wildcard then
 		local wpreds = assert(NG.m_wildcard_predicates, "No wildcard predicates defined")
-		local filter = assert(wpreds[what], "Invalid wildcard predicate")
+		local predicate = assert(wpreds[what], "Invalid wildcard predicate")
 
-		return SynthesizeWildcardRule(limit, mods, filter), Wildcard
+		return SynthesizeWildcardRule(limit, mods, predicate), Wildcard
 	else
 		local other = which == "imports" and "exports" or "imports"
 		local iter, state, index = adaptive.IterArray(GetInterfaces(NG, what, other))
@@ -229,7 +233,7 @@ local function MakeRule (NG, what, which)
 			interfaces = adaptive.Append(interfaces, Value)
 		end
 
-		return SynthesizeRule(limit, mods, oifx_primary), interfaces
+		return SynthesizeStandardRule(limit, mods, oifx_primary), interfaces
 	end
 end
 
@@ -272,11 +276,17 @@ local NodeGraph = {}
 NodeGraph.__index = NodeGraph
 
 --- DOCME
+-- @param name
+-- @param what
+-- @see NodeGraph:AddImportNode
 function NodeGraph:AddExportNode (name, what)
 	AddNode(self, name, "m_export_nodes", what)
 end
 
 --- DOCME
+-- @param name
+-- @param what
+-- @see NodeGraph:AddExportNode
 function NodeGraph:AddImportNode (name, what)
 	AddNode(self, name, "m_import_nodes", what)
 end
@@ -286,6 +296,8 @@ local function IsTemplate (name)
 end
 
 --- DOCME
+-- @param name
+-- @treturn ?|string|nil
 function NodeGraph:Generate (name)
 	if IsTemplate(name) then
 		local elist, ilist = self.m_export_nodes, self.m_import_nodes
@@ -336,6 +348,8 @@ local function IterBoth (NG)
 end
 
 --- DOCME
+-- @string[opt] how
+-- @treturn I
 function NodeGraph:IterNodes (how)
 	if how == "exports" or how == "imports" then
 		return adaptive.IterSet(self[how == "exports" and "m_export_nodes" or "m_import_nodes"])
@@ -345,6 +359,8 @@ function NodeGraph:IterNodes (how)
 end
 
 --- DOCME
+-- @string[opt] how
+-- @treturn I
 function NodeGraph:IterNonTemplateNodes (how)
 	local list = {}
 
@@ -358,6 +374,8 @@ function NodeGraph:IterNonTemplateNodes (how)
 end
 
 --- DOCME
+-- @string[opt] how
+-- @treturn I
 function NodeGraph:IterNonTemplateNodes (how)
 	local list = {}
 
@@ -373,17 +391,21 @@ end
 local function ListInterfaces (NG, key, ifx_lists)
 	local list, out = ifx_lists[key]
 
-	assert(list == nil or type(list) == "table", "Non-table interface list")
+	if list ~= nil then
+		assert(type(list) == "table", "Non-table interface list")
 
-	for k, v in pairs(list) do
-		out = out or {}
-		out[k] = v
+		for k, v in pairs(list) do
+			out = out or {}
+			out[k] = v
+		end
 	end
 
 	NG.m_interface_lists[key] = out
 end
 
 --- DOCME
+-- @ptable[opt] params
+-- @treturn NodeGraph NG
 function M.New (params)
 	local graph = {
 		m_counters = {}, m_interface_lists = {}, m_mangled = {},
