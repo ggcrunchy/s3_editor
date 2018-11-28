@@ -31,7 +31,7 @@ local type = type
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local function_set = require("s3_editor.FunctionSet")
-local node_graph = require("s3_editor.NodeGraph")
+local node_pattern = require("s3_editor.NodePattern")
 
 -- Exports --
 local M = {}
@@ -457,18 +457,16 @@ CanLink (id1, name1, pred1, id2, name2, pred2, linker)
 end
 ]]
 
-
-
-
+local EnvID = node_pattern.NewEnvironment{
+	-- interface_lists = ..., e.g. uint exports [ uint, int, number ]
+	wildcards = { value = node_pattern.ImplementsValue }
+}
 
 function_set.New{
     _name = "Linkable",
 
     _state = function(event)
-		event.result = node_graph.New{
-			-- interface_lists = ..., e.g. uint exports [ uint, int, number ]
-			wildcards = { value = node_graph.ImplementsValue }
-		}
+		event.result = node_pattern.New(EnvID)
     end,
 
 	build_link = function(entry, other, name, other_name)
