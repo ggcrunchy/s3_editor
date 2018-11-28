@@ -1,4 +1,5 @@
 --- TODO!
+-- @module NodePattern
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -467,15 +468,16 @@ function M.NewEnvironment (params)
 
 	local env, ifx_lists, wlist = {}, params.interface_lists, params.wildcards
 
-	assert(ifx_lists == nil or type(ifx_lists) == "table", "Non-table interface lists")
-	assert(wlist == nil or type(wlist) == "table", "Non-table wildcard list")
-
-	if ifx_lists then
+	if ifx_lists ~= nil then
+		assert(type(ifx_lists) == "table", "Non-table interface lists")
+	
 		ListInterfaces(env, "exports", ifx_lists)
 		ListInterfaces(env, "imports", ifx_lists)
 	end
 
 	if wlist ~= nil then
+		assert(type(wlist) == "table", "Non-table wildcard list")
+
 		local wpreds
 
 		for k, v in pairs(wlist) do
