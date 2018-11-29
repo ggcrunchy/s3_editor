@@ -1,5 +1,4 @@
---- This class provides functionality for linking tagged objects, cf. @{Tags}, and for
--- describing the relations that exist among them.
+--- This class provides functionality for linking nodes, cf. @{NodePattern}.
 --
 -- The **Object** type is user-defined; the implementation makes only a basic assumption
 -- about its lifetime, q.v. @{Links:__cons}.
@@ -45,17 +44,9 @@ local class = require("tektite_core.class")
 local coro = require("iterator_ops.coroutine")
 local strings = require("tektite_core.var.strings")
 
--- Classes --
-local StableArray = require("tektite_base_classes.Container.StableArray")
-local Tags = require("tektite_base_classes.Link.Tags")
-
 -- Unique member keys (Links) --
-local _objects = {}
---local _on_assign = {}
---local _on_remove = {}
 local _pair_links = {}
 local _proxies = {}
---local _tag_db = {}
 
 -- Unique member keys (SingleLink) --
 local _on_break = {}
@@ -127,9 +118,9 @@ local function RemoveObject (L, id, object)
 	end
 ]]
 	-- Evict the object.
-	L[_objects]:RemoveAt(id)
+--	L[_objects]:RemoveAt(id)
 end
-
+--[[
 -- Helper to get an object (if valid) from a proxy
 local function Object (L, proxy)
 	local id = proxy and proxy.id
@@ -140,7 +131,7 @@ local function Object (L, proxy)
 
 	return nil
 end
-
+]]
 -- Forward reference to Links class --
 local LinksClass
 
@@ -171,6 +162,7 @@ local SingleLinkClass = class.Define(function(Link)
 		-- key from each proxy.
 		local obj1 = Object(parent, p1)
 		local obj2 = Object(parent, p2)
+		-- ^^ TODO: if parent still set, go there
 
 		if obj1 ~= nil and obj2 ~= nil then
 			local key, pair_links = GetKey(p1, p2), parent[_pair_links]
@@ -187,7 +179,7 @@ local SingleLinkClass = class.Define(function(Link)
 		local on_break = p1 and self[_on_break]
 
 		if on_break then
-			on_break(self, obj1, obj2, self[_sub1], self[_sub2])
+		--	on_break(self, obj1, obj2, self[_sub1], self[_sub2])
 		end
 	end
 
@@ -249,7 +241,7 @@ local SingleLinkClass = class.Define(function(Link)
 	-- other method of **Link** or @{Links:CleanUp}.
 	-- @callable func Function to assign, or **nil** to disable the logic.
 	function Link:SetBreakFunc (func)
-		self[_on_break] = func
+	--	self[_on_break] = func
 	end
 
 	--- Class constructor.
@@ -496,35 +488,29 @@ LinksClass = class.Define(function(Links)
 	end
 ]]
 	--- Class constructor.
-	-- @tparam Tags tag_db Tag database, as used by @{Links:SetTag}.
-	function Links:__cons (tag_db)
-		assert(class.Type(tag_db) == Tags, "Non-tags argument")
-
+	function Links:__cons ()
 		-- Since objects will tend to be GC objects, e.g. tables or userdata, some care is taken
 		-- to avoid reference cycles. The layout and considerations are as follows:
-		--
-		-- objects: Array of object references. This is a StableArray, which lets integer ID's be
-		-- used interchangeably with these references.
 		--
 		-- pair_links: Map, key(id #1, id #2) -> Array of links. Each key is built from two linked
 		-- objects' ID's (i.e. their positions in the objects array); the corresponding array value
 		-- holds all links between those same objects.
+		-- ^^ TODO: array-of-array of links, fetch from free list on creation, else reuse
+		-- use tostring(id)'d order for link members
+		-- array-of-array probably doesn't buy us much (even worth keeping in list?)
+		-- ^^ could even lazily unload empty pairs
 		--
 		-- proxies: Map, object reference -> { object id, tag name, proxy_links }. The value (i.e.
 		-- proxy) contains the ID of the proxied object (i.e. its position in the objects array),
 		-- the object's tag, and a list of objects, described next.
-		--
-		-- proxy_links: Map, object id -> key(id #1, id #2). Each key is the ID of an object to
-		-- which the proxied object is linked, and the key (used for lookup into pair_links and
-		-- tagged_objects) formed by the linked objects' ID's is the value.
-		--
-		-- tagged_objects: Map, key(id #1, id #2) -> proxy. These are the same key and proxy found
-		-- in pair_links and proxy_links, respectively.
+		-- ^^ TODO: no tag name... pair links, not sure if id can be maintained independently
 
-		self[_objects] = StableArray()
+		-- in theory should simplify CountLinks() and HasLinks()... hmm, unless broken?
+		-- ^^ argh, then links do need the parent
+		-- ^^^ actually probably fine, but see about pulling non-node info into that
+
 		self[_pair_links] = {}
 		self[_proxies] = {}
-	--	self[_tag_db] = tag_db
 	end
 end)
 
