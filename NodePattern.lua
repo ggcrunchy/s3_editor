@@ -340,7 +340,7 @@ function NodePattern:Generate (name)
 		local rule = (elist and elist[name]) or (ilist and ilist[name])
 
 		if rule then
-			local counters = self.m_counters
+			local counters = Environments[self.m_env_id].m_counters
 			local id = (counters[name] or 0) + 1
 			local gend = ("%s|%i|"):format(name:sub(1, -2), id)
 
@@ -442,7 +442,7 @@ function M.New (env_id)
 		assert(Environments[env_id], "Invalid environment ID")
 	end
 
-	return setmetatable({ m_counters = {}, m_env_id = env_id }, NodePattern)
+	return setmetatable({ m_env_id = env_id }, NodePattern)
 end
 
 local function ListInterfaces (env, key, ifx_lists)
@@ -493,7 +493,7 @@ function M.NewEnvironment (params)
 
 	local id = {}
 
-	Environments[id] = env
+	Environments[id], env.m_counters = env, {}
 
 	return id
 end

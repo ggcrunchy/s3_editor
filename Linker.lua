@@ -31,11 +31,8 @@ local setmetatable = setmetatable
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
+local link_connection = require("s3_editor.LinkCollection")
 local object_vars = require("config.ObjectVariables")
-
--- Classes --
-local Links = require("s3_editor.Links")
-local Type = require("s3_editor.Type")
 
 -- Exports --
 local M = {}
@@ -49,11 +46,11 @@ local Linker = {}
 Linker.__index = Linker
 
 --- DOCME
-function Linker:AddGeneratedName (object, gend)
+function Linker:AddGeneratedName (id, gend)
 	local into = self.m_generated or {}
-	local glist = into[object] or {}
+	local glist = into[id] or {}
 
-	self.m_generated, into[object], glist[#glist + 1] = into, glist, gend
+	self.m_generated, into[id], glist[#glist + 1] = into, glist, gend
 end
 
 --
@@ -117,9 +114,9 @@ end
 local LinkGroupings
 
 --- DOCME
-function Linker:GetGeneratedNames (object, how)
+function Linker:GetGeneratedNames (id, how)
 	local from = self.m_generated
-	local glist = from and from[object]
+	local glist = from and from[id]
 
 	if how == "copy" and glist then
 		local into = {}
@@ -135,10 +132,10 @@ function Linker:GetGeneratedNames (object, how)
 end
 
 --- DOCME
-function Linker:GetPositions (object)
+function Linker:GetPositions (id)
 	local from = self.m_positions
 
-	return from and from[object]
+	return from and from[id]
 end
 
 --- Getter.
@@ -166,7 +163,7 @@ end
 function Linker:GetIdentifierFromValues (values)
 	return self.m_values_to_id[values]
 end
-
+--[[
 --
 local function PairSublinks (sub_links, t1, name1, t2, name2)
 	for k in adaptive.IterSet(t1) do
@@ -251,7 +248,7 @@ function M.GetTag (etype, on_editor_event)
 
 	return tname
 end
-
+]]
 --- DOCME
 -- @tparam ID id
 -- @treturn table T
@@ -260,9 +257,9 @@ function Linker:GetValuesFromIdentifier (id)
 end
 
 --- DOCME
-function Linker:RemoveGeneratedName (object, gend)
+function Linker:RemoveGeneratedName (id, gend)
 	local generated = self.m_generated
-	local glist = generated and generated[object]
+	local glist = generated and generated[id]
 
 	if gend ~= "all" then
 		local n = #glist
@@ -282,7 +279,7 @@ function Linker:RemoveGeneratedName (object, gend)
 			self:SetLabel(gend, nil)
 		end
 
-		generated[object] = nil
+		generated[id] = nil
 	end
 end
 
@@ -301,12 +298,12 @@ function Linker:SetLabel (name, label)
 end
 
 --- DOCME
-function Linker:SetPositions (object, positions)
+function Linker:SetPositions (id, positions)
 	local into = self.m_positions
 
 	if into or positions then -- possible to assign or clear?
 		into = into or {}
-		self.m_positions, into[object] = into, positions
+		self.m_positions, into[id] = into, positions
 	end
 end
 
@@ -314,7 +311,7 @@ end
 function M.New ()
 	local linker = {
 		m_id_to_values = {}, m_values_to_id = {},
-		m_links = Links()--Tags())
+		m_links = link_connection.New()
 	}
 
 	return setmetatable(linker, Linker)

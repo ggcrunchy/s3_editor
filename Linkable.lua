@@ -466,18 +466,33 @@ function_set.New{
     _name = "Linkable",
 
     _state = function(event)
-		event.result = node_pattern.New(EnvID)
+		event.result = {
+			nodes = node_pattern.New(EnvID),
+			-- "decoration for nodes", e.g. the "link info" and "grouping" from before
+			-- possibly different: remaps for build_link, see below
+				-- if not string would get ugly!
+			-- variable types and defaults
+				-- also ordering
+			-- probably also a text lookup section, to allow for localization
+			-- might make sense to put generated names and labels here too?
+				-- sounds like it might entail more complex fixup than now?
+			-- dependencies, e.g. remove X if Y not linked, or similar for verification
+		}
     end,
 
-	build_link = function(entry, other, name, other_name)
+	build_link = function(event) -- entry, other, entry_name, other_name, linker, names, labels
+		if event.result == nil then -- ignore if handled in "before"
 		-- stuff from prep link helper, basically
 			-- but can probably mostly streamline, accounting for "func" and generated names
 		-- check for "is resolved" something or other, exit if set
 		-- otherwise, set it ourself if successful
 		-- locations might be defaulted but overrideable in Add*Node?
+			-- into table for various things
+			-- renamed key say as in switch
+		end
 	end,
 
-	post_build_link = function(...)
+	post_build_link = function(_)
 		-- clean anything up from build_link
 		-- might not be anything in default version
 	end,
