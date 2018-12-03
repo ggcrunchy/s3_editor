@@ -77,8 +77,8 @@ local State = {}
 -- If it already exists, the state is returned.
 --
 -- Otherwise, if the parameters to @{New} contain a **_state** member, this is called as
--- `state{ name = name }`. After the call, _work_.**result** is used for the state (or
--- **false**, if it happens to be **nil**).
+-- `state{ name = name }`. If the table's **result** member is non-**nil** afterward, that
+-- becomes the state; otherwise, it will be **false**.
 --
 -- Failing that, an empty table is created.
 --
@@ -123,16 +123,8 @@ function M.GetStateFromInstance (instance)
 	return state
 end
 
-local Reserved = { _before = true, _instead = true, _list = true, _name = true, _prototype = true }
-
-local function MergePrototype (def, proto)
-	for k, v in pairs(proto) do
-		if k == "_list" and def._list then
-			MergePrototype(def._list, v) -- will both be tables without own _list member
-		elseif def[k] == nil then -- not defined in new type, including not extending anything in prototype
-			def[k] = v
-		end
-	end
+local function AddFunctionDirectly (def, name, func)
+	def[name] = func
 end
 
 local function PrototypeEntry (proto, name)
@@ -142,7 +134,7 @@ local function PrototypeEntry (proto, name)
 	return adaptive.IterArray(entry)
 end
 
-local function AddFunctionAfterProtoEntry (def, name, func, proto)
+local function AppendFunction (def, name, func, proto)
 	local arr = def[name]
 
 	if not arr then -- prototype calls not already merged by "before" logic?
@@ -154,7 +146,7 @@ local function AddFunctionAfterProtoEntry (def, name, func, proto)
 	def[name] = adaptive.Append(arr, func)
 end
 
-local function AddFunctionBeforeProtoEntry (def, name, func, proto)
+local function PrependFunction (def, name, func, proto)
 	local arr = adaptive.Append(nil, func)
 
 	for _, ev in PrototypeEntry(proto, name) do
@@ -162,10 +154,6 @@ local function AddFunctionBeforeProtoEntry (def, name, func, proto)
 	end
 
 	def[name] = arr
-end
-
-local function AddFunctionDirectly (def, name, func)
-	def[name] = func
 end
 
 local function WrapCallLists (def)
@@ -188,6 +176,8 @@ local function WrapCallLists (def)
 	def._list = list
 end
 
+local Reserved = { _before = true, _instead = true, _list = true, _name = true, _prototype = true }
+
 local function AddNewFunctions (def, params, add, proto)
 	for k, v in pairs(params) do
 		if not Reserved[k] then
@@ -196,6 +186,16 @@ local function AddNewFunctions (def, params, add, proto)
 	end
 
 	WrapCallLists(def)
+end
+
+local function MergePrototype (def, proto)
+	for k, v in pairs(proto) do
+		if k == "_list" and def._list then
+			MergePrototype(def._list, v) -- will both be tables without own _list member
+		elseif def[k] == nil then -- not defined in new type, including not extending anything in prototype
+			def[k] = v
+		end
+	end
 end
 
 --- Instantiate a **FunctionSet**.
@@ -269,11 +269,11 @@ function M.New (params)
 			assert(not before._state, "Before list may not contain `state` call")
 
 			for k, v in pairs(before) do
-				AddFunctionBeforeProtoEntry(def, k, v, proto)
+				PrependFunction(def, k, v, proto)
 			end
 		end
 
-		AddNewFunctions(def, params, AddFunctionAfterProtoEntry, proto)
+		AddNewFunctions(def, params, AppendFunction, proto)
 		MergePrototype(def, proto)
 	end
 
