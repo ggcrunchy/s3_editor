@@ -1,8 +1,9 @@
 --- **FunctionSet**s are bundles of related functions.
 --
--- Inheritance is supported, with functions being strung together in sequence if they
--- share the same name. The aim of this is to facilitate certain code patterns that
--- recur among editor-side representations of game objects.
+-- Inheritance is supported, with functions being strung together in sequence if they share
+-- the same name. This somewhat resembles behaviors found in aspect-oriented programming and
+-- Common Lisp's generic functions; it seems to nicely fit an assortment of editor-side game
+-- object logic.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining

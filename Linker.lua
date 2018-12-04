@@ -31,7 +31,7 @@ local setmetatable = setmetatable
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local link_connection = require("s3_editor.LinkCollection")
+local link_collection = require("s3_editor.LinkCollection")
 local object_vars = require("config.ObjectVariables")
 
 -- Exports --
@@ -311,7 +311,7 @@ end
 function M.New ()
 	local linker = {
 		m_id_to_values = {}, m_values_to_id = {},
-		m_links = link_connection.New()
+		m_links = link_collection.New()
 	}
 
 	return setmetatable(linker, Linker)
