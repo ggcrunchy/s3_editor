@@ -41,7 +41,7 @@ local touch = require("corona_ui.utils.touch")
 local display = display
 local native = native
 
--- Cached module references --
+-- Unique member keys --
 
 -- Exports --
 local M = {}
@@ -50,13 +50,13 @@ local M = {}
 --
 --
 
-local AddBox, IntegrateLink, Link
-
+--local AddBox, IntegrateLink, Link
+--[[
 --- DOCME
 function M.AddUtils (utils)
 	AddBox, IntegrateLink, Link = utils.add_box, utils.integrate_link, utils.link
 end
-
+]]
 local function Add (button)
 	button.parent[1]:m_add()
 end

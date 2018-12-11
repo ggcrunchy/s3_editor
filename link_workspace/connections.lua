@@ -35,43 +35,55 @@ local common = require("s3_editor.Common")
 local link_group = require("corona_ui.widgets.link_group")
 local objects = require("s3_editor_views.link_imp.objects")
 
+-- Unique member keys --
+local _doing_links = {}
+local _knot_lists = {}
+local _link_group = {}
+
 --
 --
 --
 
-local LinkGroup
- 
 --- DOCME
-function M.AddLink (id, is_source, link)
-	LinkGroup:AddLink(id, not is_source, link)
+function M:AddLink (id, is_export, link)
+	self[_link_group]:AddLink(id, not is_export, link)
 end
 
-local KnotLists
+--local KnotLists
 
 --- DOCME
 function M.AddKnotList (id)
 	KnotLists[id] = {}
 end
 
-local function Connect (_, link1, link2, knot)
-	local links, klink = common.GetLinks()
-	local obj1, obj2 = link1.m_obj, link2.m_obj
+--local function FindLink (
 
-	for link in links:Links(obj1, link1.m_sub) do
-		if link:GetOtherObject(obj1) == obj2 then
+local function Connect (LG, node1, node2, knot)
+	-- LG -> linker
+	local links, klink = linker:GetLinkCollection()
+--[[
+	local id1, id2 = node1.m_id, node2.m_id
+
+	for link in links:Links(id1, node1.m_name) do
+		local id, name = link:GetOtherItem(id1)
+
+		if  == obj2 then
 			klink = link
 		end
 	end
+]]
 -- TODO: ^^^^ this might not be flexible enough, actually
-	knot.m_link = klink or links:LinkObjects(link1.m_obj, link2.m_obj, link1.m_sub, link2.m_sub)
-
-	local id1, id2 = link_group.GetLinkInfo(link1), link_group.GetLinkInfo(link2)
+-- actually actually, this should probably be filtered out by a CanLink() earlier?
+	knot.m_link = klink or links:LinkItems(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
+-- TODO: ^^^ sort of precarious, since as seen below we obviously already have ids in the nodes...
+	local id1, id2 = link_group.GetLinkInfo(node1), link_group.GetLinkInfo(node2)
 	local kl1, kl2 = KnotLists[id1], KnotLists[id2]
 
 	knot.m_id1, knot.m_id2 = id1, id2
 	kl1[knot], kl2[knot] = true, true
 -- TODO: rather than use knot here, use say strings.PairToKey(id1, id2) here, since
 -- presumably it's more robust after Redo or Undo
+-- TODO: actually, reciprocating ids might work, i.e. kl1[id2], kl2[id1]
 	common.Dirty()
 end
 
@@ -88,75 +100,82 @@ local KnotTouch = link_group.BreakTouchFunc(function(knot)
 	common.Dirty()
 end)
 
-local DoingLinks
+--local DoingLinks
 
 --
-local function FindLink (box, sub)
+local function FindLink (box, name)
 	for _, group in box_layout.IterateGroupsOfLinks(box) do
 		for i = 1, group.numChildren do
 			local item = group[i]
 
-			if item.m_sub == sub then
+			if item.m_name == name then
 				return item
 			end
 		end
 	end
 end
 
+local function AuxForEach (link, LS, link1)
+	LS[_doing_links] = LS[_doing_links] or {}
+
+	if not LS[_doing_links][link] then
+		local oid, oname = link:GetOtherItem(object) -- TODO: id
+		local knot = LS[_link_group]:ConnectObjects(link1, FindLink(objects.GetBox(other), oname))
+
+		knot.m_link, LS[_doing_links][link] = link, true
+	end
+end
+
 --
-local function DoLinks (links, group, object)
+local function DoLinks (LS, links, group, object)
 	for i = 1, group.numChildren do
 		local link1 = group[i]
-		local lsub = link1.m_sub
+		local lname = link1.m_name
 
-		if lsub then
-			for link in links:Links(object, lsub) do
-				DoingLinks = DoingLinks or {}
-
-				if not DoingLinks[link] then
-					local other, osub = link:GetOtherObject(object)
-					local knot = LinkGroup:ConnectObjects(link1, FindLink(objects.GetBox(other), osub))
-
-					knot.m_link, DoingLinks[link] = link, true
-				end
-			end
+		if lname then
+		--	for link in links:Links(object, lname) do
+			links:ForEachItemLink(object, lname, AuxForEach, LS, link1) -- TODO: id
+		--	end
 		end
 	end
 end
 
 --- DOCME
-function M.ConnectObject (object)
-	local links = common.GetLinks()
+function M:ConnectObject (object)
+	local links = self.m_links
 
 	for _, group in box_layout.IterateGroupsOfLinks(objects.GetBox(object)) do
-		DoLinks(links, group, object)
+		DoLinks(self, links, group, object)
 	end
 end
 
 --- DOCME
-function M.FinishConnecting ()
-	DoingLinks = false
+function M:FinishConnecting ()
+	self[_doing_links] = false
 end
 
 --- DOCME
-function M.LinkAttachment (link, attachment)
-	link_group.Connect(link, attachment.primary, false, LinkGroup:GetGroups())
+function M:LinkAttachment (link, attachment)
+	link_group.Connect(link, attachment.primary, false, self[_link_group]:GetGroups())
 
 	link.alpha, attachment.primary.alpha = .025, .025
 end
 
 --- DOCME
-function M.Load (group, emphasize, gather)
-	LinkGroup, KnotLists, DoingLinks = link_group.LinkGroup(group, Connect, KnotTouch, {
-		can_link = function(link1, link2)
-			return DoingLinks or common.GetLinks():CanLink(link1.m_obj, link2.m_obj, link1.m_sub, link2.m_sub)
+function M:LoadConnections (group, emphasize, gather)
+	self[_link_group] = link_group.LinkGroup(group, Connect, KnotTouch, {
+		can_link = function(node1, node2)
+			return DoingLinks or common.GetLinks():CanLink(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
 		end, emphasize = emphasize, gather = gather
-	}), {}, false
+	})
+	self[_knot_lists] = {}
+	self[_doing_links] = false
 end
 
 --- DOCME
-function M.RemoveKnotList (id)
-	local list = KnotLists[id]
+function M:RemoveKnotList (id)
+	local knot_lists = self[_knot_lists]
+	local list = knot_lists[id]
 
 	if list then -- attachments will share primary's list
 		for knot in pairs(list) do
@@ -164,7 +183,7 @@ function M.RemoveKnotList (id)
 		end
 	end
 
-	KnotLists[id] = nil
+	knot_lists[id] = nil
 end
 
 --- DOCME

@@ -153,8 +153,8 @@ function M.GetLinkGrouping (tname)
 end
 
 --- DOCME
-function Linker:GetLinks ()
-	return self.m_links
+function Linker:GetLinkCollection ()
+	return self.m_link_collection
 end
 
 --- DOCME
@@ -311,7 +311,7 @@ end
 function M.New ()
 	local linker = {
 		m_id_to_values = {}, m_values_to_id = {},
-		m_links = link_collection.New()
+		m_link_collection = link_collection.New()
 	}
 
 	return setmetatable(linker, Linker)

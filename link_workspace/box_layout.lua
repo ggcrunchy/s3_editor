@@ -39,6 +39,11 @@ local _GetLineWidth_
 local _GetY1_
 local _LeftAndRight_
 
+-- Unique member keys --
+local _left_and_right_group = {}
+local _list1 = {}
+local _list2 = {}
+
 -- Exports --
 local M = {}
 

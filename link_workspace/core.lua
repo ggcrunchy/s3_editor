@@ -33,32 +33,52 @@
 local ipairs = ipairs
 local max = math.max
 local pairs = pairs
+local setmetatable = setmetatable
 local sort = table.sort
 local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local args = require("iterator_ops.args")
-local attachments = require("s3_editor_views.link_imp.attachments")
-local box_layout = require("s3_editor_views.link_imp.box_layout")
-local cells = require("s3_editor_views.link_imp.cells")
 local color = require("corona_ui.utils.color")
 local common = require("s3_editor.Common")
-local connections = require("s3_editor_views.link_imp.connections")
 local editor_strings = require("config.EditorStrings")
-local globals = require("s3_editor_views.link_imp.globals")
 local help = require("s3_editor.Help")
-local objects = require("s3_editor_views.link_imp.objects")
 local touch = require("corona_ui.utils.touch")
+
+local method_augments = {
+	require("s3_editor.link_workspace.attachments"),
+	require("s3_editor.link_workspace.box_layout"),
+	require("s3_editor.link_workspace.cells"), -- TODO: remove
+	require("s3_editor.link_workspace.connections"),
+	require("s3_editor.link_workspace.globals"), -- TODO: remove
+	require("s3_editor.link_workspace.objects")
+	-- TODO: box_factory, theming, etc.
+}
 
 -- Corona globals --
 local display = display
 local easing = easing
 local native = native
+local system = system
 local transition = transition
 
 -- Exports --
 local M = {}
+
+--
+--
+--
+
+local LinkScene = {}
+
+LinkScene.__index = LinkScene
+
+for _, mod in ipairs(method_augments) do
+	for k, v in pairs(mod) do
+		LinkScene[k] = v
+	end
+end
 
 -- --
 local Group
@@ -572,6 +592,14 @@ local function MakeConnections ()
 	connections.FinishConnecting()
 end
 
+local Event = {}
+
+local function Dispatch (LS, name)
+	Event.name = name
+
+	LS.m_events:dispatchEvent(Event)
+end
+
 ---
 -- @pgroup view X
 function M.Enter (_)
@@ -587,6 +615,12 @@ function M.Enter (_)
 	HelpContext:Show(true)
 end
 
+--- DOCME
+function LinkScene:Enter ()
+	-- TODO: ^^^ stuff in sub-modules
+	Dispatch(self, "enter")
+end
+
 --- DOCMAYBE
 function M.Exit ()
 	-- Tear down link groups
@@ -596,20 +630,52 @@ function M.Exit ()
 	HelpContext:Show(false)
 end
 
+--- DOCME
+function LinkScene:Exit ()
+	self.m_group.isVisible = false
+
+	self.m_help:Show(false)
+-- ^^ TODO: move into dedicated stuff
+	Dispatch(self, "exit")
+end
+
 --- DOCMAYBE
 function M.Unload ()
 	Group, Indices, ItemGroup, LinkInfoEx, Offset, Order = nil
-
+--[[
 	attachments.Unload()
 	box_layout.Unload()
 	cells.Unload()
 	connections.Unload()
 	globals.Unload()
 	objects.Unload()
+]]
+	-- TODO: event listener?
+end
+
+--- DOCME
+function LinkScene:GetEventDispatcher ()
+	return self.m_events
+end
+
+--- DOCME
+function LinkScene:Unload ()
+	self.m_group, self.m_indices, self.m_item_group, self.m_link_info_ex, self.m_offset, self.m_order = nil
+-- ^^ TODO: move more into dedicated sub-modules
+	Dispatch(self, "unload")
 end
 
 -- This seems the most straightforward way to get these to the attachments module.
-attachments.AddUtils{ add_box = AddBox, integrate_link = IntegrateLink, link = Link }
+--attachments.AddUtils{ add_box = AddBox, integrate_link = IntegrateLink, link = Link }
+
+--- DOCME
+function M.New (linker)
+	local ls = { m_linker = linker }
+
+	ls.m_events = system.newEventDispatcher()
+
+	return setmetatable(ls, LinkScene)
+end
 
 -- Export the module.
 return M

@@ -37,6 +37,12 @@ local common = require("s3_editor.Common")
 -- Corona globals --
 local display = display
 
+-- Unique member keys --
+local _index = {}
+local _tagged = {}
+local _to_remove = {}
+local _to_sort = {}
+
 --
 --
 --
