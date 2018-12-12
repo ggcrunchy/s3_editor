@@ -35,6 +35,7 @@ local editable = require("corona_ui.patterns.editable")
 local common = require("s3_editor.Common")
 local layout = require("corona_ui.utils.layout")
 local table_view_patterns = require("corona_ui.patterns.table_view")
+local theme = require("s3_editor.link_workspace.theme")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
@@ -57,9 +58,6 @@ function M.AddUtils (utils)
 	AddBox, IntegrateLink, Link = utils.add_box, utils.integrate_link, utils.link
 end
 ]]
-local function Add (button)
-	button.parent[1]:m_add()
-end
 
 local function RemoveRange (list, last, n)
 	for _ = 1, n do
@@ -222,7 +220,7 @@ local function AssembleArray (tag_db, tag, sub, instances)
 end
 
 local EditOpts = {
-	font = "PeacerfulDay", size = layout.ResolveY("3%"),
+	font = "PeacerfulDay", size = layout.ResolveY("3%"), -- TODO: theme
 
 	get_editable_text = function(editable)
 		return common.GetLabel(editable.m_instance)
@@ -248,11 +246,11 @@ local function Mixed (agroup, SUB, primary_link, add, is_export)
 
 	local get_text, choice = SUB.get_text or DefGetText
 	local opts, ctext = ListboxOpts[get_text] or {
-		width = "8%", height = "5%", get_text = get_text, text_rect_height = "3%", text_size = "2.25%"
+		width = "8%", height = "5%", get_text = get_text, text_rect_height = "3%", text_size = "2.25%" -- TODO: theme
 	}, SUB.choice_text or "Choice:"
 
 	choice, ListboxOpts[get_text] = table_view_patterns.Listbox(agroup, opts), opts
-	ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15)
+	ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15) -- TODO: theme
 	choice.y = ctext.y
 
 	SUB.add_choices(choice)
@@ -262,7 +260,7 @@ local function Mixed (agroup, SUB, primary_link, add, is_export)
 	end
 
 	if is_export then
-		return choice, box_layout.Arrange(false, 7, primary_link, ctext, choice, add)
+		return choice, box_layout.Arrange(false, 7, primary_link, ctext, choice, add) -- TODO: theme
 	else
 		return choice, box_layout.Arrange(false, 7, ctext, choice, add, primary_link)
 	end
@@ -297,27 +295,19 @@ local function GEN_NAME (tag_db, tag, object, choice, set_style)
 end
 
 local function IBOX (box, agroup, n, w, set_style)
-	local ibox = display.newRect(agroup.items, box.x, 0, w, set_style and 35 or 15)
-	local below = box.y + box.height / 2
+	local ibox = theme.ItemBox(agroup.items, box.x, w, set_style)
 
 	ibox:addEventListener("touch", Move)
-	ibox:setFillColor(.4)
-	ibox:setStrokeColor(random(), random(), random())
 
-	ibox.strokeWidth = 2
-
-	if not box.m_drag then
-		box.m_drag = display.newRect(agroup, 0, 0, ibox.width, ibox.height)
-
-		box.m_drag:setFillColor(0, 0)
-		box.m_drag:setStrokeColor(0, .9, 0)
-		box.m_drag:toFront()
-
-		box.m_drag.strokeWidth = 2
-		box.m_drag.isVisible = false
-	end
+	local below = box.y + box.height / 2
 
 	ibox.y = below + (n - .5) * ibox.height
+
+	if not box.m_drag then
+		box.m_drag = theme.ItemBoxDragger(agroup, ibox)
+
+		box.m_drag:toFront()
+	end
 
 	return ibox
 end
@@ -325,26 +315,19 @@ end
 local function ADD (box, generated_name)
 	local agroup, is_export, set_style = box.parent, box.m_is_export, box.m_set_style
 	local link = Link(agroup.links)
-	local n, w = agroup.links.numChildren, box.width + (set_style and 25 or 0)
+	local n, w = agroup.links.numChildren, box.width + (set_style and 25 or 0) -- TODO: theme
 
 	generated_name = generated_name or GEN_NAME(tag_db, tag, object, choice, set_style)
 
-	local ibox = IBOX(box, agroup, n, w, set_style)
-
-	link.y = ibox.y
-
-	local hw = w / 2
+	local ibox, hw = IBOX(box, agroup, n, w, set_style), w / 2
 
 	link.x = box.x + (is_export and hw or -hw)
+	link.y = ibox.y
 
-	local delete = display.newCircle(agroup.fixed, 0, ibox.y, 7)
+	local delete = theme.DeleteButton(agroup.fixed, ibox)
 
 	delete:addEventListener("touch", Delete)
-	delete:setFillColor(.9, 0, 0)
-	delete:setStrokeColor(.3, 0, 0)
 
-	delete.alpha = .5
-	delete.strokeWidth = 2
 	delete.x = box.x + (is_export and -hw or hw)
 
 	delete.m_object, delete.m_row = object, n
@@ -358,26 +341,31 @@ local function ADD (box, generated_name)
 
 		if set_style == "mixed" then
 			local atext = sub[tag_db:GetTemplate(tag, instance)]
-			local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15)
+			local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15) -- TODO: theme
 
 			layout.PutLeftOf(about, text, -10)
 		end
 	else
 		ibox.m_instance = instance
 
-		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10)
+		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10) -- TODO: theme
 	end
 
 	IntegrateLink(link, object, instance, is_export, box.m_knot_list_index)
 end
 
 
+local function Add (button)
+--	button.parent[1]:m_add()
+	-- GEN_NAME(tag_db, tag, object, choice, set_style)
+	ADD(button.parent[1], nil)
+end
 
 
 
 
 --- DOCME
-function M.Box (group, object, tag_db, tag, sub, is_export, set_style)
+function M:Box (group, object, tag_db, tag, sub, is_export, set_style)
 	-- TODO: object is probably "id", in which case tag_db and tag irrelevant
 	-- sub will be "name", then... maybe export-ness can be discovered too?
 	-- maybe could even just break up into two functions soon, one for "mixed" and another for rest
@@ -385,16 +373,16 @@ function M.Box (group, object, tag_db, tag, sub, is_export, set_style)
 
 	group:insert(agroup)
 
-	local add, primary_link, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), Link(agroup)
+	local add, primary_link, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), theme.Link(agroup) -- TODO: theme
 
 	if set_style ~= "mixed" then
-		lo, ro = box_layout.Arrange(not is_export, 10, primary_link, add)
+		lo, ro = box_layout.Arrange(not is_export, 10, primary_link, add) -- TODO: theme
 	else
 		choice, lo, ro = Mixed(agroup, sub, primary_link, add, is_export)
 	end
 
 	local w, midx = box_layout.GetLineWidth(lo, ro, "want_middle")
-	local box = AddBox(agroup, w + 25, add.height + 15)
+	local box = self:AddBox(agroup, w + 25, add.height + 15) -- TODO: theme
 
 	box.primary, box.x = primary_link, agroup:contentToLocal(midx, 0)
 
@@ -410,7 +398,7 @@ function M.Box (group, object, tag_db, tag, sub, is_export, set_style)
 	box.m_set_style = set_style
 	-- TODO: object, choice, etc?
 
-	box.m_add = ADD -- N.B. At this point doesn't seem to need to be a member... just forward-declare it
+--	box.m_add = ADD -- N.B. At this point doesn't seem to need to be a member... just forward-declare it
 
 	box.GetLinksGroup = GetLinksGroup
 
@@ -423,17 +411,20 @@ function M.Box (group, object, tag_db, tag, sub, is_export, set_style)
 
 			if set_style ~= "mixed" then
 				if template == sub then
-					box:m_add(instance)
+				--	box:m_add(instance)
+					ADD(box, instance)
 				end
 			elseif sub[template] then
-				box:m_add(instance)
+				--box:m_add(instance)
+				ADD(box, instance)
 			end
 		end
 	else
 		local arr = AssembleArray(tag_db, tag, sub, instances)
 
 		for i = 1, #(arr or "") do
-			box:m_add(arr[i])
+		--	box:m_add(arr[i])
+			ADD(box, arr[i])
 		end
 	end
 
@@ -445,5 +436,4 @@ function M.Unload ()
 	ListboxOpts = nil
 end
 
--- Export the module.
 return M

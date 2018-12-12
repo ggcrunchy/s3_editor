@@ -76,19 +76,23 @@ local function SortByIndex (a, b)
 end
 
 --- DOCME
-function M.IterateNewObjects (how)
-	if how == "remove" then
-		return AuxRemovingIter, ToSort, #ToSort
-	else
-		sort(ToSort, SortByIndex)
+function M:IterateNewObjects (how)
+	local to_sort = self[_to_sort]
 
-		return ipairs(ToSort)
+	if how == "remove" then
+		return AuxRemovingIter, to_sort, #to_sort
+	else
+		sort(to_sort, SortByIndex)
+
+		return ipairs(to_sort)
 	end
 end
 
 --- DOCME
-function M.IterateRemovedObjects ()
-	return AuxRemovingIter, ToRemove, #ToRemove
+function M:IterateRemovedObjects ()
+	local to_remove = self[_to_remove]
+
+	return AuxRemovingIter, to_remove, #to_remove
 end
 
 local function OnAssign (object)
@@ -114,15 +118,14 @@ function M.Load ()
 end
 
 --- DOCME
-function M.Refresh ()
-	Index = 1
+function M:Refresh ()
+	self[_index] = 1
 
-	-- Cull any dangling objects and gather up new ones.
+	local to_sort = self[_to_sort]
+
 	for object, state in pairs(Tagged) do
-		if not display.isValid(object) then
-			Tagged[object] = nil
-		elseif not state then
-			ToSort[#ToSort + 1] = object
+		if not state then
+			to_sort[#to_sort + 1] = object
 		end
 	end
 
@@ -169,5 +172,4 @@ Runtime:addEventListener("set_object_positions", function()
 	end
 end)
 
--- Export the module.
 return M

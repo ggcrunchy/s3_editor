@@ -182,5 +182,4 @@ end
 -- Cache module members.
 _FindFreeCell_ = M.FindFreeCell
 
--- Export the module.
 return M

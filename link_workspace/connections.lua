@@ -158,7 +158,7 @@ end
 function M:LinkAttachment (link, attachment)
 	link_group.Connect(link, attachment.primary, false, self[_link_group]:GetGroups())
 
-	link.alpha, attachment.primary.alpha = .025, .025
+	link.alpha, attachment.primary.alpha = .025, .025 -- TODO: theme
 end
 
 --- DOCME
@@ -191,5 +191,4 @@ function M.Unload ()
 	LinkGroup, KnotLists = nil
 end
 
--- Export the module.
 return M

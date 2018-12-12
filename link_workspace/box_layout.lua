@@ -280,5 +280,4 @@ _GetLineWidth_ = M.GetLineWidth
 _GetY1_ = M.GetY1
 _LeftAndRight_ = M.LeftAndRight
 
--- Export the module.
 return M
