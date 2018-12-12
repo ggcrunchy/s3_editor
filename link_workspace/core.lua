@@ -469,7 +469,7 @@ local function RowItems (link, stext, about)
 end
 
 --
-local function AddPrimaryBox (group, tag_db, tag, object)
+local function AddPrimaryBox (LS, group, tag_db, tag, object)
 	local info, bgroup = common.AttachLinkInfo(object, nil), display.newGroup()
 
 	group:insert(bgroup)
@@ -502,7 +502,7 @@ local function AddPrimaryBox (group, tag_db, tag, object)
 
 		--
 		if li.aindex then
-			connections.LinkAttachment(link, alist[li.aindex])
+			LS:LinkAttachment(link, alist[li.aindex])
 		elseif link then
 			IntegrateLink(link, object, li.sub, li.is_source)
 		end
@@ -516,7 +516,7 @@ local function AddPrimaryBox (group, tag_db, tag, object)
 	local ntext = AddNameText(bgroup, object)
 	local box = AddBox(bgroup, max(w, ntext.width) + 35, h + 30)
 
-	connections.AddKnotList(KnotListIndex)
+	LS:AddKnotList(KnotListIndex)
 
 	box.m_attachments = alist
 
@@ -538,7 +538,7 @@ end
 
 --
 local function RemoveAttachment (tag_db, sbox, tag)
-	local links = attachments.GetLinksGroup(sbox)
+	local links = sbox:GetLinksGroup()
 
 	for k = 1, links.numChildren do
 		tag = tag or tag_db:GetTag(links[k].m_obj)
@@ -555,41 +555,41 @@ local function RemoveAttachment (tag_db, sbox, tag)
 	return tag
 end
 
-local function RemoveDeadObjects ()
-	local tag_db = common.GetLinks():GetTagDatabase()
+local function RemoveDeadObjects (LS)
+--	local tag_db = common.GetLinks():GetTagDatabase()
 
-	for _, state in objects.IterateRemovedObjects() do
+	for _, state in objects.IterateRemovedObjects() do -- TODO: ??
 		local box, tag = state.m_box
 
-		connections.RemoveKnotList(box.m_knot_list_index)
+		LS:RemoveKnotList(box.m_knot_list_index)
 
 		for j = 1, #(box.m_attachments or "") do
-			tag = RemoveAttachment(tag_db, box.m_attachments[j], tag)
+			tag = RemoveAttachment(tag_db, box.m_attachments[j], tag) -- TODO
 		end
 
 		RemoveBox(box)
 	end	
 end
 
-local function AddNewObjects ()
+local function AddNewObjects (LS)
 	local links = common.GetLinks()
 	local tag_db = links:GetTagDatabase()
 
 	LastSpot = -1
 
-	for _, object in objects.IterateNewObjects() do
+	for _, object in objects.IterateNewObjects() do -- TODO: ids
 		local box, name = AddPrimaryBox(ItemGroup, tag_db, links:GetTag(object), object)
 
 		objects.AssociateBoxAndObject(object, box, name)
 	end
 end
 
-local function MakeConnections ()
-	for _, object in objects.IterateNewObjects("remove") do
-		connections.ConnectObject(object)
+local function MakeConnections (LS)
+	for _, object in objects.IterateNewObjects("remove") do -- TODO: ids
+		LS:ConnectObject(object)
 	end
 
-	connections.FinishConnecting()
+	LS:FinishConnecting()
 end
 
 local Event = {}
@@ -603,11 +603,12 @@ end
 ---
 -- @pgroup view X
 function M.Enter (_)
+	--[[
 	objects.Refresh()
 
 	RemoveDeadObjects()
 	AddNewObjects()
-	MakeConnections()
+	MakeConnections()]]
 
 	--
 	Group.isVisible = true
@@ -617,6 +618,12 @@ end
 
 --- DOCME
 function LinkScene:Enter ()
+	self:Refresh()
+
+	RemoveDeadObjects(self)
+	AddNewObjects(self)
+	MakeConnections(self)
+
 	-- TODO: ^^^ stuff in sub-modules
 	Dispatch(self, "enter")
 end

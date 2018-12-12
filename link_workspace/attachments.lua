@@ -243,8 +243,144 @@ local function DefGetText (text)
 	return text
 end
 
+local function Mixed (agroup, SUB, primary_link, add, is_export)
+	ListboxOpts = ListboxOpts or {}
+
+	local get_text, choice = SUB.get_text or DefGetText
+	local opts, ctext = ListboxOpts[get_text] or {
+		width = "8%", height = "5%", get_text = get_text, text_rect_height = "3%", text_size = "2.25%"
+	}, SUB.choice_text or "Choice:"
+
+	choice, ListboxOpts[get_text] = table_view_patterns.Listbox(agroup, opts), opts
+	ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15)
+	choice.y = ctext.y
+
+	SUB.add_choices(choice)
+
+	if not choice:GetSelection() then
+		choice:Select(1)
+	end
+
+	if is_export then
+		return choice, box_layout.Arrange(false, 7, primary_link, ctext, choice, add)
+	else
+		return choice, box_layout.Arrange(false, 7, ctext, choice, add, primary_link)
+	end
+end
+
+local function GetLinksGroup (box)
+	return box.parent.links
+end
+
+
+
+
+
+local function GEN_NAME (tag_db, tag, object, choice, set_style)
+	local gend
+
+	if set_style ~= "mixed" then
+		gend = tag_db:Instantiate(tag, sub)
+	else
+		gend = tag_db:Instantiate(tag, choice:GetSelectionData())
+	end
+
+	common.AddInstance(object, instance) -- TODO
+
+	if not set_style then
+		common.SetLabel(instance, n) -- TODO
+	end
+
+	common.Dirty() -- TODO
+
+	return gend
+end
+
+local function IBOX (box, agroup, n, w, set_style)
+	local ibox = display.newRect(agroup.items, box.x, 0, w, set_style and 35 or 15)
+	local below = box.y + box.height / 2
+
+	ibox:addEventListener("touch", Move)
+	ibox:setFillColor(.4)
+	ibox:setStrokeColor(random(), random(), random())
+
+	ibox.strokeWidth = 2
+
+	if not box.m_drag then
+		box.m_drag = display.newRect(agroup, 0, 0, ibox.width, ibox.height)
+
+		box.m_drag:setFillColor(0, 0)
+		box.m_drag:setStrokeColor(0, .9, 0)
+		box.m_drag:toFront()
+
+		box.m_drag.strokeWidth = 2
+		box.m_drag.isVisible = false
+	end
+
+	ibox.y = below + (n - .5) * ibox.height
+
+	return ibox
+end
+
+local function ADD (box, generated_name)
+	local agroup, is_export, set_style = box.parent, box.m_is_export, box.m_set_style
+	local link = Link(agroup.links)
+	local n, w = agroup.links.numChildren, box.width + (set_style and 25 or 0)
+
+	generated_name = generated_name or GEN_NAME(tag_db, tag, object, choice, set_style)
+
+	local ibox = IBOX(box, agroup, n, w, set_style)
+
+	link.y = ibox.y
+
+	local hw = w / 2
+
+	link.x = box.x + (is_export and hw or -hw)
+
+	local delete = display.newCircle(agroup.fixed, 0, ibox.y, 7)
+
+	delete:addEventListener("touch", Delete)
+	delete:setFillColor(.9, 0, 0)
+	delete:setStrokeColor(.3, 0, 0)
+
+	delete.alpha = .5
+	delete.strokeWidth = 2
+	delete.x = box.x + (is_export and -hw or hw)
+
+	delete.m_object, delete.m_row = object, n
+
+	if set_style then
+		local text = editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
+
+		text.m_instance = instance -- TODO
+
+		text:SetText(common.GetLabel(instance) or "default") -- TODO
+
+		if set_style == "mixed" then
+			local atext = sub[tag_db:GetTemplate(tag, instance)]
+			local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15)
+
+			layout.PutLeftOf(about, text, -10)
+		end
+	else
+		ibox.m_instance = instance
+
+		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10)
+	end
+
+	IntegrateLink(link, object, instance, is_export, box.m_knot_list_index)
+end
+
+
+
+
+
+
 --- DOCME
-function M.Box (group, object, tag_db, tag, sub, is_source, set_style)
+function M.Box (group, object, tag_db, tag, sub, is_export, set_style)
+	-- TODO: object is probably "id", in which case tag_db and tag irrelevant
+	-- sub will be "name", then... maybe export-ness can be discovered too?
+	-- maybe could even just break up into two functions soon, one for "mixed" and another for rest
 	local agroup, choice = display.newGroup()
 
 	group:insert(agroup)
@@ -252,30 +388,9 @@ function M.Box (group, object, tag_db, tag, sub, is_source, set_style)
 	local add, primary_link, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), Link(agroup)
 
 	if set_style ~= "mixed" then
-		lo, ro = box_layout.Arrange(not is_source, 10, primary_link, add)
+		lo, ro = box_layout.Arrange(not is_export, 10, primary_link, add)
 	else
-		ListboxOpts = ListboxOpts or {}
-
-		local get_text = sub.get_text or DefGetText
-		local opts, ctext = ListboxOpts[get_text] or {
-			width = "8%", height = "5%", get_text = get_text, text_rect_height = "3%", text_size = "2.25%"
-		}, sub.choice_text or "Choice:"
-
-		choice, ListboxOpts[get_text] = table_view_patterns.Listbox(agroup, opts), opts
-		ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15)
-		choice.y = ctext.y
-
-		sub.add_choices(choice)
-
-		if not choice:GetSelection() then
-			choice:Select(1)
-		end
-
-		if is_source then
-			lo, ro = box_layout.Arrange(false, 7, primary_link, ctext, choice, add)
-		else
-			lo, ro = box_layout.Arrange(false, 7, ctext, choice, add, primary_link)
-		end
+		choice, lo, ro = Mixed(agroup, sub, primary_link, add, is_export)
 	end
 
 	local w, midx = box_layout.GetLineWidth(lo, ro, "want_middle")
@@ -291,88 +406,13 @@ function M.Box (group, object, tag_db, tag, sub, is_source, set_style)
 	agroup:insert(agroup.links)
 
 	agroup.items.m_is_array = not set_style
-	box.m_is_source = is_source
+	box.m_is_export = is_export
+	box.m_set_style = set_style
+	-- TODO: object, choice, etc?
 
-	function box:m_add (instance)
-		local link = Link(agroup.links)
-		local n, w = agroup.links.numChildren, self.width + (set_style and 25 or 0)
+	box.m_add = ADD -- N.B. At this point doesn't seem to need to be a member... just forward-declare it
 
-		if not instance then
-			if set_style ~= "mixed" then
-				instance = tag_db:Instantiate(tag, sub)
-			else
-				instance = tag_db:Instantiate(tag, choice:GetSelectionData())
-			end
-
-			common.AddInstance(object, instance)
-
-			if not set_style then
-				common.SetLabel(instance, n)
-			end
-
-			common.Dirty()
-		end
-
-		local ibox = display.newRect(agroup.items, self.x, 0, w, set_style and 35 or 15)
-		local below = self.y + self.height / 2
-
-		ibox:addEventListener("touch", Move)
-		ibox:setFillColor(.4)
-		ibox:setStrokeColor(random(), random(), random())
-
-		ibox.strokeWidth = 2
-
-		if not self.m_drag then
-			self.m_drag = display.newRect(agroup, 0, 0, ibox.width, ibox.height)
-
-			self.m_drag:setFillColor(0, 0)
-			self.m_drag:setStrokeColor(0, .9, 0)
-			self.m_drag:toFront()
-
-			self.m_drag.strokeWidth = 2
-			self.m_drag.isVisible = false
-		end
-
-		ibox.y = below + (n - .5) * ibox.height
-		link.y = ibox.y
-
-		local hw = w / 2
-
-		link.x = self.x + (is_source and hw or -hw)
-
-		local delete = display.newCircle(agroup.fixed, 0, ibox.y, 7)
-
-		delete:addEventListener("touch", Delete)
-		delete:setFillColor(.9, 0, 0)
-		delete:setStrokeColor(.3, 0, 0)
-
-		delete.alpha = .5
-		delete.strokeWidth = 2
-		delete.x = self.x + (is_source and -hw or hw)
-
-		delete.m_object, delete.m_row = object, n
-
-		if set_style then
-			local text = editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
-
-			text.m_instance = instance
-
-			text:SetText(common.GetLabel(instance) or "default")
-
-			if set_style == "mixed" then
-				local atext = sub[tag_db:GetTemplate(tag, instance)]
-				local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15)
-
-				layout.PutLeftOf(about, text, -10)
-			end
-		else
-			ibox.m_instance = instance
-
-			display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10)
-		end
-
-		IntegrateLink(link, object, instance, is_source, self.m_knot_list_index)
-	end
+	box.GetLinksGroup = GetLinksGroup
 
 	local instances = common.GetInstances(object)
 
@@ -398,11 +438,6 @@ function M.Box (group, object, tag_db, tag, sub, is_source, set_style)
 	end
 
 	return box
-end
-
---- DOCME
-function M.GetLinksGroup (box)
-	return box.parent.links
 end
 
 --- DOCME

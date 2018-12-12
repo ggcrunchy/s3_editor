@@ -52,8 +52,8 @@ end
 --local KnotLists
 
 --- DOCME
-function M.AddKnotList (id)
-	KnotLists[id] = {}
+function M:AddKnotList (id)
+	self[_knot_lists][id] = {}
 end
 
 --local function FindLink (
