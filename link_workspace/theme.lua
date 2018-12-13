@@ -31,6 +31,7 @@ local color = require("corona_ui.utils.color")
 
 -- Corona globals --
 local display = display
+local easing = easing
 local native = native
 
 -- Exports --
@@ -59,16 +60,25 @@ function M.DeleteButton (group, ibox)
 end
 
 --- DOCME
-function M.ItemBoxDragger (group, ibox)
-	local dragger = display.newRect(group, 0, 0, ibox.width, ibox.height)
+function M.EmphasizeCanLink (params)
+	params.iterations, params.time, params.transition = 0, 1250, easing.continuousLoop
+	
+	return 1, 0, 1
+end
 
-	dragger:setFillColor(0, 0)
-	dragger:setStrokeColor(0, .9, 0)
+--- DOCME
+function M.EmphasizeDefault (_)
+	return .2, .3, .2
+end
 
-	dragger.strokeWidth = 2
-	dragger.isVisible = false
+--- DOCME
+function M.EmphasizeNotSourceToTarget (_)
+	return .25
+end
 
-	return dragger
+--- DOCME
+function M.EmphasizeOwner (_)
+	return 0
 end
 
 --- DOCME
@@ -81,6 +91,19 @@ function M.ItemBox (group, x, w, set_style)
 	box.strokeWidth = 2
 
 	return box
+end
+
+--- DOCME
+function M.ItemBoxDragger (group, ibox)
+	local dragger = display.newRect(group, 0, 0, ibox.width, ibox.height)
+
+	dragger:setFillColor(0, 0)
+	dragger:setStrokeColor(0, .9, 0)
+
+	dragger.strokeWidth = 2
+	dragger.isVisible = false
+
+	return dragger
 end
 
 --- DOCME

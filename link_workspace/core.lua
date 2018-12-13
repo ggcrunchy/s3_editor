@@ -39,6 +39,7 @@ local sort = table.sort
 local common = require("s3_editor.Common")
 local editor_strings = require("config.EditorStrings")
 local help = require("s3_editor.Help")
+local theme = require("s3_editor.link_workspace.theme")
 local touch = require("corona_ui.utils.touch")
 
 local method_augments = {
@@ -49,7 +50,6 @@ local method_augments = {
 	require("s3_editor.link_workspace.connections"),
 	require("s3_editor.link_workspace.globals"), -- TODO: remove
 	require("s3_editor.link_workspace.objects")
-	-- TODO: box_factory, theming, etc.
 }
 
 -- Corona globals --
@@ -112,14 +112,13 @@ local function EmphasizeLinks (item, how, link, source_to_target, not_owner)
 
 	if how == "began" then
 		if not not_owner then
-			r = 0
+			r, g, b = theme.EmphasizeOwner(FadeParams)
 		elseif not source_to_target then
-			r = .25
+			r, g, b = theme.EmphasizeNotSourceToTarget(FadeParams)
 		elseif common.GetLinks():CanLink(link.m_obj, item.m_obj, link.m_sub, item.m_sub) then
-			FadeParams.iterations, FadeParams.time, FadeParams.transition = 0, 1250, easing.continuousLoop
-			r, g, b = 1, 0, 1
+			r, g, b = theme.EmphasizeCanLink(FadeParams)
 		else
-			r, g, b = .2, .3, .2
+			r, g, b = theme.EmphasizeDefault(FadeParams)
 		end
 	end
 
