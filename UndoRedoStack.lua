@@ -40,46 +40,111 @@ local UndoRedoStack = {}
 UndoRedoStack.__index = UndoRedoStack
 
 --- DOCME
-function UndoRedoStack:IsDirty ()
-	return self.m_pos ~= self.m_sync
+-- @treturn boolean X
+function UndoRedoStack:IsSynchronized ()
+	return self.m_stack_pos == self.m_sync
+end
+
+local function IncArrayPos (S)
+	local old, new = S.m_array_pos
+
+	if old < S.m_size then
+		new = old + 1
+	else
+		new = 1
+	end
+
+	S.m_array_pos = new
+
+	return new, old
+end
+
+local function AuxPush (S, func, object)
+	local _, old = IncArrayPos(S)
+	local offset = (old - 1) * 2
+
+	S[offset + 1] = func
+	S[offset + 1] = object or false
+end
+
+local function PutStackPosAtEnd (S, count)
+	S.m_count, S.m_stack_pos = count, count + 1
 end
 
 --- DOCME
-function UndoRedoStack:Push (undo, redo, object)
-	local count, pos, size = self.m_count, self.m_pos, self.m_size
+-- @callable func
+-- @param[opt=false] object
+function UndoRedoStack:Push (func, object)
+	AuxPush(self, func, object)
 
-	if pos < size then
-		pos = pos + 1
-	else
-		pos = 1
+	local count, spos, sync = self.m_count, self.m_stack_pos, self.m_sync
+
+	if spos <= count then -- have performed some undos?
+		if sync and sync > spos then -- sync point now unreachable?
+			self.m_sync = nil
+		end
+
+		PutStackPosAtEnd(self, count + 1)
+	elseif count < self.m_size then -- room to grow?
+		PutStackPosAtEnd(self, count + 1)
+	elseif sync then -- first item evicted, so update sync point
+		sync = sync - 1
+
+		if sync > 0 then -- still reachable?
+			self.m_sync = sync
+		else
+			self.m_sync = nil
+		end
 	end
+end
 
-	if count < size then
-		self.m_count = count + 1
-	end
+local function Call (S, pos, how)
+	local offset = (pos - 1) * 2
 
-	if pos == self.m_sync then
-		self.m_sync = nil -- full lap: no longer possible to undo back to synchronization
-	end
-
-	local offset = (pos - 1) * 3
-
-	self[#self + 1] = undo
-	self[#self + 1] = redo
-	self[#self + 1] = object or false
+	S[offset + 1](how, S[offset + 2])
 end
 
 --- DOCME
 function UndoRedoStack:Redo ()
+	local spos = self.m_stack_pos
+	local can_redo = spos < self.m_count
+
+	if can_redo then
+		self.m_stack_pos = spos + 1
+
+		Call(self, IncArrayPos(self), "redo")
+	end
+
+	return can_redo
 end
 
 --- DOCME
 function UndoRedoStack:Synchronize ()
+	self.m_sync = self.m_stack_pos
 end
 
 --- DOCME
 function UndoRedoStack:Undo ()
-	
+	local spos = self.m_stack_pos
+	local can_undo = spos > 1
+
+	if can_undo then
+		self.m_stack_pos = spos - 1
+
+		local old = self.m_array_pos
+
+		Call(self, old, "undo")
+
+		if old > 1 then
+			old = old - 1
+		else
+			old = self.m_size -- array and stack pos differ, so ring known to be full
+		end
+
+		self.m_array_pos = old
+	end
+
+	return can_undo
 end
 
 --- DOCME
@@ -88,7 +153,12 @@ end
 function M.New (n)
 	assert(n > 0, "Invalid size")
 
-	local stack = { m_count = 0, m_pos = 1, m_size = n, m_sync = 1 }
+	local stack = {
+		m_array_pos = 1, -- absolute position in underlying array
+		m_stack_pos = 1, -- relative position in ring-based stack
+		m_count = 0, m_size = n, -- current stack usage; maximum available
+		m_sync = 1 -- relative position where stack would be synchronized (may be nil)
+	}
 
 	return setmetatable(stack, UndoRedoStack)
 end
