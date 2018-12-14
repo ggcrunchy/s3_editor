@@ -220,7 +220,7 @@ local function AssembleArray (tag_db, tag, sub, instances)
 end
 
 local EditOpts = {
-	font = "PeacerfulDay", size = layout.ResolveY("3%"), -- TODO: theme
+	font = theme.AttachmentTextEditFont(), size = theme.AttachmentTextEditSize(),
 
 	get_editable_text = function(editable)
 		return common.GetLabel(editable.m_instance)

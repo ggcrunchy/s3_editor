@@ -28,6 +28,7 @@ local random = math.random
 
 -- Modules --
 local color = require("corona_ui.utils.color")
+local layout = require("corona_ui.utils.layout")
 
 -- Corona globals --
 local display = display
@@ -45,6 +46,16 @@ color.RegisterColor("actions", "red")
 color.RegisterColor("events", "blue")
 color.RegisterColor("props", "green")
 color.RegisterColor("unary_action", { r = .2, g = .7, b = .2 })
+
+--- DOCME
+function M.AttachmentTextEditFont ()
+	return "PeacerfulDay"
+end
+
+--- DOCME
+function M.AttachmentTextEditSize ()
+	return layout.ResolveY("3%")
+end
 
 --- DOCME
 function M.DeleteButton (group, ibox)
