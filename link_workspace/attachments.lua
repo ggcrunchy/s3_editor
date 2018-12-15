@@ -174,9 +174,13 @@ local function FindRow (drag_box, box, links)
 	return (row >= 1 and row <= links.numChildren) and row
 end
 
+local function GetBox (group)
+	return group[1]
+end
+
 local Move = touch.TouchHelperFunc(function(event, ibox)
 	local items = ibox.parent
-	local box = items.parent[1]
+	local box = GetBox(items.parent)
 	local drag_box = box.m_drag
 
 	drag_box.x, drag_box.y = ibox.x, ibox.y
@@ -186,10 +190,10 @@ local Move = touch.TouchHelperFunc(function(event, ibox)
 end, function(event, ibox)
 	local items = ibox.parent
 
-	items.parent[1].m_drag.y = ibox.m_dragy + event.y
+	GetBox(items.parent).m_drag.y = ibox.m_dragy + event.y
 end, function(_, ibox)
 	local items = ibox.parent
-	local box = items.parent[1]
+	local box = GetBox(items.parent)
 	local drag_box, links = box.m_drag, items.parent.links
 	local row = FindRow(drag_box, box, items, links)
 
@@ -356,9 +360,9 @@ end
 
 
 local function Add (button)
---	button.parent[1]:m_add()
+--	GetBox(button.parent):m_add()
 	-- GEN_NAME(tag_db, tag, object, choice, set_style)
-	ADD(button.parent[1], nil)
+	ADD(GetBox(button.parent), nil)
 end
 
 

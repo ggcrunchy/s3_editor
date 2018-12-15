@@ -64,7 +64,7 @@ local function AuxPush (S, func, object)
 	local offset = (old - 1) * 2
 
 	S[offset + 1] = func
-	S[offset + 1] = object or false
+	S[offset + 2] = object or false
 end
 
 local function PutStackPosAtEnd (S, count)
@@ -84,7 +84,7 @@ function UndoRedoStack:Push (func, object)
 			self.m_sync = nil
 		end
 
-		PutStackPosAtEnd(self, count + 1)
+		PutStackPosAtEnd(self, spos)
 	elseif count < self.m_size then -- room to grow?
 		PutStackPosAtEnd(self, count + 1)
 	elseif sync then -- first item evicted, so update sync point
@@ -107,12 +107,14 @@ end
 --- DOCME
 function UndoRedoStack:Redo ()
 	local spos = self.m_stack_pos
-	local can_redo = spos < self.m_count
+	local can_redo = spos <= self.m_count
 
 	if can_redo then
 		self.m_stack_pos = spos + 1
 
-		Call(self, IncArrayPos(self), "redo")
+		local _, old = IncArrayPos(self)
+
+		Call(self, old, "redo")
 	end
 
 	return can_redo
@@ -131,17 +133,17 @@ function UndoRedoStack:Undo ()
 	if can_undo then
 		self.m_stack_pos = spos - 1
 
-		local old = self.m_array_pos
+		local new = self.m_array_pos
 
-		Call(self, old, "undo")
-
-		if old > 1 then
-			old = old - 1
+		if new > 1 then
+			new = new - 1
 		else
-			old = self.m_size -- array and stack pos differ, so ring known to be full
+			new = self.m_size -- array and stack pos differ, so ring known to be full
 		end
 
-		self.m_array_pos = old
+		self.m_array_pos = new
+
+		Call(self, new, "undo")
 	end
 
 	return can_undo
