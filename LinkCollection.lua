@@ -162,9 +162,8 @@ end
 -- @tparam ID id
 -- @param name
 -- @callable func
--- @param arg1
--- @param arg2
-function LinkCollection:ForEachItemLink (id, name, func, arg1, arg2)
+-- @param arg
+function LinkCollection:ForEachItemLink (id, name, func, arg)
 	local list = self[id]
 
 	if list then
@@ -175,7 +174,7 @@ function LinkCollection:ForEachItemLink (id, name, func, arg1, arg2)
 
 			for _, link in ipairs(pair_links) do
 				if rawequal(link[key], name) then
-					func(link, arg1, arg2)
+					func(link, id, arg)
 				end
 			end
 		end
@@ -184,16 +183,15 @@ end
 
 --- DOCME
 -- @callable func
--- @param arg1
--- @param arg2
-function LinkCollection:ForEachLink (func, arg1, arg2)
+-- @param arg
+function LinkCollection:ForEachLink (func, arg)
 	for id1, list in pairs(self) do
 		local sid1 = tostring(id1)
 
 		for id2, pair_links in pairs(list) do
 			if sid1 < tostring(id2) then -- first time seeing pair?
 				for _, link in ipairs(pair_links) do
-					func(link, arg1, arg2)
+					func(link, arg)
 				end
 			end
 		end
@@ -203,15 +201,14 @@ end
 --- DOCME
 -- @tparam ID id
 -- @callable func
--- @param arg1
--- @param arg2
-function LinkCollection:ForEachLinkWithID (id, func, arg1, arg2)
+-- @param arg
+function LinkCollection:ForEachLinkWithID (id, func, arg)
 	local list = self[id]
 
 	if list then
 		for _, pair_links in pairs(list) do
 			for _, link in ipairs(pair_links) do
-				func(link, arg1, arg2)
+				func(link, id, arg)
 			end
 		end
 	end

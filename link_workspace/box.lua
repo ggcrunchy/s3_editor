@@ -31,7 +31,6 @@ local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local args = require("iterator_ops.args")
 local color = require("corona_ui.utils.color")
 local common = require("s3_editor.Common")
 local theme = require("s3_editor.link_workspace.theme")
@@ -75,13 +74,15 @@ function M:AddBox (group, w, h)
 	return box
 end
 
+local EntryInfo = { "about", "font", "size", "color", "r", "g", "b" }
+
 local function PopulateEntryFromInfo (entry, text, info)
 	if entry then
 		info = info or LinkInfoEx -- LinkInfoEx is an array, so accesses will yield nil
 
 		entry.text = text
 
-		for _, name in args.Args("about", "font", "size", "color", "r", "g", "b") do
+		for _, name in ipairs(EntryInfo) do
 			entry[name] = info[name]
 		end
 	else
@@ -121,7 +122,7 @@ local function AddAttachments (group, object, info, tag_db, tag)
 
 			groups[gname], ginfo[sub] = ginfo, iinfo.friendly_name or sub
 		else
-			list[#list + 1] = attachments.Box(group, object, tag_db, tag, sub, is_source, iinfo and iinfo.is_set)
+			list[#list + 1] = self:AttachmentBox(group, object, tag_db, tag, sub, is_source, iinfo and iinfo.is_set)
 			list[sub] = #list
 		end
 	end
@@ -131,11 +132,11 @@ local function AddAttachments (group, object, info, tag_db, tag)
 			if not index then
 				local ginfo, is_source, iinfo = groups[gname], SublinkInfo(info, nil, nil, gname)
 
-				for _, name in args.Args("add_choices", "choice_text", "get_text") do
-					ginfo[name] = iinfo[name]
-				end
+				ginfo.add_choices = iinfo.add_choices
+				ginfo.choice_text = iinfo.choice_text
+				ginfo.get_text = iinfo.get_text
 
-				list[#list + 1] = attachments.Box(group, object, tag_db, tag, ginfo, is_source, "mixed")
+				list[#list + 1] = self:AttachmentBox(group, object, tag_db, tag, ginfo, is_source, "mixed")
 				list[gname] = #list
 			end
 		end
@@ -301,7 +302,7 @@ function M:AddPrimaryBox (group, tag_db, tag, object)
 		local li = LinkInfoEx[i]
 		local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source)
 		local font, size = theme.LinkInfoTextParams(li.font, li.size)
-		local link, stext = li.want_link and theme.Link(cur), display.newText(cur, li.text or li.sub, 0, 0, font, size)
+		local node, stext = li.want_link and theme.Node(cur), display.newText(cur, li.text or li.sub, 0, 0, font, size)
 
 		if li.color then
 			stext:setFillColor(color.GetColor(li.color))
@@ -315,17 +316,17 @@ function M:AddPrimaryBox (group, tag_db, tag, object)
 		end
 
 		--
-		local lo, ro = box_layout.Arrange(li.is_source, 5, RowItems(link, stext, li.about)) -- TODO: theme
+		local lo, ro = box_layout.Arrange(li.is_source, 5, RowItems(node, stext, li.about)) -- TODO: theme
 
 		--
 		if li.aindex then
-			self:LinkAttachment(link, alist[li.aindex])
-		elseif link then
-			self:IntegrateLink(link, object, li.sub, li.is_source)
+			self:LinkAttachment(node, alist[li.aindex])
+		elseif node then
+			self:IntegrateNode(node, object, li.sub, li.is_source)
 		end
 
 		--
-		box_layout.AddLine(cur, lo, ro, 5, link) -- TODO: theme
+		box_layout.AddLine(cur, lo, ro, 5, node) -- TODO: theme
 	end
 
 	--

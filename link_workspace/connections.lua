@@ -34,9 +34,9 @@ local box_layout = require("s3_editor_views.link_imp.box_layout")
 local common = require("s3_editor.Common")
 local link_group = require("corona_ui.widgets.link_group")
 local objects = require("s3_editor_views.link_imp.objects")
+local utils = require("s3_editor_views.link_imp.utils")
 
 -- Unique member keys --
-local _doing_links = {}
 local _knot_lists = {}
 local _link_group = {}
 
@@ -45,22 +45,19 @@ local _link_group = {}
 --
 
 --- DOCME
-function M:AddLink (id, is_export, link)
-	self[_link_group]:AddLink(id, not is_export, link)
-end
-
---local KnotLists
-
---- DOCME
 function M:AddKnotList (id)
 	self[_knot_lists][id] = {}
 end
 
---local function FindLink (
+--- DOCME
+function M:AddNode (id, is_export, node)
+	self[_link_group]:AddLink(id, not is_export, node)
+end
 
 local function Connect (LG, node1, node2, knot)
-	-- LG -> linker
-	local links, klink = linker:GetLinkCollection()
+	local link_scene = utils.FindLinkScene(LG)
+	local linker = link_scene:GetLinker()
+	local links = linker:GetLinkCollection()
 --[[
 	local id1, id2 = node1.m_id, node2.m_id
 
@@ -74,37 +71,57 @@ local function Connect (LG, node1, node2, knot)
 ]]
 -- TODO: ^^^^ this might not be flexible enough, actually
 -- actually actually, this should probably be filtered out by a CanLink() earlier?
-	knot.m_link = klink or links:LinkItems(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
+	knot.m_link = links:LinkItems(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
 -- TODO: ^^^ sort of precarious, since as seen below we obviously already have ids in the nodes...
 	local id1, id2 = link_group.GetLinkInfo(node1), link_group.GetLinkInfo(node2)
-	local kl1, kl2 = KnotLists[id1], KnotLists[id2]
+	local knot_lists = link_scene[_knot_lists]
 
-	knot.m_id1, knot.m_id2 = id1, id2
-	kl1[knot], kl2[knot] = true, true
--- TODO: rather than use knot here, use say strings.PairToKey(id1, id2) here, since
--- presumably it's more robust after Redo or Undo
--- TODO: actually, reciprocating ids might work, i.e. kl1[id2], kl2[id1]
-	common.Dirty()
+	knot.m_id1, knot_lists[id1][id2] = id1, true
+	knot.m_id2, knot_lists[id2][id1] = id2, true
+-- ^^^ ARGH, this of course is broken for same ids but different names
+-- need to review what's using it, but if nothing stands in the way,
+-- something like ("%i:%s:%i:%s", id1, name1, id2, name2) ??
+-- basically this is just to be reproducible in light of undo / redo
+	common.Dirty()--[[
+	linker:GetUndoRedoStack():Push(function(how)
+		if how == "undo" then
+			-- just remove it... (Break logic below)
+		else
+			-- find nodes
+			-- relink
+		end
+	end)]]
 end
 
-local function GetList (id)
-	return KnotLists[id] or KnotLists	-- use KnotLists to avoid special-casing failure case
-										-- KnotLists[knot] is already absent, so nil'ing it is a no-op
+local function GetList (LS, id)
+	local knot_lists = LS[_knot_lists]
+
+	return knot_lists[id] or _knot_lists	-- use key to avoid special-casing failure case
+											-- being empty, nil'ing its members is a no-op
 end
 
 local KnotTouch = link_group.BreakTouchFunc(function(knot)
 	knot.m_link:Break()
 
-	GetList(knot.m_id1)[knot], GetList(knot.m_id2)[knot] = nil
--- TODO: see TODO in Connect
-	common.Dirty()
-end)
+	local link_scene = utils.FindLinkScene(knot)
+	local id1, id2 = knot.m_id1, knot.m_id2
 
---local DoingLinks
+	GetList(link_scene, id1)[id2], GetList(link_scene, id2)[id1] = nil
+
+	common.Dirty()--[[
+	linker:GetUndoRedoStack():Push(function(how)
+		if how == "undo" then
+			-- need to rebuild the above link
+			-- logic from Connect, but might need to make sure that's okay sans GUI
+		else
+			-- find knot using ID and re-break it
+		end
+	end)]]
+end)
 
 --
 local function FindLink (box, name)
-	for _, group in box_layout.IterateGroupsOfLinks(box) do
+	for _, group in box_layout.IterateGroupsOfNodes(box) do
 		for i = 1, group.numChildren do
 			local item = group[i]
 
@@ -115,43 +132,44 @@ local function FindLink (box, name)
 	end
 end
 
-local function AuxForEach (link, LS, link1)
-	LS[_doing_links] = LS[_doing_links] or {}
+local Knitting
 
-	if not LS[_doing_links][link] then
-		local oid, oname = link:GetOtherItem(object) -- TODO: id
-		local knot = LS[_link_group]:ConnectObjects(link1, FindLink(objects.GetBox(other), oname))
+local function AuxKnit (link, id, node1)
+	if not (Knitting and Knitting[link]) then
+		Knitting = Knitting or {}
 
-		knot.m_link, LS[_doing_links][link] = link, true
+		local link_scene, oid, oname = utils.FindLinkScene(node1), link:GetOtherItem(id)
+		local knot = link_scene[_link_group]:ConnectObjects(node1, FindLink(objects.GetBox(other), oname))
+-- ^^ TODO: id (could do now but reminds about objects.*)
+		knot.m_link, Knitting[link] = link, true
 	end
 end
 
 --
-local function DoLinks (LS, links, group, object)
+local function KnitNodes (links, group, id)
 	for i = 1, group.numChildren do
-		local link1 = group[i]
-		local lname = link1.m_name
+		local node1 = group[i]
+		local nname = node1.m_name
 
-		if lname then
-		--	for link in links:Links(object, lname) do
-			links:ForEachItemLink(object, lname, AuxForEach, LS, link1) -- TODO: id
-		--	end
+		if nname then -- TODO: is this to ignore templates, or what?
+			links:ForEachItemLink(id, nname, AuxKnit, node1)
 		end
 	end
 end
 
 --- DOCME
 function M:ConnectObject (object)
-	local links = self.m_links
+	local links = self:GetLinker():GetLinkCollection()
 
-	for _, group in box_layout.IterateGroupsOfLinks(objects.GetBox(object)) do
-		DoLinks(self, links, group, object)
+	for _, group in box_layout.IterateGroupsOfNodes(objects.GetBox(object)) do
+		-- ^^ TODO: id
+		KnitNodes(links, group, object)
 	end
 end
 
 --- DOCME
 function M:FinishConnecting ()
-	self[_doing_links] = false
+	Knitting = false
 end
 
 --- DOCME
@@ -161,15 +179,25 @@ function M:LinkAttachment (link, attachment)
 	link.alpha, attachment.primary.alpha = .025, .025 -- TODO: theme
 end
 
+local function CanLink (node1, node2)
+	if Knitting then -- linking programmatically, e.g. loading from a save or during a redo
+		return true
+	else
+		local link_scene = utils.FindLinkScene(node1)
+		local links = link_scene:GetLinker():GetLinkCollection()
+
+		-- TODO: this is one of two places that uses this, so
+		-- decide how to play to that
+		return common.GetLinks():CanLink(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
+	end
+end
+
 --- DOCME
 function M:LoadConnections (group, emphasize, gather)
 	self[_link_group] = link_group.LinkGroup(group, Connect, KnotTouch, {
-		can_link = function(node1, node2)
-			return DoingLinks or common.GetLinks():CanLink(node1.m_id, node2.m_id, node1.m_name, node2.m_name)
-		end, emphasize = emphasize, gather = gather
+		can_link = CanLink, emphasize = emphasize, gather = gather
 	})
 	self[_knot_lists] = {}
-	self[_doing_links] = false
 end
 
 --- DOCME
@@ -188,7 +216,9 @@ end
 
 --- DOCME
 function M.Unload ()
-	LinkGroup, KnotLists = nil
+--	LinkGroup, KnotLists = nil
 end
+-- TODO: the link group would be in the hierarchy, but if we remove the topmost object,
+-- no need for this, just GC
 
 return M

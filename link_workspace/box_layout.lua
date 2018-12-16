@@ -227,7 +227,7 @@ end
 local List1, List2
 
 --- DOCME
-function M.IterateGroupsOfLinks (box)
+function M.IterateGroupsOfNodes (box)
 	List1, List2 = List2, List1
 
 	local glist = List1
@@ -240,7 +240,7 @@ function M.IterateGroupsOfLinks (box)
 	glist[#glist + 1] = box.m_rgroup
 
 	for i = 1, #(box.m_attachments or "") do
-		glist[#glist + 1] = box.m_attachments[i].parent.links
+		glist[#glist + 1] = box.m_attachments[i].parent.nodes
 	end
 
 	return AuxGroups, glist, 0

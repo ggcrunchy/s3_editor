@@ -33,6 +33,7 @@ local setmetatable = setmetatable
 local adaptive = require("tektite_core.table.adaptive")
 local link_collection = require("s3_editor.LinkCollection")
 local object_vars = require("config.ObjectVariables")
+local undo_redo_stack = require("s3_editor.UndoRedoStack")
 
 -- Exports --
 local M = {}
@@ -132,10 +133,10 @@ function Linker:GetGeneratedNames (id, how)
 end
 
 --- DOCME
-function Linker:GetPositions (id)
-	local from = self.m_positions
-
-	return from and from[id]
+-- @ptable values
+-- @treturn ID id
+function Linker:GetIdentifierFromValues (values)
+	return self.m_values_to_id[values]
 end
 
 --- Getter.
@@ -155,13 +156,6 @@ end
 --- DOCME
 function Linker:GetLinkCollection ()
 	return self.m_link_collection
-end
-
---- DOCME
--- @ptable values
--- @treturn ID id
-function Linker:GetIdentifierFromValues (values)
-	return self.m_values_to_id[values]
 end
 --[[
 --
@@ -249,6 +243,20 @@ function M.GetTag (etype, on_editor_event)
 	return tname
 end
 ]]
+
+--- DOCME
+function Linker:GetPositions (id)
+	local from = self.m_positions
+
+	return from and from[id]
+end
+
+--- DOCME
+-- @treturn UndoRedoStack URS
+function Linker:GetUndoRedoStack ()
+	return self.m_undo_redo_stack
+end
+
 --- DOCME
 -- @tparam ID id
 -- @treturn table T
@@ -308,10 +316,13 @@ function Linker:SetPositions (id, positions)
 end
 
 --- DOCME
-function M.New ()
+-- @uint n
+-- @treturn Linker L
+function M.New (n)
 	local linker = {
 		m_id_to_values = {}, m_values_to_id = {},
-		m_link_collection = link_collection.New()
+		m_link_collection = link_collection.New(),
+		m_undo_redo_stack = undo_redo_stack.New(n)
 	}
 
 	return setmetatable(linker, Linker)

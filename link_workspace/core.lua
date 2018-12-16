@@ -77,10 +77,11 @@ end
 
 local KnotListIndex = 0
 
-function M:IntegrateLink (link, object, sub, is_export, index)
-	self:AddLink(index or KnotListIndex, not is_export, link)
+function M:IntegrateNode (node, object, sub, is_export, index)
+	self:AddNode(index or KnotListIndex, not is_export, node)
 
-	link.m_obj, link.m_sub = object, sub
+	node.m_obj, node.m_sub = object, sub
+	-- TODO: object
 end
 
 -- --
@@ -333,14 +334,16 @@ function LinkScene:GetEventDispatcher ()
 end
 
 --- DOCME
+function LinkScene:GetLinker ()
+	return self.m_linker
+end
+
+--- DOCME
 function LinkScene:Unload ()
 	self.m_group, self.m_indices, self.m_item_group, self.m_link_info_ex, self.m_offset, self.m_order = nil
 -- ^^ TODO: move more into dedicated sub-modules
 	Dispatch(self, "unload")
 end
-
--- This seems the most straightforward way to get these to the attachments module.
---attachments.AddUtils{ add_box = AddBox, integrate_link = IntegrateLink, link = Link }
 
 --- DOCME
 function M.New (linker)

@@ -51,14 +51,6 @@ local M = {}
 --
 --
 
---local AddBox, IntegrateLink, Link
---[[
---- DOCME
-function M.AddUtils (utils)
-	AddBox, IntegrateLink, Link = utils.add_box, utils.integrate_link, utils.link
-end
-]]
-
 local function RemoveRange (list, last, n)
 	for _ = 1, n do
 		list:remove(last)
@@ -91,9 +83,9 @@ end
 local Delete = touch.TouchHelperFunc(function(_, button)
 	local fixed = button.parent
 	local agroup = fixed.parent
-	local row, items, links = button.m_row, agroup.items, agroup.links
-	local nfixed, nlinks = fixed.numChildren, links.numChildren
-	local neach = items.numChildren / nlinks -- only one link per row, but maybe more than one item
+	local row, items, nodes = button.m_row, agroup.items, agroup.nodes
+	local nfixed, nnodes = fixed.numChildren, nodes.numChildren
+	local neach = items.numChildren / nnodes -- only one node per row, but maybe more than one item
 	local base = (row - 1) * neach
 
 	for i = 1, neach do
@@ -105,8 +97,8 @@ local Delete = touch.TouchHelperFunc(function(_, button)
 	end
 
 	RemoveRow(items, row, neach, items.m_is_array)
-	RemoveRow(links, row, 1)
-	RemoveRange(fixed, nfixed, nfixed / nlinks) -- as above, in case more than one fixed object per row
+	RemoveRow(nodes, row, 1)
+	RemoveRange(fixed, nfixed, nfixed / nnodes) -- as above, in case more than one fixed object per row
 
 	common.Dirty()
 end)
@@ -158,20 +150,20 @@ local function AuxMoveRow (items, stash, fi, ti, n, is_array)
 	SetToItemInfo(items, fi, ti, n)
 end
 
-local function MoveRow (items, links, from, to)
+local function MoveRow (items, nodes, from, to)
 	if from ~= to then
-		local n = items.numChildren / links.numChildren -- only one link per row, but maybe more than one item
+		local n = items.numChildren / nodes.numChildren -- only one node per row, but maybe more than one item
 		local fi, ti = from * n, to * n
 
-		AuxMoveRow(items, links, fi, ti, n, items.m_is_array)
-		AuxMoveRow(links, items, from, to, 1)
+		AuxMoveRow(items, nodes, fi, ti, n, items.m_is_array)
+		AuxMoveRow(nodes, items, from, to, 1)
 	end
 end
 
-local function FindRow (drag_box, box, links)
+local function FindRow (drag_box, box, nodes)
 	local row = array_index.FitToSlot(drag_box.y, box.y + box.height / 2, drag_box.height)
 
-	return (row >= 1 and row <= links.numChildren) and row
+	return (row >= 1 and row <= nodes.numChildren) and row
 end
 
 local function GetBox (group)
@@ -186,7 +178,7 @@ local Move = touch.TouchHelperFunc(function(event, ibox)
 	drag_box.x, drag_box.y = ibox.x, ibox.y
 	drag_box.isVisible = true
 
-	ibox.m_dragy, ibox.m_from = ibox.y - event.y, FindRow(drag_box, box, items.parent.links)
+	ibox.m_dragy, ibox.m_from = ibox.y - event.y, FindRow(drag_box, box, items.parent.nodes)
 end, function(event, ibox)
 	local items = ibox.parent
 
@@ -194,11 +186,11 @@ end, function(event, ibox)
 end, function(_, ibox)
 	local items = ibox.parent
 	local box = GetBox(items.parent)
-	local drag_box, links = box.m_drag, items.parent.links
-	local row = FindRow(drag_box, box, items, links)
+	local drag_box, nodes = box.m_drag, items.parent.nodes
+	local row = FindRow(drag_box, box, items, nodes)
 
 	if row then
-		MoveRow(items, links, ibox.m_from, row)
+		MoveRow(items, nodes, ibox.m_from, row)
 	end
 
 	drag_box.isVisible = false
@@ -245,17 +237,29 @@ local function DefGetText (text)
 	return text
 end
 
-local function Mixed (agroup, SUB, primary_link, add, is_export)
+local function GetListboxOpts (get_text)
 	ListboxOpts = ListboxOpts or {}
 
-	local get_text, choice = SUB.get_text or DefGetText
-	local opts, ctext = ListboxOpts[get_text] or {
-		width = "8%", height = "5%", get_text = get_text, text_rect_height = "3%", text_size = "2.25%" -- TODO: theme
-	}, SUB.choice_text or "Choice:"
+	for i = 1, #ListboxOpts do
+		if ListboxOpts[i].get_text == get_text then
+			return ListboxOpts[i]
+		end
+	end
 
-	choice, ListboxOpts[get_text] = table_view_patterns.Listbox(agroup, opts), opts
+	local opts = theme.ListboxOpts()
+
+	ListboxOpts[#ListboxOpts + 1], opts.get_text = opts, get_text
+
+	return opts
+end
+
+local function Mixed (agroup, SUB, primary_node, add, is_export)
+	local get_text, choice = SUB.get_text or DefGetText
+	local opts, ctext = GetListboxOpts(get_text), SUB.choice_text or "Choice:" -- TODO: theme
+
+	choice = table_view_patterns.Listbox(agroup, opts)
 	ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15) -- TODO: theme
-	choice.y = ctext.y
+	choice.y = ctext.y -- Hmm, was this meant to be important? :P
 
 	SUB.add_choices(choice)
 
@@ -264,14 +268,14 @@ local function Mixed (agroup, SUB, primary_link, add, is_export)
 	end
 
 	if is_export then
-		return choice, box_layout.Arrange(false, 7, primary_link, ctext, choice, add) -- TODO: theme
+		return choice, box_layout.Arrange(false, 7, primary_node, ctext, choice, add) -- TODO: theme
 	else
-		return choice, box_layout.Arrange(false, 7, ctext, choice, add, primary_link)
+		return choice, box_layout.Arrange(false, 7, ctext, choice, add, primary_node)
 	end
 end
 
-local function GetLinksGroup (box)
-	return box.parent.links
+local function GetNodesGroup (box)
+	return box.parent.nodes
 end
 
 
@@ -318,15 +322,15 @@ end
 
 local function ADD (box, generated_name)
 	local agroup, is_export, set_style = box.parent, box.m_is_export, box.m_set_style
-	local link = Link(agroup.links)
-	local n, w = agroup.links.numChildren, box.width + (set_style and 25 or 0) -- TODO: theme
+	local n, w = agroup.nodes.numChildren, box.width + (set_style and 25 or 0) -- TODO: theme
 
 	generated_name = generated_name or GEN_NAME(tag_db, tag, object, choice, set_style)
 
-	local ibox, hw = IBOX(box, agroup, n, w, set_style), w / 2
+	local ibox = IBOX(box, agroup, n, w, set_style)
+	local node, hw = theme.Node(agroup.nodes), w / 2
 
-	link.x = box.x + (is_export and hw or -hw)
-	link.y = ibox.y
+	node.x = box.x + (is_export and hw or -hw)
+	node.y = ibox.y
 
 	local delete = theme.DeleteButton(agroup.fixed, ibox)
 
@@ -347,7 +351,7 @@ local function ADD (box, generated_name)
 			local atext = sub[tag_db:GetTemplate(tag, instance)]
 			local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15) -- TODO: theme
 
-			layout.PutLeftOf(about, text, -10)
+			layout.PutLeftOf(about, text, -10) -- TODO: theme
 		end
 	else
 		ibox.m_instance = instance
@@ -355,7 +359,7 @@ local function ADD (box, generated_name)
 		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10) -- TODO: theme
 	end
 
-	IntegrateLink(link, object, instance, is_export, box.m_knot_list_index)
+	IntegrateNode(node, object, instance, is_export, box.m_knot_list_index)
 end
 
 
@@ -365,11 +369,18 @@ local function Add (button)
 	ADD(GetBox(button.parent), nil)
 end
 
+local function AddSubGroups (agroup, is_array)
+	agroup.items, agroup.fixed, agroup.nodes = display.newGroup(), display.newGroup(), display.newGroup()
 
+	agroup:insert(agroup.items)
+	agroup:insert(agroup.fixed)
+	agroup:insert(agroup.nodes)
 
+	agroup.items.m_is_array = is_array
+end
 
 --- DOCME
-function M:Box (group, object, tag_db, tag, sub, is_export, set_style)
+function M:AttachmentBox (group, object, tag_db, tag, sub, is_export, set_style)
 	-- TODO: object is probably "id", in which case tag_db and tag irrelevant
 	-- sub will be "name", then... maybe export-ness can be discovered too?
 	-- maybe could even just break up into two functions soon, one for "mixed" and another for rest
@@ -377,34 +388,28 @@ function M:Box (group, object, tag_db, tag, sub, is_export, set_style)
 
 	group:insert(agroup)
 
-	local add, primary_link, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), theme.Link(agroup) -- TODO: theme
+	local add, primary_node, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), theme.Node(agroup) -- TODO: theme
 
 	if set_style ~= "mixed" then
-		lo, ro = box_layout.Arrange(not is_export, 10, primary_link, add) -- TODO: theme
+		lo, ro = box_layout.Arrange(not is_export, 10, primary_node, add) -- TODO: theme
 	else
-		choice, lo, ro = Mixed(agroup, sub, primary_link, add, is_export)
+		choice, lo, ro = Mixed(agroup, sub, primary_node, add, is_export)
 	end
 
 	local w, midx = box_layout.GetLineWidth(lo, ro, "want_middle")
 	local box = self:AddBox(agroup, w + 25, add.height + 15) -- TODO: theme
 
-	box.primary, box.x = primary_link, agroup:contentToLocal(midx, 0)
+	box.primary, box.x = primary_node, agroup:contentToLocal(midx, 0)
 
-	--
-	agroup.items, agroup.fixed, agroup.links = display.newGroup(), display.newGroup(), display.newGroup()
+	AddSubGroups(agroup, not set_style)
 
-	agroup:insert(agroup.items)
-	agroup:insert(agroup.fixed)
-	agroup:insert(agroup.links)
-
-	agroup.items.m_is_array = not set_style
 	box.m_is_export = is_export
 	box.m_set_style = set_style
 	-- TODO: object, choice, etc?
 
 --	box.m_add = ADD -- N.B. At this point doesn't seem to need to be a member... just forward-declare it
 
-	box.GetLinksGroup = GetLinksGroup
+	box.GetNodesGroup = GetNodesGroup
 
 	local instances = common.GetInstances(object)
 
@@ -424,7 +429,7 @@ function M:Box (group, object, tag_db, tag, sub, is_export, set_style)
 			end
 		end
 	else
-		local arr = AssembleArray(tag_db, tag, sub, instances)
+		local arr = AssembleArray(tag_db, tag, sub, instances) -- TODO: could just ADD() along the way...
 
 		for i = 1, #(arr or "") do
 		--	box:m_add(arr[i])

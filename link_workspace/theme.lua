@@ -118,12 +118,12 @@ function M.ItemBoxDragger (group, ibox)
 end
 
 --- DOCME
-function M.Link (group)
-	local link = display.newCircle(group, 0, 0, 5)
+function M.Node (group)
+	local node = display.newCircle(group, 0, 0, 5)
 
-	link.strokeWidth = 1
+	node.strokeWidth = 1
 
-	return link
+	return node
 end
 
 --- DOCME
@@ -131,6 +131,11 @@ function M.LinkInfoTextParams (font, size)
 	font = font or native.systemFont
 
 	return font == "bold" and native.systemFontBold or font, size or 12
+end
+
+--- DOCME
+function M.ListboxOpts ()
+	return { width = "8%", height = "5%", text_rect_height = "3%", text_size = "2.25%" }
 end
 
 return M
