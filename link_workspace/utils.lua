@@ -68,3 +68,5 @@ function M.FindLinkScene (object)
         object = assert(object.parent, "Object not in hierarchy")
     end
 end
+
+return M

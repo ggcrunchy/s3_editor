@@ -288,6 +288,8 @@ function Linker:RemoveGeneratedName (id, gend)
 		end
 
 		generated[id] = nil
+
+		-- TODO?: return glist
 	end
 end
 

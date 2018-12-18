@@ -333,7 +333,7 @@ end
 --- DOCME
 -- @param name
 -- @treturn ?|string|nil
--- @see NodePattern:AddExportNode, NodePattern:AddImportNode
+-- @see NodePattern:AddExportNode, NodePattern:AddImportNode, NodePattern:GetTemplate
 function NodePattern:Generate (name)
 	if IsTemplate(name) then
 		local elist, ilist = self.m_export_nodes, self.m_import_nodes
@@ -351,6 +351,18 @@ function NodePattern:Generate (name)
 	end
 
 	return nil
+end
+
+--- DOCME
+-- @param name
+-- @treturn ?|string|nil
+-- @see NodePattern:Generate
+function NodePattern:GetTemplate (name)
+	local pi = type(name) == "string" and name:find("|")
+	local template = pi and name:sub(1, pi - 1) .. "*"
+	local elist, ilist = self.m_export_nodes, self.m_import_nodes
+
+	return ((elist and elist[template]) or (ilist and ilist[template])) and template
 end
 
 local function AuxIterBoth (NG, name)

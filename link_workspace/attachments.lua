@@ -24,7 +24,6 @@
 --
 
 -- Standard library imports --
-local random = math.random
 local tonumber = tonumber
 
 -- Modules --
@@ -37,6 +36,7 @@ local layout = require("corona_ui.utils.layout")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 local theme = require("s3_editor.link_workspace.theme")
 local touch = require("corona_ui.utils.touch")
+local utils = require("s3_editor.link_workspace.utils")
 
 -- Corona globals --
 local display = display
@@ -59,83 +59,92 @@ local function RemoveRange (list, last, n)
 	end
 end
 
-local function Shift (items, shift, a, b, is_array)
+local function Shift (linker, items, shift, a, b, is_array)
 	local delta = shift > 0 and 1 or -1
 
 	for i = a, b, delta do
-		local instance = is_array and items[i].m_instance
+		local gend = is_array and items[i].m_generated_name
 
-		if instance then
-			common.SetLabel(instance, common.GetLabel(instance) + delta)
+		if gend then
+			linker:SetLabel(gend, linker:GetLabel(gend) + delta)
 		end
 
 		items[i].y = items[i + shift].y
 	end
 end
 
-local function RemoveRow (list, row, n, is_array)
+local function RemoveRow (linker, list, row, n, is_array)
 	local last = row * n
 
-	Shift(list, -n, list.numChildren, last + 1, is_array)
+	Shift(linker, list, -n, list.numChildren, last + 1, is_array)
 	RemoveRange(list, last, n)
 end
 
+local function ObjectToAttachmentGroup (object)
+	local group = object.parent
+
+	return group.parent, group
+end
+
 local Delete = touch.TouchHelperFunc(function(_, button)
-	local fixed = button.parent
-	local agroup = fixed.parent
+	local linker = utils.FindLinkScene(button):GetLinker()
+	local agroup, fixed = ObjectToAttachmentGroup(button)
 	local row, items, nodes = button.m_row, agroup.items, agroup.nodes
 	local nfixed, nnodes = fixed.numChildren, nodes.numChildren
-	local neach = items.numChildren / nnodes -- only one node per row, but maybe more than one item
+	local neach = items.numChildren / nnodes -- only one node per row, but maybe multiple items
 	local base = (row - 1) * neach
 
 	for i = 1, neach do
-		local instance = items[base + i].m_instance
+		local gend = items[base + i].m_generated_name
 
-		if instance then
-			common.RemoveInstance(button.m_object, instance)
+		if gend then
+			linker:RemoveGeneratedName(button.m_id, gend)
 		end
 	end
 
-	RemoveRow(items, row, neach, items.m_is_array)
-	RemoveRow(nodes, row, 1)
-	RemoveRange(fixed, nfixed, nfixed / nnodes) -- as above, in case more than one fixed object per row
+	RemoveRow(linker, items, row, neach, items.m_is_array)
+	RemoveRow(linker, nodes, row, 1)
+	RemoveRange(fixed, nfixed, nfixed / nnodes) -- as above, in case multiple fixed objects per row
 
-	common.Dirty()
+	common.Dirty()--[[
+	linker:GetUndoRedoStack():Push(...)
+		TODO!
+	]]
 end)
 
-local function GetFromItemInfo (items, fi, ti, n, is_array)
+local function GetFromItemInfo (linker, items, fi, ti, n, is_array)
 	for i = 0, n - 1 do
-		local from_instance = is_array and items[ti - i].m_instance
+		local from_gend = is_array and items[ti - i].m_generated_name
 
-		if from_instance then
-			items[fi - i].m_old_index = common.GetLabel(from_instance)
+		if from_gend then
+			items[fi - i].m_old_index = linker:GetLabel(from_gend)
 		end
 
 		items[fi - i].m_y = items[ti - i].y
 	end
 end
 
-local function SetToItemInfo (items, _, ti, n)
+local function SetToItemInfo (linker, items, _, ti, n)
 	for i = 0, n - 1 do
 		local item = items[ti - i]
 
 		if item.m_old_index then
-			common.SetLabel(item.m_instance, item.m_old_index)
+			linker:SetLabel(item.m_generated_name, item.m_old_index)
 		end
 
 		item.y, item.m_old_index, item.m_y = item.m_y
 	end
 end
 
-local function AuxMoveRow (items, stash, fi, ti, n, is_array)
-	GetFromItemInfo(items, fi, ti, n, is_array)
+local function AuxMoveRow (linker, items, stash, fi, ti, n, is_array)
+	GetFromItemInfo(linker, items, fi, ti, n, is_array)
 
 	local tpos = ti - n + 1
 
 	if fi < ti then
-		Shift(items, -n, ti, fi + 1, is_array)
+		Shift(linker, items, -n, ti, fi + 1, is_array)
 	else
-		Shift(items, n, tpos, fi - n, is_array)
+		Shift(linker, items, n, tpos, fi - n, is_array)
 	end
 
 	for i = 0, n - 1 do -- to avoid having to reason about how insert() works with elements already in the group,
@@ -147,16 +156,17 @@ local function AuxMoveRow (items, stash, fi, ti, n, is_array)
 		items:insert(tpos, stash[stash.numChildren - n + i])
 	end
 
-	SetToItemInfo(items, fi, ti, n)
+	SetToItemInfo(linker, items, fi, ti, n)
 end
 
 local function MoveRow (items, nodes, from, to)
 	if from ~= to then
-		local n = items.numChildren / nodes.numChildren -- only one node per row, but maybe more than one item
+		local n = items.numChildren / nodes.numChildren -- only one node per row, but maybe multiple items
 		local fi, ti = from * n, to * n
+		local linker = utils.FindLinkScene(items):GetLinker()
 
-		AuxMoveRow(items, nodes, fi, ti, n, items.m_is_array)
-		AuxMoveRow(nodes, items, from, to, 1)
+		AuxMoveRow(linker, items, nodes, fi, ti, n, items.m_is_array)
+		AuxMoveRow(linker, nodes, items, from, to, 1)
 	end
 end
 
@@ -166,27 +176,23 @@ local function FindRow (drag_box, box, nodes)
 	return (row >= 1 and row <= nodes.numChildren) and row
 end
 
-local function GetBox (group)
-	return group[1]
-end
-
 local Move = touch.TouchHelperFunc(function(event, ibox)
-	local items = ibox.parent
-	local box = GetBox(items.parent)
+	local agroup = ObjectToAttachmentGroup(ibox)
+	local box = agroup:FindBox()
 	local drag_box = box.m_drag
 
 	drag_box.x, drag_box.y = ibox.x, ibox.y
 	drag_box.isVisible = true
 
-	ibox.m_dragy, ibox.m_from = ibox.y - event.y, FindRow(drag_box, box, items.parent.nodes)
+	ibox.m_dragy, ibox.m_from = ibox.y - event.y, FindRow(drag_box, box, agroup.nodes)
 end, function(event, ibox)
-	local items = ibox.parent
+	local agroup = ObjectToAttachmentGroup(ibox)
 
-	GetBox(items.parent).m_drag.y = ibox.m_dragy + event.y
+	agroup:GetBox().m_drag.y = ibox.m_dragy + event.y
 end, function(_, ibox)
-	local items = ibox.parent
-	local box = GetBox(items.parent)
-	local drag_box, nodes = box.m_drag, items.parent.nodes
+	local agroup, items = ObjectToAttachmentGroup(ibox)
+	local box = agroup:GetBox()
+	local drag_box, nodes = box.m_drag, agroup.nodes
 	local row = FindRow(drag_box, box, items, nodes)
 
 	if row then
@@ -196,19 +202,19 @@ end, function(_, ibox)
 	drag_box.isVisible = false
 end)
 
-local function IndexFromInstance (instance)
-	return tonumber(common.GetLabel(instance))
+local function IndexFromGeneratedName (linker, gend)
+	return tonumber(linker:GetLabel(gend))
 end
 
-local function AssembleArray (tag_db, tag, sub, instances)
+local function AssembleArray (linker, node_pattern, template, generated_names)
 	local arr
 
-	for i = 1, #(instances or "") do
-		local instance = instances[i]
+	for i = 1, #(generated_names or "") do
+		local gend = generated_names[i]
 
-		if tag_db:GetTemplate(tag, instance) == sub then
+		if node_pattern:GetTemplate(gend) == template then
 			arr = arr or {}
-			arr[IndexFromInstance(instance)] = instance
+			arr[IndexFromGeneratedName(linker, gend)] = gend
 		end
 	end
 
@@ -219,11 +225,11 @@ local EditOpts = {
 	font = theme.AttachmentTextEditFont(), size = theme.AttachmentTextEditSize(),
 
 	get_editable_text = function(editable)
-		return common.GetLabel(editable.m_instance)
+		return common.GetLabel(editable.m_generated_name)
 	end,
 
 	set_editable_text = function(editable, text)
-		common.SetLabel(editable.m_instance, text)
+		common.SetLabel(editable.m_generated_name, text)
 
 		editable:SetStringText(text)
 	end
@@ -253,15 +259,15 @@ local function GetListboxOpts (get_text)
 	return opts
 end
 
-local function Mixed (agroup, SUB, primary_node, add, is_export)
-	local get_text, choice = SUB.get_text or DefGetText
-	local opts, ctext = GetListboxOpts(get_text), SUB.choice_text or "Choice:" -- TODO: theme
+local function Mixed (agroup, info, primary_node, add, is_export)
+	local get_text, choice = info.get_text or DefGetText
+	local opts, ctext = GetListboxOpts(get_text), info.choice_text or "Choice:" -- TODO: theme
 
 	choice = table_view_patterns.Listbox(agroup, opts)
 	ctext = display.newText(agroup, ctext, 0, 0, native.systemFont, 15) -- TODO: theme
-	choice.y = ctext.y -- Hmm, was this meant to be important? :P
+	choice.y = ctext.y -- Hmm, was this significant? :P
 
-	SUB.add_choices(choice)
+	info.add_choices(choice)
 
 	if not choice:GetSelection() then
 		choice:Select(1)
@@ -278,31 +284,7 @@ local function GetNodesGroup (box)
 	return box.parent.nodes
 end
 
-
-
-
-
-local function GEN_NAME (tag_db, tag, object, choice, set_style)
-	local gend
-
-	if set_style ~= "mixed" then
-		gend = tag_db:Instantiate(tag, sub)
-	else
-		gend = tag_db:Instantiate(tag, choice:GetSelectionData())
-	end
-
-	common.AddInstance(object, instance) -- TODO
-
-	if not set_style then
-		common.SetLabel(instance, n) -- TODO
-	end
-
-	common.Dirty() -- TODO
-
-	return gend
-end
-
-local function IBOX (box, agroup, n, w, set_style)
+local function ItemBox (box, agroup, n, w, set_style)
 	local ibox = theme.ItemBox(agroup.items, box.x, w, set_style)
 
 	ibox:addEventListener("touch", Move)
@@ -320,13 +302,10 @@ local function IBOX (box, agroup, n, w, set_style)
 	return ibox
 end
 
-local function ADD (box, generated_name)
+local function AddRow (LS, box, id, gend)
 	local agroup, is_export, set_style = box.parent, box.m_is_export, box.m_set_style
 	local n, w = agroup.nodes.numChildren, box.width + (set_style and 25 or 0) -- TODO: theme
-
-	generated_name = generated_name or GEN_NAME(tag_db, tag, object, choice, set_style)
-
-	local ibox = IBOX(box, agroup, n, w, set_style)
+	local ibox = ItemBox(box, agroup, n, w, set_style)
 	local node, hw = theme.Node(agroup.nodes), w / 2
 
 	node.x = box.x + (is_export and hw or -hw)
@@ -338,35 +317,58 @@ local function ADD (box, generated_name)
 
 	delete.x = box.x + (is_export and -hw or hw)
 
-	delete.m_object, delete.m_row = object, n
+	delete.m_id, delete.m_row = id, n
 
 	if set_style then
-		local text = editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
+		local linker, text = LS:GetLinker(), editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
 
-		text.m_instance = instance -- TODO
+		text.m_generated_name = gend
 
-		text:SetText(common.GetLabel(instance) or "default") -- TODO
+		text:SetText(linker:GetLabel(gend) or "default")
 
 		if set_style == "mixed" then
-			local atext = sub[tag_db:GetTemplate(tag, instance)]
+			local node_pattern = LS:GetNodePattern(id)
+			local atext = sub[node_pattern:GetTemplate(gend)] -- TODO! sub -> info
 			local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15) -- TODO: theme
 
 			layout.PutLeftOf(about, text, -10) -- TODO: theme
 		end
 	else
-		ibox.m_instance = instance
+		ibox.m_generated_name = gend
 
 		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10) -- TODO: theme
 	end
+	-- ^^ TODO: good place to divvy this up
 
-	IntegrateNode(node, object, instance, is_export, box.m_knot_list_index)
+	LS:IntegrateNode(node, id, gend, is_export, box.m_knot_list_index)
 end
 
+local function GenerateName (LS, n, id, template, is_array)
+	local linker, node_pattern = LS:GetLinker(), LS:GetNodePattern(id)
+	local gend = node_pattern:Generate(template)
 
-local function Add (button)
---	GetBox(button.parent):m_add()
-	-- GEN_NAME(tag_db, tag, object, choice, set_style)
-	ADD(GetBox(button.parent), nil)
+	linker:AddGeneratedName(id, gend)
+
+	if is_array then -- TODO: could actually just set n directly, being falsy when irrelevant...
+		linker:SetLabel(gend, n)
+	end
+
+	common.Dirty()--[[
+		linker:GetUndoRedoStack():Push(...)
+		TODO!
+	]]
+
+	return gend
+end
+
+local function MakeRow (button)
+	local agroup, id, link_scene = button.parent, button.m_id, utils.FindLinkScene(button)
+	local box, n = agroup:FindBox(), agroup.nodes.numChildren
+	-- ^^ TODO: object (id) associated with box...
+	local template = button.m_template or box.m_choice:GetSelectionData()
+	local gend = GenerateName(link_scene, n, id, template, not box.m_set_style)
+
+	AddRow(link_scene, box, id, gend)
 end
 
 local function AddSubGroups (agroup, is_array)
@@ -380,60 +382,59 @@ local function AddSubGroups (agroup, is_array)
 end
 
 --- DOCME
-function M:AttachmentBox (group, object, tag_db, tag, sub, is_export, set_style)
-	-- TODO: object is probably "id", in which case tag_db and tag irrelevant
-	-- sub will be "name", then... maybe export-ness can be discovered too?
+function M:AttachmentBox (group, id, info, is_export, set_style)
+	-- sub (errr... info) will be "template", then... maybe export-ness can be discovered too?
 	-- maybe could even just break up into two functions soon, one for "mixed" and another for rest
-	local agroup, choice = display.newGroup()
+	local agroup = display.newGroup()
 
 	group:insert(agroup)
 
-	local add, primary_node, lo, ro = button.Button(agroup, "4.25%", "4%", Add, "+"), theme.Node(agroup) -- TODO: theme
+	local make, primary_node = button.Button(agroup, "4.25%", "4%", MakeRow, "+"), theme.Node(agroup) -- TODO: theme
+	local choice, lo, ro
+
+	make.m_id = id -- TODO: see if able to find via box, cf. note in MakeRow()
 
 	if set_style ~= "mixed" then
-		lo, ro = box_layout.Arrange(not is_export, 10, primary_node, add) -- TODO: theme
+		lo, ro = box_layout.Arrange(not is_export, 10, primary_node, make) -- TODO: theme
+		make.m_template = info
 	else
-		choice, lo, ro = Mixed(agroup, sub, primary_node, add, is_export)
+		choice, lo, ro = Mixed(agroup, info, primary_node, make, is_export)
 	end
 
 	local w, midx = box_layout.GetLineWidth(lo, ro, "want_middle")
-	local box = self:AddBox(agroup, w + 25, add.height + 15) -- TODO: theme
+	local box = self:AddBox(agroup, w + 25, make.height + 15) -- TODO: theme
 
 	box.primary, box.x = primary_node, agroup:contentToLocal(midx, 0)
 
 	AddSubGroups(agroup, not set_style)
 
+	box.m_choice = choice
 	box.m_is_export = is_export
 	box.m_set_style = set_style
-	-- TODO: object, choice, etc?
-
---	box.m_add = ADD -- N.B. At this point doesn't seem to need to be a member... just forward-declare it
 
 	box.GetNodesGroup = GetNodesGroup
 
-	local instances = common.GetInstances(object)
+	local linker, node_pattern = self:GetLinker(), self:GetNodePattern(id)
+	local generated_names = linker:GetGeneratedNames(id)
 
 	if set_style then
-		for i = 1, #(instances or "") do
-			local instance = instances[i]
-			local template = tag_db:GetTemplate(tag, instance)
+		for i = 1, #(generated_names or "") do
+			local gend = generated_names[i]
+			local template = node_pattern:GetTemplate(gend)
 
 			if set_style ~= "mixed" then
-				if template == sub then
-				--	box:m_add(instance)
-					ADD(box, instance)
+				if template == info then
+					AddRow(self, box, id, gend)
 				end
-			elseif sub[template] then
-				--box:m_add(instance)
-				ADD(box, instance)
+			elseif info[template] then
+				AddRow(self, box, id, gend)
 			end
 		end
 	else
-		local arr = AssembleArray(tag_db, tag, sub, instances) -- TODO: could just ADD() along the way...
+		local arr = AssembleArray(linker, node_pattern, info, generated_names)
 
 		for i = 1, #(arr or "") do
-		--	box:m_add(arr[i])
-			ADD(box, arr[i])
+			AddRow(self, box, id, arr[i])
 		end
 	end
 

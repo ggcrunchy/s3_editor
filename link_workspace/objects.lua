@@ -51,6 +51,7 @@ local Index, Tagged, ToRemove, ToSort
 
 --- DOCME
 function M.AssociateBoxAndObject (object, box, name)
+	-- ^^^ TODO: these should both be ids, I think, for undo / redo
 	Tagged[object], object.m_link_index = { m_box = box, m_name = name }
 end
 

@@ -33,14 +33,11 @@
 local ipairs = ipairs
 local pairs = pairs
 local setmetatable = setmetatable
-local sort = table.sort
 
 -- Modules --
 local common = require("s3_editor.Common")
 local editor_strings = require("config.EditorStrings")
 local help = require("s3_editor.Help")
-local theme = require("s3_editor.link_workspace.theme")
-local touch = require("corona_ui.utils.touch")
 
 local method_augments = {
 	require("s3_editor.link_workspace.attachments"),
@@ -54,9 +51,7 @@ local method_augments = {
 
 -- Corona globals --
 local display = display
-local easing = easing
 local system = system
-local transition = transition
 
 -- Exports --
 local M = {}
@@ -75,15 +70,6 @@ for _, mod in ipairs(method_augments) do
 	end
 end
 
-local KnotListIndex = 0
-
-function M:IntegrateNode (node, object, sub, is_export, index)
-	self:AddNode(index or KnotListIndex, not is_export, node)
-
-	node.m_obj, node.m_sub = object, sub
-	-- TODO: object
-end
-
 -- --
 local Group
 
@@ -96,65 +82,10 @@ local LinkInfoEx
 -- --
 local Offset
 
--- Box drag listener --
-local DragTouch
-
 --
-local FadeParams = {}
-
-local function EmphasizeLinks (item, how, link, source_to_target, not_owner)
-	local r, g, b = 1
-
-	if item.m_glowing then
-		transition.cancel(item.m_glowing)
-
-		item.m_glowing = nil
-	end
-
-	if how == "began" then
-		if not not_owner then
-			r, g, b = theme.EmphasizeOwner(FadeParams)
-		elseif not source_to_target then
-			r, g, b = theme.EmphasizeNotSourceToTarget(FadeParams)
-		elseif common.GetLinks():CanLink(link.m_obj, item.m_obj, link.m_sub, item.m_sub) then
-			r, g, b = theme.EmphasizeCanLink(FadeParams)
-		else
-			r, g, b = theme.EmphasizeDefault(FadeParams)
-		end
-	end
-
-	FadeParams.r, FadeParams.g, FadeParams.b = r, g or r, b or r
-
-	local handle = transition.to(item.fill, FadeParams)
-
-	item.m_glowing = FadeParams.transition and handle or nil
-	FadeParams.iterations, FadeParams.time, FadeParams.transition = nil
-end
-
-local function SortByID (box1, box2)
-	return box1.m_id > box2.m_id
-end
-
-local function GatherLinks (items)
-	local boxes_seen = items.m_boxes_seen or {}
-
-	cells.GatherVisibleBoxes(Offset.x, Offset.y, boxes_seen)
-
-	sort(boxes_seen, SortByID) -- make links agree with render order
-
-	for _, box in ipairs(boxes_seen) do
-		for _, group in box_layout.IterateGroupsOfLinks(box) do
-			for i = 1, group.numChildren do
-				items[#items + 1] = group[i]
-			end
-		end
-	end
-
-	items.m_boxes_seen = boxes_seen
-end
 
 -- --
-cells.SetCellFraction(.35)
+--cells.SetCellFraction(.35)
 
 -- --
 local HelpContext
@@ -185,20 +116,7 @@ function M.Load (view)
 	objects.Load()
 
 	--
-	DragTouch = touch.DragParentTouch{
-		clamp = "max", offset_by_object = true,
-
-		on_began = function(_, box)
-			cells.RemoveFromCell(ItemGroup, box)
-		end,
-
-		on_ended = function(_, box)
-			cells.AddToCell(ItemGroup, box)
-		end
-	}
-
-	--
-	connections.Load(link_layer, EmphasizeLinks, GatherLinks)
+	connections.Load(link_layer)
 	globals.Load(view)
 
 	Group.isVisible = false
@@ -206,12 +124,12 @@ end
 
 --
 local function RemoveAttachment (LS, tag_db, sbox, tag)
-	local links = sbox:GetLinksGroup()
+	local nodes = sbox:GetLinksGroup()
 
-	for k = 1, links.numChildren do
-		tag = tag or tag_db:GetTag(links[k].m_obj)
+	for i = 1, nodes.numChildren do
+		tag = tag or tag_db:GetTag(nodes[i]:GetID()) -- TODO!
 
-		local instance = links[k].m_sub
+		local instance = nodes[i]:GetName() -- TODO!
 
 		common.SetLabel(instance, nil)
 
@@ -316,7 +234,7 @@ end
 
 --- DOCMAYBE
 function M.Unload ()
-	Group, Indices, ItemGroup, LinkInfoEx, Offset, Order = nil
+	Group, ItemGroup, LinkInfoEx, Offset = nil
 --[[
 	attachments.Unload()
 	box_layout.Unload()
@@ -340,7 +258,7 @@ end
 
 --- DOCME
 function LinkScene:Unload ()
-	self.m_group, self.m_indices, self.m_item_group, self.m_link_info_ex, self.m_offset, self.m_order = nil
+	self.m_group, self.m_item_group, self.m_link_info_ex, self.m_offset = nil
 -- ^^ TODO: move more into dedicated sub-modules
 	Dispatch(self, "unload")
 end

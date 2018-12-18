@@ -58,6 +58,32 @@ function M.AttachmentTextEditSize ()
 end
 
 --- DOCME
+function M.Box (group, w, h)
+	local box = display.newRoundedRect(group, 0, 0, w, h, 12)
+
+	box:setFillColor(.375, .675)
+	box:setStrokeColor(.125)
+
+	box.strokeWidth = 2
+
+	return box
+end
+
+--- DOCME
+function M.BoxMargins ()
+	return 10, 30
+end
+
+--- DOCME
+function M.BoxNameText (group, name)
+	local ntext = display.newText(group, name, 0, 0, native.systemFont, 12)
+
+	ntext:setFillColor(0)
+
+	return ntext
+end
+
+--- DOCME
 function M.DeleteButton (group, ibox)
 	local delete = display.newCircle(group, 0, ibox.y, 7)
 
@@ -83,7 +109,7 @@ function M.EmphasizeDefault (_)
 end
 
 --- DOCME
-function M.EmphasizeNotSourceToTarget (_)
+function M.EmphasizeNotExportToImport (_)
 	return .25
 end
 
@@ -118,15 +144,6 @@ function M.ItemBoxDragger (group, ibox)
 end
 
 --- DOCME
-function M.Node (group)
-	local node = display.newCircle(group, 0, 0, 5)
-
-	node.strokeWidth = 1
-
-	return node
-end
-
---- DOCME
 function M.LinkInfoTextParams (font, size)
 	font = font or native.systemFont
 
@@ -136,6 +153,15 @@ end
 --- DOCME
 function M.ListboxOpts ()
 	return { width = "8%", height = "5%", text_rect_height = "3%", text_size = "2.25%" }
+end
+
+--- DOCME
+function M.Node (group)
+	local node = display.newCircle(group, 0, 0, 5)
+
+	node.strokeWidth = 1
+
+	return node
 end
 
 return M

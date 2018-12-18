@@ -33,7 +33,16 @@ local type = type
 local adaptive = require("tektite_core.table.adaptive")
 local color = require("corona_ui.utils.color")
 local common = require("s3_editor.Common")
+local meta = require("tektite_core.table.meta")
 local theme = require("s3_editor.link_workspace.theme")
+local touch = require("corona_ui.utils.touch")
+
+-- Corona globals --
+local display = display
+
+-- Unique member keys --
+local _id = {}
+local _name = {}
 
 -- Exports --
 local M = {}
@@ -56,20 +65,50 @@ local function FindFreeSpot (x, how)
 	return sx, sy
 end
 
-function M:AddBox (group, w, h)
-	local box = cells.NewBox(group, w, h, 12) -- TODO: theme
+local DragTouch = touch.DragParentTouch{
+	clamp = "max", offset_by_object = true, -- TODO: not sure max is worth keeping
+											-- or maybe just make it quite large
+											-- offset might be irrelevant if not using cells
+--[[
+	on_began = function(_, box)
+		cells.RemoveFromCell(ItemGroup, box)
+	end,
 
-	box_layout.CommitLeftAndRightGroups(box, 10, 30)
+	on_ended = function(_, box)
+		cells.AddToCell(ItemGroup, box)
+	end]]
+}
+
+local function FindBox (bgroup)
+	for i = 1, bgroup.numChildren do
+		local elem = bgroup[i]
+
+		if elem.m_knot_list_index then -- reasonably box-specific
+			return elem
+		end
+	end
+end
+
+local function GetID (box)
+	return box.m_id
+end
+
+local KnotListIndex = 0
+
+function M:AddBox (group, w, h)
+	local box = theme.Box(group, w, h)
+
+	box_layout.CommitLeftAndRightGroups(box, theme.BoxMargins())
 
 	box:addEventListener("touch", DragTouch)
-	box:setFillColor(.375, .675)
-	box:setStrokeColor(.125)
-	box:toBack()
+	box:toBack() -- put behind items et al.
 
-	box.strokeWidth = 2
+	group.FindBox = FindBox
 
 	box.m_id, BoxID = BoxID, BoxID + 1
 	box.m_knot_list_index = KnotListIndex
+
+	box.GetID = GetID
 
 	return box
 end
@@ -90,7 +129,7 @@ local function PopulateEntryFromInfo (entry, text, info)
 	end
 end
 
-local function SublinkInfo (info, tag_db, tag, sub, entry)
+local function SublinkInfo (info--[[, tag_db, tag]], sub, entry)
 	local iinfo = info and info[sub]
 	local itype, is_source = iinfo and type(iinfo), tag_db ~= nil and tag_db:ImplementedBySublink(tag, sub, "event_source")
 
@@ -106,13 +145,13 @@ local function SublinkInfo (info, tag_db, tag, sub, entry)
 end
 
 --
-local function AddAttachments (group, object, info, tag_db, tag)
+local function AddAttachments (LS, group, object, info)--, tag_db, tag)
 	local list, groups
 
-	for _, sub in tag_db:Sublinks(tag, "templates") do
+	for _, sub in tag_db:Sublinks(tag, "templates") do -- TODO
 		list = list or {}
 
-		local is_source, iinfo = SublinkInfo(info, tag_db, tag, sub)
+		local is_source, iinfo = SublinkInfo(info--[[, tag_db, tag]], sub)
 		local gname = iinfo and iinfo.group
 
 		if gname then
@@ -122,7 +161,7 @@ local function AddAttachments (group, object, info, tag_db, tag)
 
 			groups[gname], ginfo[sub] = ginfo, iinfo.friendly_name or sub
 		else
-			list[#list + 1] = self:AttachmentBox(group, object, tag_db, tag, sub, is_source, iinfo and iinfo.is_set)
+			list[#list + 1] = LS:AttachmentBox(group, object, sub, is_source, iinfo and iinfo.is_set)
 			list[sub] = #list
 		end
 	end
@@ -130,13 +169,13 @@ local function AddAttachments (group, object, info, tag_db, tag)
 	if groups then
 		for gname, index in pairs(list) do
 			if not index then
-				local ginfo, is_source, iinfo = groups[gname], SublinkInfo(info, nil, nil, gname)
+				local ginfo, is_source, iinfo = groups[gname], SublinkInfo(info--[[, nil, nil]], gname)
 
 				ginfo.add_choices = iinfo.add_choices
 				ginfo.choice_text = iinfo.choice_text
 				ginfo.get_text = iinfo.get_text
 
-				list[#list + 1] = self:AttachmentBox(group, object, tag_db, tag, ginfo, is_source, "mixed")
+				list[#list + 1] = LS:AttachmentBox(group, object, ginfo, is_source, "mixed")
 				list[gname] = #list
 			end
 		end
@@ -145,13 +184,11 @@ local function AddAttachments (group, object, info, tag_db, tag)
 	return list
 end
 
-local function AddNameText (group, object)
-	local name = common.GetValuesFromRep(object).name
-	local ntext = display.newText(group, name, 0, 0, native.systemFont, 12) -- TODO: theme
+local function AddBoxNameText (LS, group, id)
+	local linker = LS:GetLinker()
+	local name = linker:GetValuesFromIdentifier(id).name
 
-	ntext:setFillColor(0)
-
-	return ntext
+	return theme.NameText(group, name)
 end
 
 local function AssignPositions (primary, alist, positions)
@@ -175,7 +212,7 @@ local function AssignPositions (primary, alist, positions)
 		for i = 1, #(alist or "") do
 			local abox = alist[i]
 
-			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_source and "right_of" or "left_of"))	
+			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_export and "right_of" or "left_of"))	
 		end
 	end
 end
@@ -191,7 +228,7 @@ local function InfoEntry (index)
 	return entry
 end
 
-local Indices, Order
+local Indices, Order -- TODO: members
 
 local function PutItemsInPlace (lg, n)
 	if lg then
@@ -257,11 +294,11 @@ local function PutItemsInPlace (lg, n)
 	return n
 end
 
-local function GroupLinkInfo (info, tag_db, tag, alist)
+local function GroupLinkInfo (info--[[, tag_db, tag]], alist)
 	local n, lg, seen = 0, info and common.GetLinkGrouping(tag)
 
 	for _, sub in tag_db:Sublinks(tag, "no_instances") do
-		local ok, db, _, iinfo = true, tag_db, SublinkInfo(info, tag_db, tag, sub)
+		local ok--[[, db]], _, iinfo = true--[[, tag_db]], SublinkInfo(info--[[, tag_db]], tag, sub)
 
 		if iinfo and iinfo.group then
 			sub = iinfo.group
@@ -273,7 +310,7 @@ local function GroupLinkInfo (info, tag_db, tag, alist)
 
 			local li = InfoEntry(n)
 
-			li.is_source = SublinkInfo(info, db, tag, sub, li)
+			li.is_source = SublinkInfo(info--[[, db, tag]], sub, li)
 			li.aindex, li.sub, li.want_link = alist and alist[sub], sub, true
 		end
 	end
@@ -281,57 +318,66 @@ local function GroupLinkInfo (info, tag_db, tag, alist)
 	return PutItemsInPlace(lg, n)
 end
 
-local function RowItems (link, stext, about)
-	if link then
-		return link, stext, about
+local function RowItems (node, stext, about)
+	if node then
+		return node, stext, about
 	else
 		return stext, about
 	end
 end
 
---- DOCME
-function M:AddPrimaryBox (group, tag_db, tag, object)
-	local info, bgroup = common.AttachLinkInfo(object, nil), display.newGroup()
+local function ItemNameText (group, li)
+	local font, size = theme.LinkInfoTextParams(li.font, li.size)
+	local str = display.newText(group, li.text or li.sub, 0, 0, font, size)
+-- ^^ TODO: sub -> name
+	if li.color then
+		str:setFillColor(color.GetColor(li.color))
+	elseif li.r or li.g or li.b then
+		str:setFillColor(li.r or 0, li.g or 0, li.b or 0)
+	end
 
+	return str
+end
+
+local function DoLinkInfo (LS, bgroup, object, li, alist)
+	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source)
+	local node, iname = li.want_link and theme.Node(cur), ItemNameText(cur, li)
+
+	if li.about then
+		-- hook up some touch listener, change appearance
+		-- ^^ Maybe add a question mark-type thing
+	end
+
+	--
+	local lo, ro = box_layout.Arrange(li.is_source, 5, RowItems(node, iname, li.about)) -- TODO: theme
+
+	--
+	if li.aindex then
+		LS:LinkAttachment(node, alist[li.aindex])
+	elseif node then
+		LS:IntegrateNode(node, object, li.sub, li.is_source)
+	end
+
+	--
+	box_layout.AddLine(cur, lo, ro, 5, node) -- TODO: theme
+end
+
+--- DOCME
+function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
+	local info, bgroup = common.AttachLinkInfo(id, nil), display.newGroup()
+-- ^^ TODO
 	group:insert(bgroup)
 
 	--
-	local alist = AddAttachments(group, object, info, tag_db, tag)
+	local alist = AddAttachments(self, group, id, info)--, tag_db, tag)
 
-	for i = 1, GroupLinkInfo(info, tag_db, tag, alist) do
-		local li = LinkInfoEx[i]
-		local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source)
-		local font, size = theme.LinkInfoTextParams(li.font, li.size)
-		local node, stext = li.want_link and theme.Node(cur), display.newText(cur, li.text or li.sub, 0, 0, font, size)
-
-		if li.color then
-			stext:setFillColor(color.GetColor(li.color))
-		elseif li.r or li.g or li.b then
-			stext:setFillColor(li.r or 0, li.g or 0, li.b or 0)
-		end
-
-		if li.about then
-			-- hook up some touch listener, change appearance
-			-- ^^ Maybe add a question mark-type thing
-		end
-
-		--
-		local lo, ro = box_layout.Arrange(li.is_source, 5, RowItems(node, stext, li.about)) -- TODO: theme
-
-		--
-		if li.aindex then
-			self:LinkAttachment(node, alist[li.aindex])
-		elseif node then
-			self:IntegrateNode(node, object, li.sub, li.is_source)
-		end
-
-		--
-		box_layout.AddLine(cur, lo, ro, 5, node) -- TODO: theme
+	for i = 1, GroupLinkInfo(info--[[, tag_db, tag]], alist) do
+		DoLinkInfo(self, bgroup, id, LinkInfoEx[i], alist)
 	end
 
 	--
 	local w, h = box_layout.GetSize()
-	local ntext = AddNameText(bgroup, object)
+	local ntext = AddBoxNameText(self, bgroup, id)
 	local box = self:AddBox(bgroup, max(w, ntext.width) + 35, h + 30) -- TODO: theme
 
 	self:AddKnotList(KnotListIndex)
@@ -343,9 +389,33 @@ function M:AddPrimaryBox (group, tag_db, tag, object)
 
 	ntext.y = box_layout.GetY1(box) + 10 -- TODO: theme
 
-	AssignPositions(box, alist, common.GetPositions(object))
+	local linker = self:GetLinker()
+
+	AssignPositions(box, alist, linker:GetPositions(id))
 
 	return box, ntext
+end
+
+local Node = {}
+
+Node.__index = Node
+
+--- DOCME
+function Node:GetID ()
+	return self[_id]
+end
+
+--- DOCME
+function Node:GetName ()
+	return self[_name]
+end
+
+function M:IntegrateNode (node, id, name, is_export, index)
+	self:AddNode(index or KnotListIndex, not is_export, node)
+
+	node[_id], node[_name] = id, name
+
+	meta.Augment(node, Node)
 end
 
 --- DOCME
