@@ -1,4 +1,5 @@
---- Operations on segments.
+--- The "theme" of the link system, i.e. various dimensions, offsets, strings, etc. whose
+-- specific values are incidental to its correctness.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -48,6 +49,41 @@ color.RegisterColor("props", "green")
 color.RegisterColor("unary_action", { r = .2, g = .7, b = .2 })
 
 --- DOCME
+function M.AboutOffset ()
+	return -10
+end
+
+--- DOCME
+function M.AboutTextParams ()
+	return native.systemFont, 15
+end
+
+--- DOCME
+function M.AttachmentArrayIndexString (index)
+	return ("#%i"):format(index)
+end
+
+--- DOCME
+function M.AttachmentArrayTextParams ()
+	return native.systemFontBold, 10
+end
+
+--- DOCME
+function M.AttachmentBoxSeparationOffset ()
+	return 10
+end
+
+--- DOCME
+function M.AttachmentBoxSize (w, h)
+	return w + 25, h + 15
+end
+
+--- DOCME
+function M.AttachmentNodeAlpha ()
+	return .025
+end
+
+--- DOCME
 function M.AttachmentRowWidth (w, style)
 	return w + (style ~= "array" and 25 or 0)
 end
@@ -75,8 +111,23 @@ function M.Box (group, w, h)
 end
 
 --- DOCME
+function M.BoxLineSpacing ()
+	return 5
+end
+
+--- DOCME
 function M.BoxMargins ()
 	return 10, 30
+end
+
+--- DOCME
+function M.BoxNameVerticalOffset ()
+	return 10
+end
+
+--- DOCME
+function M.BoxSeparationOffset ()
+	return 5
 end
 
 --- DOCME
@@ -86,6 +137,21 @@ function M.BoxNameText (group, name)
 	ntext:setFillColor(0)
 
 	return ntext
+end
+
+--- DOCME
+function M.BoxSize (w, h)
+	return w + 35, h + 30
+end
+
+--- DOCME
+function M.ChoiceDefaultString ()
+	return "Choice:" -- consider: localization...
+end
+
+--- DOCME
+function M.ChoiceTextParams ()
+	return native.systemFont, 15
 end
 
 --- DOCME
@@ -124,6 +190,11 @@ function M.EmphasizeOwner (_)
 end
 
 --- DOCME
+function M.GroupAttachmentBoxSeparationOffset ()
+	return 7
+end
+
+--- DOCME
 function M.ItemBox (group, x, w, set_style)
 	local box = display.newRect(group, x, 0, w, set_style and 35 or 15)
 
@@ -158,6 +229,16 @@ end
 --- DOCME
 function M.ListboxOpts ()
 	return { width = "8%", height = "5%", text_rect_height = "3%", text_size = "2.25%" }
+end
+
+--- DOCME
+function M.MakeRowSize ()
+	return "4.25%", "4%"
+end
+
+--- DOCME
+function M.MakeRowText ()
+	return "+"
 end
 
 --- DOCME

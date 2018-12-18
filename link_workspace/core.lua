@@ -131,7 +131,7 @@ local function RemoveAttachment (LS, tag_db, sbox, tag)
 
 		local instance = nodes[i]:GetName() -- TODO!
 
-		common.SetLabel(instance, nil)
+		common.SetLabel(instance, nil) -- TODO!
 
 		tag_db:Release(tag, instance)
 	end

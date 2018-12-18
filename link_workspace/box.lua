@@ -176,7 +176,9 @@ local function AddAttachments (LS, group, id, info)--, tag_db, tag)
 
 			groups[gname], ginfo[name] = ginfo, iinfo.friendly_name or name
 		else
-			list[#list + 1] = LS:AttachmentBox(group, id, name, is_source, iinfo and iinfo.is_set)
+			local style = (iinfo and iinfo.is_set) and "set" or "array"
+
+			list[#list + 1] = LS:AttachmentBox(group, id, name, is_source, style)
 			list[name] = #list
 		end
 	end
@@ -186,11 +188,7 @@ local function AddAttachments (LS, group, id, info)--, tag_db, tag)
 			if not index then
 				local ginfo, is_source, iinfo = groups[gname], SublinkInfo(info--[[, nil, nil]], gname)
 
-				ginfo.add_choices = iinfo.add_choices
-				ginfo.choice_text = iinfo.choice_text
-				ginfo.get_text = iinfo.get_text
-
-				list[#list + 1] = LS:AttachmentBox(group, id, ginfo, is_source, "mixed")
+				list[#list + 1] = LS:GroupAttachmentBox(group, id, ginfo, is_source, iinfo)
 				list[gname] = #list
 			end
 		end
@@ -327,7 +325,7 @@ local function GroupLinkInfo (info--[[, tag_db, tag]], alist)
 
 			li.is_source = SublinkInfo_Entry(info--[[, db, tag]], name, li)
 			-- ^^^ TODO: can this just use stuff from the call above and use the PopulateXX instead?
-			li.aindex, li.name, li.want_link = alist and alist[name], name, true
+			li.aindex, li.name, li.want_node = alist and alist[name], name, true
 		end
 	end
 
@@ -357,7 +355,7 @@ end
 
 local function DoLinkInfo (LS, bgroup, object, li, alist)
 	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source)
-	local node, iname = li.want_link and theme.Node(cur), ItemNameText(cur, li)
+	local node, iname = li.want_node and theme.Node(cur), ItemNameText(cur, li)
 
 	if li.about then
 		-- hook up some touch listener, change appearance
@@ -365,7 +363,8 @@ local function DoLinkInfo (LS, bgroup, object, li, alist)
 	end
 
 	--
-	local lo, ro = box_layout.Arrange(li.is_source, 5, RowItems(node, iname, li.about)) -- TODO: theme
+	local sep = theme.BoxSeparationOffset()
+	local lo, ro = box_layout.Arrange(li.is_source, sep, RowItems(node, iname, li.about))
 
 	--
 	if li.aindex then
@@ -375,7 +374,7 @@ local function DoLinkInfo (LS, bgroup, object, li, alist)
 	end
 
 	--
-	box_layout.AddLine(cur, lo, ro, 5, node) -- TODO: theme
+	box_layout.AddLine(cur, lo, ro, theme.BoxLineSpacing(), node)
 end
 
 --- DOCME
@@ -394,7 +393,7 @@ function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
 	--
 	local w, h = box_layout.GetSize()
 	local ntext = AddBoxNameText(self, bgroup, id)
-	local box = self:AddBox(bgroup, max(w, ntext.width) + 35, h + 30) -- TODO: theme
+	local box = self:AddBox(bgroup, theme.BoxSize(max(w, ntext.width), h))
 
 	self:AddKnotList(KnotListIndex)
 
@@ -403,7 +402,7 @@ function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
 	--
 	KnotListIndex = KnotListIndex + 1
 
-	ntext.y = box_layout.GetY1(box) + 10 -- TODO: theme
+	ntext.y = box_layout.GetY1(box) + theme.BoxNameVerticalOffset()
 
 	local linker = self:GetLinker()
 

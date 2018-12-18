@@ -31,8 +31,7 @@ local pairs = pairs
 local sort = table.sort
 
 -- Modules --
-local box_layout = require("s3_editor_views.link_imp.box_layout")
-local common = require("s3_editor.Common")
+local box_layout = require("s3_editor.link_workspace.box_layout")
 local function_set = require("s3_editor.FunctionSet")
 local link_group = require("corona_ui.widgets.link_group")
 local objects = require("s3_editor_views.link_imp.objects")
@@ -113,6 +112,15 @@ local function CanLink (node1, node2)
 	end
 end
 
+local function UndoRedoConnect (how)
+	if how == "undo" then
+		-- just remove it... (Break logic below)
+	else
+		-- find nodes
+		-- relink
+	end
+end
+
 local function Connect (LG, node1, node2, knot)
 	local link_scene = utils.FindLinkScene(LG)
 	local linker = link_scene:GetLinker()
@@ -129,15 +137,7 @@ local function Connect (LG, node1, node2, knot)
 -- need to review what's using it, but if nothing stands in the way,
 -- something like ("%i:%s:%i:%s", id1, name1, id2, name2) ??
 -- basically this is just to be reproducible in light of undo / redo
-	common.Dirty()--[[
-	linker:GetUndoRedoStack():Push(function(how)
-		if how == "undo" then
-			-- just remove it... (Break logic below)
-		else
-			-- find nodes
-			-- relink
-		end
-	end)]]
+	linker:GetUndoRedoStack():Push(UndoRedoConnect)
 end
 
 local function GetList (LS, id)
@@ -145,6 +145,15 @@ local function GetList (LS, id)
 
 	return knot_lists[id] or _knot_lists	-- use key to avoid special-casing failure case
 											-- being empty, nil'ing its members is a no-op
+end
+
+local function UndoRedoBreakKnot (how)
+	if how == "undo" then
+		-- need to rebuild the above link
+		-- logic from Connect, but might need to make sure that's okay sans GUI
+	else
+		-- find knot using ID and re-break it
+	end
 end
 
 local KnotTouch = link_group.BreakTouchFunc(function(knot)
@@ -155,15 +164,7 @@ local KnotTouch = link_group.BreakTouchFunc(function(knot)
 
 	GetList(link_scene, id1)[id2], GetList(link_scene, id2)[id1] = nil
 
-	common.Dirty()--[[
-	linker:GetUndoRedoStack():Push(function(how)
-		if how == "undo" then
-			-- need to rebuild the above link
-			-- logic from Connect, but might need to make sure that's okay sans GUI
-		else
-			-- find knot using ID and re-break it
-		end
-	end)]]
+	link_scene:GetLinker():GetUndoRedoStack():Push(UndoRedoBreakKnot)
 end)
 
 --
@@ -230,7 +231,9 @@ end
 function M:LinkAttachment (node, attachment)
 	link_group.Connect(node, attachment.primary, false, self[_link_group]:GetGroups())
 
-	node.alpha, attachment.primary.alpha = .025, .025 -- TODO: theme
+	local alpha = theme.AttachmentNodeAlpha()
+
+	node.alpha, attachment.primary.alpha = alpha, alpha
 end
 
 local LinkGroupOpts = {}
