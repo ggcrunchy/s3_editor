@@ -102,7 +102,9 @@ local Delete = touch.TouchHelperFunc(function(_, button)
 		end
 	end
 
-	RemoveRow(linker, items, row, neach, items.m_is_array)
+	local box = agroup:FindBox()
+
+	RemoveRow(linker, items, row, neach, box.m_style == "array")--items.m_is_array)
 	RemoveRow(linker, nodes, row, 1)
 	RemoveRange(fixed, nfixed, nfixed / nnodes) -- as above, in case multiple fixed objects per row
 
@@ -161,11 +163,12 @@ end
 
 local function MoveRow (items, nodes, from, to)
 	if from ~= to then
+		local box = items.parent:FindBox()
 		local n = items.numChildren / nodes.numChildren -- only one node per row, but maybe multiple items
 		local fi, ti = from * n, to * n
 		local linker = utils.FindLinkScene(items):GetLinker()
 
-		AuxMoveRow(linker, items, nodes, fi, ti, n, items.m_is_array)
+		AuxMoveRow(linker, items, nodes, fi, ti, n, box.m_style == "array")--items.m_is_array)
 		AuxMoveRow(linker, nodes, items, from, to, 1)
 	end
 end
@@ -302,10 +305,45 @@ local function ItemBox (box, agroup, n, w, set_style)
 	return ibox
 end
 
+local function Set (LS, agroup, ibox, gend)
+	local linker, text = LS:GetLinker(), editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
+
+	text.m_generated_name = gend
+
+	text:SetText(linker:GetLabel(gend) or "default")
+
+	return text
+end
+
+local function RowCount (agroup)
+	return agroup.nodes.numChildren
+end
+
+local MURG = {
+	array = function(_, agroup, ibox, gend)
+		ibox.m_generated_name = gend
+
+		local n = RowCount(agroup)
+
+		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10) -- TODO: theme
+	end,
+
+	mixed = function(LS, agroup, ibox, gend, id)
+		local text = Set(LS, agroup, ibox, gend)
+		local node_pattern = LS:GetNodePattern(id)
+		local atext = sub[node_pattern:GetTemplate(gend)] -- TODO! sub -> info
+		local about = display.newText(agroup.items, atext, 0, ibox.y, native.systemFont, 15) -- TODO: theme
+
+		layout.PutLeftOf(about, text, -10) -- TODO: theme
+	end,
+
+	set = Set
+}
+
 local function AddRow (LS, box, id, gend)
-	local agroup, is_export, set_style = box.parent, box.m_is_export, box.m_set_style
-	local n, w = agroup.nodes.numChildren, box.width + (set_style and 25 or 0) -- TODO: theme
-	local ibox = ItemBox(box, agroup, n, w, set_style)
+	local agroup, is_export--[[, set_style]] = box.parent, box.m_is_export--, box.m_set_style
+	local n, w = RowCount(agroup), theme.AttachmentRowWidth(box.width, box.m_style)
+	local ibox = ItemBox(box, agroup, n, w, box.m_style)--set_style)
 	local node, hw = theme.Node(agroup.nodes), w / 2
 
 	node.x = box.x + (is_export and hw or -hw)
@@ -318,7 +356,7 @@ local function AddRow (LS, box, id, gend)
 	delete.x = box.x + (is_export and -hw or hw)
 
 	delete.m_id, delete.m_row = id, n
-
+--[[
 	if set_style then
 		local linker, text = LS:GetLinker(), editable.Editable_XY(agroup.items, ibox.x, ibox.y, EditOpts)
 
@@ -338,20 +376,19 @@ local function AddRow (LS, box, id, gend)
 
 		display.newText(agroup.fixed, ("#%i"):format(n), ibox.x, ibox.y, native.systemFontBold, 10) -- TODO: theme
 	end
+]]
+	MURG[box.m_style](LS, agroup, ibox, gend, id)
 	-- ^^ TODO: good place to divvy this up
 
 	LS:IntegrateNode(node, id, gend, is_export, box.m_knot_list_index)
 end
 
-local function GenerateName (LS, n, id, template, is_array)
+local function GenerateName (LS, id, template, n)
 	local linker, node_pattern = LS:GetLinker(), LS:GetNodePattern(id)
 	local gend = node_pattern:Generate(template)
 
 	linker:AddGeneratedName(id, gend)
-
-	if is_array then -- TODO: could actually just set n directly, being falsy when irrelevant...
-		linker:SetLabel(gend, n)
-	end
+	linker:SetLabel(gend, n) -- n.b. no-op if false
 
 	common.Dirty()--[[
 		linker:GetUndoRedoStack():Push(...)
@@ -363,36 +400,132 @@ end
 
 local function MakeRow (button)
 	local agroup, id, link_scene = button.parent, button.m_id, utils.FindLinkScene(button)
-	local box, n = agroup:FindBox(), agroup.nodes.numChildren
+	local box = agroup:FindBox()--, agroup.nodes.numChildren
 	-- ^^ TODO: object (id) associated with box...
 	local template = button.m_template or box.m_choice:GetSelectionData()
-	local gend = GenerateName(link_scene, n, id, template, not box.m_set_style)
+	local gend = GenerateName(link_scene, id, template, box.m_style == "array" and RowCount(agroup))--not box.m_set_style)
 
 	AddRow(link_scene, box, id, gend)
 end
 
-local function AddSubGroups (agroup, is_array)
+local function AddSubGroups (agroup)--, is_array)
 	agroup.items, agroup.fixed, agroup.nodes = display.newGroup(), display.newGroup(), display.newGroup()
 
 	agroup:insert(agroup.items)
 	agroup:insert(agroup.fixed)
 	agroup:insert(agroup.nodes)
 
-	agroup.items.m_is_array = is_array
+--	agroup.items.m_is_array = is_array
+end
+
+local function SETUP (group, id)
+	local agroup = display.newGroup()
+
+	group:insert(agroup)
+
+	local make, primary_node = button.Button(agroup, "4.25%", "4%", MakeRow, "+"), theme.Node(agroup) -- TODO: theme
+
+	make.m_id = id -- TODO: see if able to find via box, cf. note in MakeRow()
+
+	return agroup, make, primary_node
+end
+
+local ACC = {}
+
+local function ACCUMULATE_AND_DO (LS, box, id, func, arg)
+	local linker, node_pattern = LS:GetLinker(), LS:GetNodePattern(id)
+	local generated_names, count = linker:GetGeneratedNames(id), 0
+
+	for i = 1, #(generated_names or "") do
+		local gend = generated_names[i]
+		local ok, key = func(node_pattern, gend, arg, linker)
+
+		if ok then
+			ACC[key or (count + 1)], count = gend, count + 1
+		end
+	end
+
+	for i = 1, count do
+		AddRow(LS, box, id, ACC[i])
+	end
+
+	return box
+end
+
+local function SET (node_pattern, gend, template)
+	return node_pattern:GetTemplate(gend) == template
+end
+
+local function MIXED (node_pattern, gend, info)
+	return info[node_pattern:GetTemplate(gend)]
+end
+
+local function ARRAY (node_pattern, gend, name, linker)
+	if SET(node_pattern, gend, name) then
+		return true, tonumber(linker:GetLabel(gend))
+	end
+end
+
+local function MIRBLE (LS, agroup, make, primary_node, lo, ro)
+	local w, midx = box_layout.GetLineWidth(lo, ro, "want_middle")
+	local box = LS:AddBox(agroup, w + 25, make.height + 15) -- TODO: theme
+
+	box.primary, box.x = primary_node, agroup:contentToLocal(midx, 0)
+
+	AddSubGroups(agroup)--, not set_style)
+
+	box.GetNodesGroup = GetNodesGroup
+
+	return box
+end
+
+local function NOT_MIXED (primary_node, make, is_export, template)
+	make.m_template = template
+ 
+	return box_layout.Arrange(not is_export, 10, primary_node, make) -- TODO: theme
+end
+
+--- DOCME
+function M:ArrayAttachmentBox (group, id, template, is_export)
+	local agroup, make, primary_node = SETUP(group, id)
+	local lo, ro = NOT_MIXED(primary_node, make, is_export, template)
+	local box = MIRBLE(self, agroup, make, primary_node, lo, ro)
+	box.m_is_export, box.m_style = is_export, "array"
+	ACCUMULATE_AND_DO(self, box, id, ARRAY, template)
+end
+
+--- DOCME
+function M:MixedAttachmentBox (group, id, info, is_export)
+	local agroup, make, primary_node = SETUP(group, id)
+	local choice, lo, ro = Mixed(agroup, info, primary_node, make, is_export)
+	local box = MIRBLE(self, agroup, make, primary_node, lo, ro)
+	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "mixed"
+	ACCUMULATE_AND_DO(self, box, id, MIXED, info)
+end
+
+--- DOCME
+function M:SetAttachmentBox (group, id, template, is_export)
+	local agroup, make, primary_node = SETUP(group, id)
+	local lo, ro = NOT_MIXED(primary_node, make, is_export, template)
+	local box = MIRBLE(self, agroup, make, primary_node, lo, ro)
+	box.m_is_export, box.m_style = is_export, "set"
+	ACCUMULATE_AND_DO(self, box, id, SET, template)
 end
 
 --- DOCME
 function M:AttachmentBox (group, id, info, is_export, set_style)
 	-- sub (errr... info) will be "template", then... maybe export-ness can be discovered too?
 	-- maybe could even just break up into two functions soon, one for "mixed" and another for rest
+--[[
 	local agroup = display.newGroup()
 
 	group:insert(agroup)
 
-	local make, primary_node = button.Button(agroup, "4.25%", "4%", MakeRow, "+"), theme.Node(agroup) -- TODO: theme
+	local make, primary_node = button.Button(agroup, "4.25%", "4%", MakeRow, "+"), theme.Node(agroup) -- TODO: theme]]
+	local agroup, make, primary_node = SETUP(group, id)
 	local choice, lo, ro
 
-	make.m_id = id -- TODO: see if able to find via box, cf. note in MakeRow()
+--	make.m_id = id -- TODO: see if able to find via box, cf. note in MakeRow()
 
 	if set_style ~= "mixed" then
 		lo, ro = box_layout.Arrange(not is_export, 10, primary_node, make) -- TODO: theme
@@ -406,7 +539,7 @@ function M:AttachmentBox (group, id, info, is_export, set_style)
 
 	box.primary, box.x = primary_node, agroup:contentToLocal(midx, 0)
 
-	AddSubGroups(agroup, not set_style)
+	AddSubGroups(agroup)--, not set_style)
 
 	box.m_choice = choice
 	box.m_is_export = is_export

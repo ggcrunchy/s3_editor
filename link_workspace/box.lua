@@ -129,29 +129,44 @@ local function PopulateEntryFromInfo (entry, text, info)
 	end
 end
 
-local function SublinkInfo (info--[[, tag_db, tag]], sub, entry)
-	local iinfo = info and info[sub]
-	local itype, is_source = iinfo and type(iinfo), tag_db ~= nil and tag_db:ImplementedBySublink(tag, sub, "event_source")
-
+local function AuxSublinkInfo (info, name)
+	local iinfo = info and info[name]
+	local itype, is_source = iinfo and type(iinfo), tag_db ~= nil and tag_db:ImplementedBySublink(tag, name, "event_source")
+-- ^^^ TODO: what would be the equivalent here? something like finding that it's an export
+-- and ImplementsValue()?
 	if itype == "table" then
 		if iinfo.is_source ~= nil then
 			is_source = iinfo.is_source
 		end
 
-		return is_source, PopulateEntryFromInfo(entry, iinfo.friendly_name, iinfo)
+		return is_source, iinfo.friendly_name, iinfo
 	else
-		return is_source, PopulateEntryFromInfo(entry, itype == "string" and iinfo or nil)
+		return is_source, itype == "string" and iinfo or nil
 	end
 end
 
---
-local function AddAttachments (LS, group, object, info)--, tag_db, tag)
-	local list, groups
+local function SublinkInfo (info--[[, tag_db, tag]], name, entry)
+	local is_source, _, iinfo = AuxSublinkInfo(info, name)
 
-	for _, sub in tag_db:Sublinks(tag, "templates") do -- TODO
+	return is_source, iinfo
+end
+
+local function SublinkInfo_Entry (info--[[, tag_db, tag]], name, entry)
+	local is_source, text, iinfo = AuxSublinkInfo(info, name)
+
+	PopulateEntryFromInfo(entry, text, iinfo)
+
+	return is_source
+end
+
+--
+local function AddAttachments (LS, group, id, info)--, tag_db, tag)
+	local node_pattern, list, groups = LS:GetNodePattern(id)
+
+	for name in node_pattern:IterTemplateNodes() do
 		list = list or {}
 
-		local is_source, iinfo = SublinkInfo(info--[[, tag_db, tag]], sub)
+		local is_source, iinfo = SublinkInfo(info--[[, tag_db, tag]], name)
 		local gname = iinfo and iinfo.group
 
 		if gname then
@@ -159,10 +174,10 @@ local function AddAttachments (LS, group, object, info)--, tag_db, tag)
 
 			local ginfo = groups[gname] or {}
 
-			groups[gname], ginfo[sub] = ginfo, iinfo.friendly_name or sub
+			groups[gname], ginfo[name] = ginfo, iinfo.friendly_name or name
 		else
-			list[#list + 1] = LS:AttachmentBox(group, object, sub, is_source, iinfo and iinfo.is_set)
-			list[sub] = #list
+			list[#list + 1] = LS:AttachmentBox(group, id, name, is_source, iinfo and iinfo.is_set)
+			list[name] = #list
 		end
 	end
 
@@ -175,7 +190,7 @@ local function AddAttachments (LS, group, object, info)--, tag_db, tag)
 				ginfo.choice_text = iinfo.choice_text
 				ginfo.get_text = iinfo.get_text
 
-				list[#list + 1] = LS:AttachmentBox(group, object, ginfo, is_source, "mixed")
+				list[#list + 1] = LS:AttachmentBox(group, id, ginfo, is_source, "mixed")
 				list[gname] = #list
 			end
 		end
@@ -237,7 +252,7 @@ local function PutItemsInPlace (lg, n)
 		for i = 1, n do
 			local li = LinkInfoEx[i]
 
-			Indices[i], Order[li.sub], LinkInfoEx[i] = li.sub, li, false
+			Indices[i], Order[li.name], LinkInfoEx[i] = li.name, li, false
 		end
 
 		local li, is_source
@@ -297,12 +312,12 @@ end
 local function GroupLinkInfo (info--[[, tag_db, tag]], alist)
 	local n, lg, seen = 0, info and common.GetLinkGrouping(tag)
 
-	for _, sub in tag_db:Sublinks(tag, "no_instances") do
-		local ok--[[, db]], _, iinfo = true--[[, tag_db]], SublinkInfo(info--[[, tag_db]], tag, sub)
+	for _, name in tag_db:Sublinks(tag, "no_instances") do -- TODO: just iterate nodes?
+		local ok--[[, db]], _, iinfo = true--[[, tag_db]], SublinkInfo(info--[[, tag_db, tag]], name)
 
 		if iinfo and iinfo.group then
-			sub = iinfo.group
-			ok, seen, db = not adaptive.InSet(seen, sub), adaptive.AddToSet(seen, sub)
+			name = iinfo.group
+			ok, seen, db = not adaptive.InSet(seen, name), adaptive.AddToSet(seen, name)
 		end
 
 		if ok then
@@ -310,8 +325,9 @@ local function GroupLinkInfo (info--[[, tag_db, tag]], alist)
 
 			local li = InfoEntry(n)
 
-			li.is_source = SublinkInfo(info--[[, db, tag]], sub, li)
-			li.aindex, li.sub, li.want_link = alist and alist[sub], sub, true
+			li.is_source = SublinkInfo_Entry(info--[[, db, tag]], name, li)
+			-- ^^^ TODO: can this just use stuff from the call above and use the PopulateXX instead?
+			li.aindex, li.name, li.want_link = alist and alist[name], name, true
 		end
 	end
 
@@ -328,8 +344,8 @@ end
 
 local function ItemNameText (group, li)
 	local font, size = theme.LinkInfoTextParams(li.font, li.size)
-	local str = display.newText(group, li.text or li.sub, 0, 0, font, size)
--- ^^ TODO: sub -> name
+	local str = display.newText(group, li.text or li.name, 0, 0, font, size)
+
 	if li.color then
 		str:setFillColor(color.GetColor(li.color))
 	elseif li.r or li.g or li.b then
@@ -355,7 +371,7 @@ local function DoLinkInfo (LS, bgroup, object, li, alist)
 	if li.aindex then
 		LS:LinkAttachment(node, alist[li.aindex])
 	elseif node then
-		LS:IntegrateNode(node, object, li.sub, li.is_source)
+		LS:IntegrateNode(node, object, li.name, li.is_source)
 	end
 
 	--

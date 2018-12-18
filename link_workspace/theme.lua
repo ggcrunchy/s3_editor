@@ -48,6 +48,11 @@ color.RegisterColor("props", "green")
 color.RegisterColor("unary_action", { r = .2, g = .7, b = .2 })
 
 --- DOCME
+function M.AttachmentRowWidth (w, style)
+	return w + (style ~= "array" and 25 or 0)
+end
+
+--- DOCME
 function M.AttachmentTextEditFont ()
 	return "PeacerfulDay"
 end

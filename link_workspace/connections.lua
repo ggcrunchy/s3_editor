@@ -290,7 +290,7 @@ function LinkGroupOpts.gather (items)
 	sort(boxes_seen, SortByID) -- make links agree with render order
 
 	for i = 1, #boxes_seen do
-		for _, group in box_layout.IterateGroupsOfLinks(boxes_seen[i]) do -- TODO?
+		for _, group in box_layout.IterateGroupsOfNodes(boxes_seen[i]) do -- TODO?
 			for j = 1, group.numChildren do
 				items[#items + 1] = group[j]
 			end
@@ -312,7 +312,7 @@ function M:RemoveKnotList (id)
 	local list = knot_lists[id]
 
 	if list then -- attachments will share primary's list
-		for knot in pairs(list) do
+		for knot in pairs(list) do -- TODO: broken...
 			link_group.Break(knot)
 		end
 	end

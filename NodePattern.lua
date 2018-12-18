@@ -428,7 +428,7 @@ end
 -- @string[opt] how As per @{NodePattern:IterNodes}.
 -- @treturn Iterator that supplies name, rule pairs for requested nodes.
 -- @see NodePattern:AddExportNode, NodePattern:AddImportNode, NodePattern:IterNodes, NodePattern:IterNonTemplateNodes
-function NodePattern:IterNonTemplateNodes (how)
+function NodePattern:IterTemplateNodes (how)
 	local list = {}
 
 	for k, v in self:IterNodes(how) do
