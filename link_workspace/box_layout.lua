@@ -274,6 +274,9 @@ function M.UpdateWidth (box, w)
 	-- but could later shorten, too
 end
 
+-- TODO: could actually clean some of this up by a dynamic resize, but difficult if box in
+-- agroup... but complicates some of how things are being done, e.g. looking up parent
+
 -- Cache module members.
 _Arrange_ = M.Arrange
 _GetLineWidth_ = M.GetLineWidth
