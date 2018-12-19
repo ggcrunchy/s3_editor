@@ -26,13 +26,13 @@
 -- Standard library imports --
 local ipairs = ipairs
 local max = math.max
+local next = next
 local pairs = pairs
 local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local color = require("corona_ui.utils.color")
-local common = require("s3_editor.Common")
 local meta = require("tektite_core.table.meta")
 local theme = require("s3_editor.link_workspace.theme")
 local touch = require("corona_ui.utils.touch")
@@ -41,6 +41,8 @@ local touch = require("corona_ui.utils.touch")
 local display = display
 
 -- Unique member keys --
+local _attachment_indices = {} -- TODO: only need one, belongs in link info?
+local _attachments = {}
 local _id = {}
 local _name = {}
 
@@ -117,84 +119,79 @@ local EntryInfo = { "about", "font", "size", "color", "r", "g", "b" }
 
 local function PopulateEntryFromInfo (entry, text, info)
 	if entry then
-		info = info or LinkInfoEx -- LinkInfoEx is an array, so accesses will yield nil
-
 		entry.text = text
 
-		for _, name in ipairs(EntryInfo) do
-			entry[name] = info[name]
+		if info then
+			for _, name in ipairs(EntryInfo) do
+				entry[name] = info[name]
+			end
 		end
 	else
 		return info -- N.B. at the moment we care about this when not populating the entry
 	end
 end
 
-local function NodeInfo--[[SublinkInfo]] (info, values, name)
+local function NodeInfo (info, name)
 	local iinfo = info and info[name]
-	local itype, is_source = iinfo and type(iinfo), tag_db ~= nil and tag_db:ImplementedBySublink(tag, name, "event_source")
+	local itype--[[, is_source]] = iinfo and type(iinfo)
+	--, tag_db ~= nil and tag_db:ImplementedBySublink(tag, name, "event_source")
 -- ^^^ TODO: what would be the equivalent here? something like finding that it's an export
 -- and ImplementsValue()? some node pattern stuff, or what?
+-- actually, already registered in NodePattern...
+-- actually actually, we can probably even dispense with "is_source" and just streamline all cases
 	if itype == "table" then
+--[[
 		if iinfo.is_source ~= nil then
 			is_source = iinfo.is_source
 		end
-
-		return is_source, iinfo, iinfo.friendly_name
+]]
+		return --[[is_source, ]]iinfo, iinfo.friendly_name
 	else
-		return is_source, nil, itype == "string" and iinfo or nil
+		return --[[is_source, ]]nil, itype == "string" and iinfo or nil
 	end
 end
---[=[
-local function SublinkInfo (info--[[, tag_db, tag]], name)
-	local is_source, _, iinfo = AuxSublinkInfo(info, name)
 
-	return is_source, iinfo
+local function PatchInBlocks (LS, group, id, blocks, info, list, indices)
+	for k, v in pairs(indices) do
+		if v == "block" then
+			local binfo, is_source, iinfo = blocks[k], NodeInfo(info, k)
+
+			list[#list + 1] = LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo)
+			indices[k] = #list
+		end
+	end
 end
 
-local function SublinkInfo_Entry (info--[[, tag_db, tag]], name, entry)
-	local is_source, text, iinfo = AuxSublinkInfo(info, name)
-
-	PopulateEntryFromInfo(entry, text, iinfo)
-
-	return is_source
-end
-]=]
 --
-local function AddAttachments (LS, group, id, values, info)--, tag_db, tag)
-	local node_pattern, list, groups = LS:GetNodePattern(id)
+local function AddAttachments (LS, group, id, info)
+	local node_pattern, blocks, indices, list = LS:GetNodePattern(id)
 
-	for name in node_pattern:IterTemplateNodes() do
-		list = list or {}
+	for name in node_pattern:IterTemplateNodes() do -- TODO: this will miss blocks, no?
+		local is_source, iinfo = NodeInfo(info, name)
+		local bname = iinfo and iinfo.block
 
-		local is_source, iinfo = --[[SublinkInfo]]NodeInfo(info--[[, tag_db, tag]], values, name)
-		local gname = iinfo and iinfo.group
+		if bname then
+			blocks, list[bname] = blocks or {}, "block"
 
-		if gname then
-			groups, list[gname] = groups or {}, false
+			local binfo = blocks[bname] or {}
 
-			local ginfo = groups[gname] or {}
-
-			groups[gname], ginfo[name] = ginfo, iinfo.friendly_name or name
+			blocks[bname], binfo[name] = binfo, iinfo.friendly_name or name
 		else
 			local style = (iinfo and iinfo.is_set) and "set" or "array"
 
+			indices, list = indices or {}, list or {}
 			list[#list + 1] = LS:AttachmentBox(group, id, name, is_source, style)
-			list[name] = #list
+			indices[name] = #list
 		end
 	end
 
-	if groups then
-		for gname, index in pairs(list) do
-			if not index then
-				local ginfo, is_source, iinfo = groups[gname], --[[SublinkInfo]]NodeInfo(info--[[, nil, nil]], values, gname)
-
-				list[#list + 1] = LS:GroupAttachmentBox(group, id, ginfo, is_source, iinfo)
-				list[gname] = #list
-			end
-		end
+	if blocks and indices then
+		PatchInBlocks(LS, group, id, blocks, info, list, indices)
+	elseif blocks then
+		-- pure string?
 	end
 
-	return list
+	return list, indices
 end
 
 local function AddBoxNameText (LS, group, id)
@@ -204,7 +201,7 @@ local function AddBoxNameText (LS, group, id)
 	return theme.NameText(group, name)
 end
 
-local function AssignPositions (primary, alist, positions)
+local function AssignPositions (primary, alist, indices, positions)
 	local x, y
 
 	if positions then
@@ -217,7 +214,7 @@ local function AssignPositions (primary, alist, positions)
 
 	if positions and alist then
 		for i = 3, #positions, 3 do
-			local aindex = alist[positions[i]]
+			local aindex = indices[positions[i]]
 
 			cells.PutBoxAt(alist[aindex], positions[i + 1], positions[i + 2], "raw")
 		end
@@ -307,15 +304,16 @@ local function PutItemsInPlace (lg, n)
 	return n
 end
 
-local function GroupLinkInfo (info--[[, tag_db, tag]], values, alist)
-	local n, lg, seen = 0, info and common.GetLinkGrouping(tag)
+local function GroupLinkInfo (info, indices, node_pattern)
+	local n, lg, seen = 0--, info and common.GetLinkGrouping(tag)
 -- ^^ TODO: how do we get this? SendMessageTo() with "get_link_grouping"...
-	for _, name in tag_db:Sublinks(tag, "no_instances") do -- TODO: just iterate nodes?
-		local ok--[[, db]], is_source, iinfo, text = true--[[, tag_db]], --[[SublinkInfo]]NodeInfo(info--[[, tag_db, tag]], values, name)
+--	for _, name in tag_db:Sublinks(tag, "no_instances") do -- TODO: just iterate nodes?
+	for name in node_pattern:IterNodes() do
+		local ok, is_source, iinfo, text = true, NodeInfo(info, name)
 
 		if iinfo and iinfo.group then
 			name = iinfo.group
-			ok, seen--[[, db]] = not adaptive.InSet(seen, name), adaptive.AddToSet(seen, name)
+			ok, seen = not adaptive.InSet(seen, name), adaptive.AddToSet(seen, name)
 		end
 
 		if ok then
@@ -326,9 +324,7 @@ local function GroupLinkInfo (info--[[, tag_db, tag]], values, alist)
 			PopulateEntryFromInfo(li, text, iinfo)
 
 			li.is_source = is_source
-		--	li.is_source = SublinkInfo_Entry(info--[[, db, tag]], name, li)
-			-- ^^^ TODO: can this just use stuff from the call above and use the PopulateXX instead?
-			li.aindex, li.name, li.want_node = alist and alist[name], name, true
+			li.aindex, li.name, li.want_node = indices and indices[name], name, true
 		end
 	end
 
@@ -380,18 +376,32 @@ local function DoLinkInfo (LS, bgroup, id, li, alist)
 	box_layout.AddLine(cur, lo, ro, theme.BoxLineSpacing(), node)
 end
 
+local function DefIterAttachments () end
+
+local function AuxIterAttachments (box, prev)
+	local k, index = next(box[_attachment_indices], prev)
+
+	if k ~= nil then
+		return k, box[_attachments][index]
+	end
+end
+
+local function IterAttachments (box)
+	return AuxIterAttachments, box, nil
+end
+
 --- DOCME
-function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
-	local info, bgroup = common.AttachLinkInfo(id, nil), display.newGroup()
+function M:AddPrimaryBox (group, id)
+	local --[[info, ]]bgroup = --[[common.AttachLinkInfo(id, nil), ]]display.newGroup()
 -- ^^ TODO
 	group:insert(bgroup)
 
 	--
 	local values = self:GetLinker():GetValuesFromIdentifier(id)
-	-- TODO: SendMessageTo(values, "get_link_info") or whatever it is
-	local alist = AddAttachments(self, group, id, values, info)--, tag_db, tag)
+	local info = values:SendMessage("get_node_info") -- TODO: or event
+	local alist, indices = AddAttachments(self, group, id, info)
 
-	for i = 1, GroupLinkInfo(info--[[, tag_db, tag]], values, alist) do
+	for i = 1, GroupLinkInfo(info, indices, self:GetNodePattern(id)) do
 		DoLinkInfo(self, bgroup, id, LinkInfoEx[i], alist)
 	end
 
@@ -402,7 +412,9 @@ function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
 
 	self:AddKnotList(KnotListIndex)
 
-	box.m_attachments = alist
+	box[_attachments], box[_attachment_indices] = alist, indices
+
+	box.Attachments = alist and IterAttachments or DefIterAttachments
 
 	--
 	KnotListIndex = KnotListIndex + 1
@@ -411,7 +423,7 @@ function M:AddPrimaryBox (group--[[, tag_db, tag]], id)
 
 	local linker = self:GetLinker()
 
-	AssignPositions(box, alist, linker:GetPositions(id))
+	AssignPositions(box, alist, indices, linker:GetPositions(id))
 
 	return box, ntext
 end
@@ -432,7 +444,7 @@ end
 
 function M:IntegrateNode (node, id, name, is_export, index)
 	self:AddNode(index or KnotListIndex, not is_export, node)
-
+-- TODO: double check this, it's getting not'd both here and in AddNode()? (original is same)
 	node[_id], node[_name] = id, name
 
 	meta.Augment(node, Node)

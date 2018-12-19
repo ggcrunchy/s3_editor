@@ -99,6 +99,11 @@ function M.AttachmentTextEditSize ()
 end
 
 --- DOCME
+function M.BlockAttachmentBoxSeparationOffset ()
+	return 7
+end
+
+--- DOCME
 function M.Box (group, w, h)
 	local box = display.newRoundedRect(group, 0, 0, w, h, 12)
 
@@ -187,11 +192,6 @@ end
 --- DOCME
 function M.EmphasizeOwner (_)
 	return 0
-end
-
---- DOCME
-function M.GroupAttachmentBoxSeparationOffset ()
-	return 7
 end
 
 --- DOCME

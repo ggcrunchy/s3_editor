@@ -194,7 +194,7 @@ local AddName = {
 		display.newText(agroup.fixed, str, ibox.x, ibox.y, theme.AttachmentArrayTextParams())
 	end,
 
-	group = function(LS, agroup, ibox, gend, id)
+	block = function(LS, agroup, ibox, gend, id)
 		local text = AddNameToSet(LS, agroup, ibox, gend)
 		local node_pattern = LS:GetNodePattern(id)
 		local atext = agroup:FindBox().m_group_info[node_pattern:GetTemplate(gend)]
@@ -342,11 +342,11 @@ function M:AttachmentBox (group, id, template, is_export, style)
 	return GatherAndAddRows(self, box, id, template)
 end
 
-function GatherFilters.group (node_pattern, gend, list)
+function GatherFilters.block (node_pattern, gend, list)
 	return list[node_pattern:GetTemplate(gend)]
 end
 
-local function AuxGroup (agroup, primary_node, make, is_export, params)
+local function AuxBlock (agroup, primary_node, make, is_export, params)
 	local choice = table_view_patterns.Listbox(agroup, GetListboxOpts(params.get_text or DefGetText))
 	local choice_text = params.choice_text or theme.ChoiceDefaultString()
 	local ctext = display.newText(agroup, choice_text, 0, 0, theme.ChoiceTextParams())
@@ -359,7 +359,7 @@ local function AuxGroup (agroup, primary_node, make, is_export, params)
 		choice:Select(1)
 	end
 
-	local sep = theme.GroupAttachmentBoxSeparationOffset()
+	local sep = theme.BlockAttachmentBoxSeparationOffset()
 
 	if is_export then
 		return choice, box_layout.Arrange(false, sep, primary_node, ctext, choice, make) -- TODO
@@ -369,12 +369,12 @@ local function AuxGroup (agroup, primary_node, make, is_export, params)
 end
 
 --- DOCME
-function M:GroupAttachmentBox (group, id, info, is_export, params)
+function M:BlockAttachmentBox (group, id, info, is_export, params)
 	local agroup, make, primary_node = MakeBoxObjects(group, id)
-	local choice, lo, ro = AuxGroup(agroup, primary_node, make, is_export, params)
+	local choice, lo, ro = AuxBlock(agroup, primary_node, make, is_export, params)
 	local box = MakeBox(self, agroup, make, primary_node, lo, ro)
 
-	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "group"
+	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "block"
 	box.m_group_info = info -- n.b. calling code makes no more use of this
 
 	return GatherAndAddRows(self, box, id, info)

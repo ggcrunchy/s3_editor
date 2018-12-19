@@ -134,6 +134,7 @@ local function RemoveAttachment (LS, tag_db, sbox, tag)
 		common.SetLabel(instance, nil) -- TODO!
 
 		tag_db:Release(tag, instance)
+		-- ^^ TODO: just a lookup by ID and then expunging it?
 	end
 
 	LS:RemoveBox(sbox)
@@ -149,8 +150,8 @@ local function RemoveDeadObjects (LS)
 
 		LS:RemoveKnotList(box.m_knot_list_index)
 
-		for j = 1, #(box.m_attachments or "") do
-			tag = RemoveAttachment(LS, tag_db, box.m_attachments[j], tag) -- TODO
+		for _, abox in box:Attachments() do
+			tag = RemoveAttachment(LS, tag_db, abox, tag) -- TODO
 		end
 
 		LS:RemoveBox(box)

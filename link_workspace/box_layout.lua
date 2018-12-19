@@ -239,8 +239,8 @@ function M.IterateGroupsOfNodes (box)
 	glist[#glist + 1] = box.m_lgroup
 	glist[#glist + 1] = box.m_rgroup
 
-	for i = 1, #(box.m_attachments or "") do
-		glist[#glist + 1] = box.m_attachments[i].parent.nodes
+	for _, abox in box:Attachments() do
+		glist[#glist + 1] = abox:NodesGroup()
 	end
 
 	return AuxGroups, glist, 0
@@ -276,6 +276,8 @@ end
 
 -- TODO: could actually clean some of this up by a dynamic resize, but difficult if box in
 -- agroup... but complicates some of how things are being done, e.g. looking up parent
+-- on the other hand, maybe could keep around a temporary group for this very purpose,
+-- and hoist in and out?
 
 -- Cache module members.
 _Arrange_ = M.Arrange

@@ -395,6 +395,26 @@ local function IterBoth (NG)
 	end
 end
 
+local function GetNodeList (NP, how)
+	return NP[how == "exports" and "m_export_nodes" or "m_import_nodes"]
+end
+
+---
+-- @param name
+-- @string[opt] how
+-- @treturn boolean X
+function NodePattern:HasNode (name, how)
+	if how == "exports" or how == "imports" then
+		local list = GetNodeList(self, how)
+
+		return (list and list[name]) ~= nil
+	else
+		local elist, ilist = self.m_export_nodes, self.m_import_nodes
+
+		return ((elist and elist[name]) or (ilist and ilist[name])) ~= nil
+	end
+end
+
 --- Iterate over a set of the nodes thus far added to the pattern.
 -- @string[opt] how If this is **"exports"** or **"imports"**, iteration will be restricted
 -- to the corresponding subset of nodes. Otherwise, all nodes are iterated.
@@ -402,7 +422,7 @@ end
 -- @see NodePattern:AddExportNode, NodePattern:AddImportNode, NodePattern:IterNonTemplateNodes, NodePattern:IterTemplateNodes
 function NodePattern:IterNodes (how)
 	if how == "exports" or how == "imports" then
-		return adaptive.IterSet(self[how == "exports" and "m_export_nodes" or "m_import_nodes"])
+		return adaptive.IterSet(GetNodeList(self, how))
 	else
 		return IterBoth(self)
 	end

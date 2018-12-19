@@ -151,24 +151,16 @@ Runtime:addEventListener("set_object_positions", function()
 	for object, state in pairs(Tagged) do
 		if state then
 			local box, positions = state.m_box, {}
-			local attachments = box.m_attachments
 
 			positions[1], positions[2] = box.parent.x, box.parent.y
 
-			for i = 1, #(attachments or "") do
-				for asub in pairs(attachments) do
-					if asub == attachments[i] then
-						positions[#positions + 1] = asub
-
-						break
-					end
-				end
-
-				positions[#positions + 1] = attachments[i].parent.x
-				positions[#positions + 1] = attachments[i].parent.y
+			for name, abox in box:Attachments() do
+				positions[#positions + 1] = name
+				positions[#positions + 1] = abox.parent.x
+				positions[#positions + 1] = abox.parent.y
 			end
 
-			common.SetPositions(object, positions)
+			common.SetPositions(object, positions) -- TODO
 		end
 	end
 end)
