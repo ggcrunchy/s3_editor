@@ -310,7 +310,6 @@ end
 local function MakeRow (button)
 	local agroup, id, link_scene = button.parent, button.m_id, utils.FindLinkScene(button)
 	local box = agroup:FindBox()
-	-- ^^ TODO: object (id) associated with box...
 	local template = button.m_template or box.m_choice:GetSelectionData()
 	local gend = GenerateName(link_scene, id, template, box.m_style == "array" and RowCount(agroup))
 
@@ -325,7 +324,7 @@ local function MakeBoxObjects (group, id)
 	local primary_node, mw, mh = theme.Node(agroup), theme.MakeRowSize()
 	local make = button.Button(agroup, mw, mh, MakeRow, theme.MakeRowText())
 
-	make.m_id = id -- TODO: see if able to find via box, cf. note in MakeRow()
+	make.m_id = id
 
 	return agroup, make, primary_node
 end

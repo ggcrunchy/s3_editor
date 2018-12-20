@@ -27,163 +27,144 @@
 local M = {}
 
 -- Standard library imports --
+local assert = assert
 local pairs = pairs
-local ipairs = ipairs
-local sort = table.sort
-
--- Modules --
-local common = require("s3_editor.Common")
-
--- Corona globals --
-local display = display
 
 -- Unique member keys --
-local _index = {}
-local _link_indices = {}
-local _tagged = {}
-local _to_remove = {}
-local _to_sort = {}
+local _count = {}
+local _boxes = {}
+local _new = {}
+local _removed = {}
 
 --
 --
 --
-
-local Index, Tagged, ToRemove, ToSort
 
 --- DOCME
-function M.AssociateBoxAndObject (object, box, name)
-	-- ^^^ TODO: these should both be ids, I think, for undo / redo
-	Tagged[object], object.m_link_index = { m_box = box, m_name = name }
+function M:AssignObject (id)
+	local boxes, new = self[_boxes] or {}, self[_new] or { [_count] = 0 }
+
+	assert(not boxes[id], "Object already assigned")
+
+	local pos = new[_count] + 1
+
+	boxes[id], new[pos] = "pending", id -- exists but no box yet (might already have links, though)
+	self[_boxes], self[_new], new[_count] = boxes, new, pos
 end
 
 --- DOCME
-function M.GetBox (object)
-	return Tagged[object].m_box
+function M:GetAssociatedBox (id)
+	local boxes = self[_boxes]
+	local box = boxes and boxes[id]
+
+	return box ~= "pending" and box or nil
 end
 
-local function AuxRemovingIter (t, n)
-	while n > 0 do
-		local object = t[n]
+--- DOCME
+function M:GetAssociatedID (box)
+	local boxes, id = self[_boxes]
 
-		n, t[n] = n - 1
+	if boxes and box ~= "pending" then
+		for k, v in pairs(boxes) do
+			if v == box then
+				id = k
 
-		if object then
-			return n, object
+				break
+			end
+		end
+	end
+
+	return id
+end
+
+--
+local function RemoveAttachment (LS, sbox) -- TODO: at the moment, assumes template
+											-- but will need to accommodate blocks too
+	local linker, nodes = LS:GetLinker(), sbox:GetLinksGroup()
+
+	for i = 1, nodes.numChildren do
+		local gend = nodes[i]:GetName()
+
+		linker:RemoveGeneratedName(nodes[i]:GetID(), gend)
+		linker:SetLabel(gend, nil)
+	end
+
+	LS:RemoveBox(sbox)
+end
+
+local function RemoveDeadObjects (LS)
+	local removed = LS[_removed]
+
+	if removed then
+		for i = 1, removed[_count] do
+			local box = removed[i]
+
+			if box ~= "pending" then
+				LS:RemoveKnotList(box.m_knot_list_index)
+
+				for _, abox in box:Attachments() do
+					RemoveAttachment(LS, abox)
+				end
+
+				LS:RemoveBox(box)
+			end
+		end
+
+		removed[_count] = 0
+	end
+end
+
+local function AddNewObjects (LS)
+	local boxes, new = LS[_boxes], LS[_new] -- n.b. if new exists, so does boxes
+
+	for i = 1, new and new[_count] or 0 do
+		local id = new[i]
+
+		if boxes[id] == "pending" then
+			boxes[id] = LS:AddPrimaryBox(ItemGroup, id) -- TODO!
 		end
 	end
 end
 
-local LinkIndices
+local function MakeConnections (LS)
+	local new = LS[_new]
 
-local function SortByIndex (id1, id2) --a, b)
-	return LinkIndices[id1] < LinkIndices[id2] -- a.m_link_index < b.m_link_index
-end
+	if new then
+		for i = 1, new[_count] do
+			LS:ConnectObject(new[i])
+		end
 
---- DOCME
-function M:IterateNewObjects (how)
-	local to_sort = self[_to_sort]
-
-	if how == "remove" then
-		return AuxRemovingIter, to_sort, #to_sort
-	else
-		LinkIndices = self[_link_indices]
-
-		sort(to_sort, SortByIndex)
-
-		LinkIndices = nil
-
-		return ipairs(to_sort)
+		new[_count] = 0
 	end
+
+	LS:FinishConnecting()
 end
 
 --- DOCME
-function M:IterateRemovedObjects ()
-	local to_remove = self[_to_remove]
-
-	return AuxRemovingIter, to_remove, #to_remove
-end
-
-local function OnAssign (object)
-	Tagged[object] = false -- exists but no box yet (might already have links, though)
-
-	object.m_link_index, Index = Index, Index + 1
-end
-
-local function OnRemove (object)
-	ToRemove[#ToRemove + 1], Tagged[object] = Tagged[object]
-
-	common.RemoveInstance(object, "all")
-end
-
---- DOCME
-function M:AssignObject (id)
-	self[_tagged][id] = false -- exists but no box yet (might already have links, though)
-
-	local index = self[_index]
-
-	self[_link_indices][id], self[_index] = index, index + 1
+function M:Refresh ()
+	RemoveDeadObjects(self)
+	AddNewObjects(self)
+	MakeConnections(self)
 end
 
 --- DOCME
 function M:RemoveObject (id)
-	local tagged, to_remove = self[_tagged], self[_to_remove]
+	local boxes, removed = self[_boxes], self[_removed] or { [_count] = 0 }
+	local box, pos = assert(boxes and boxes[id], "Object not present"), removed[_count] + 1
 
-	to_remove[#to_remove + 1], tagged[id] = tagged[id]
+	removed[pos], boxes[id] = box
+	self[_removed], removed[_count] = removed, pos
 
 	self:GetLinker():RemoveGeneratedName(id, "all")
 	-- ^^^ TODO: cache?
 end
 
+function M:SetObjectPositions ()
+	local linker = self:GetLinker()
 
-
-
---- DOCME
-function M.Load ()
-	Index, Tagged, ToRemove, ToSort = 1, {}, {}, {}
-
-	local links = common.GetLinks()
-
-	links:SetAssignFunc(OnAssign)
-	links:SetRemoveFunc(OnRemove)
-end
-
---- DOCME
-function M:Refresh ()
-	-- TODO: is this really necessary, or can just assign to a new list and
-	-- then stitch it into tagged list already in order? Seems the point of
-	-- the stub is to filter out objects that are removed before ever giving
-	-- them an association.
-	self[_index] = 1
-
-	local to_sort = self[_to_sort]
-
-	for object, state in pairs(Tagged) do
-		if not state then
-			to_sort[#to_sort + 1] = object
-		end
-	end
-
---[[
-	local name = common.GetValuesFromRep(object).name
-
-	if state.m_name.text ~= name then
-		state.m_name.text = name
-		-- TODO: might need resizing :/
-		-- TODO: probably needs a Runtime event
-	end
-]]
-end
-
---- DOCME
-function M.Unload ()
-	Tagged, ToRemove, ToSort = nil
-end
-
--- Listen to events.
-Runtime:addEventListener("set_object_positions", function()
-	for object, state in pairs(Tagged) do
-		if state then
-			local box, positions = state.m_box, {}
+	for id, box in pairs(self[_boxes]) do
+		if box ~= "pending" then
+			local positions = {}
 
 			positions[1], positions[2] = box.parent.x, box.parent.y
 
@@ -193,9 +174,9 @@ Runtime:addEventListener("set_object_positions", function()
 				positions[#positions + 1] = abox.parent.y
 			end
 
-			common.SetPositions(object, positions) -- TODO
+			linker:SetPositions(id, positions)
 		end
 	end
-end)
+end
 
 return M

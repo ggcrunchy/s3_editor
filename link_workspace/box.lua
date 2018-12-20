@@ -1,4 +1,4 @@
---- Operations on segments.
+--- Operations involved in managing object-associated linking boxes.
 
 --
 -- Permission is hereby granted, free of charge, to any person obtaining
@@ -313,8 +313,8 @@ local function GroupLinkInfo (info, indices, node_pattern)
 	for name in node_pattern:IterNodes() do
 		local ok, is_source, iinfo, text = true, NodeInfo(info, name)
 
-		if iinfo and iinfo.group then
-			name = iinfo.group
+		if iinfo and iinfo.block then
+			name = iinfo.block
 			ok, seen = not adaptive.InSet(seen, name), adaptive.AddToSet(seen, name)
 		end
 

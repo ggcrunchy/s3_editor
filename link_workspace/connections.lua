@@ -56,6 +56,8 @@ end
 
 --- DOCME
 function M:AddNode (id, is_export, node)
+	-- TODO: could suss out `is_export` by
+	-- `GetLinker():GetNodePattern(id):HasNode(node:GetName(), "exports")`, no?
 	self[_link_group]:AddLink(id, not is_export, node)
 end
 
@@ -187,7 +189,8 @@ local function AuxKnit (link, id, node1)
 		Knitting = Knitting or {}
 
 		local link_scene, oid, oname = utils.FindLinkScene(node1), link:GetOtherItem(id)
-		local knot = link_scene[_link_group]:ConnectObjects(node1, FindLink(objects.GetBox(oid), oname))
+		local obox = link_scene:GetAssociatedBox(oid)
+		local knot = link_scene[_link_group]:ConnectObjects(node1, FindLink(obox, oname))
 
 		knot.m_link, Knitting[link] = link, true
 	end
@@ -209,7 +212,7 @@ end
 function M:ConnectObject (id)
 	local links = self:GetLinker():GetLinkCollection()
 
-	for _, group in box_layout.IterateGroupsOfNodes(objects.GetBox(id)) do -- TODO
+	for _, group in box_layout.IterateGroupsOfNodes(self:GetAssociatedBox(id)) do -- TODO
 		KnitNodes(links, group, id)
 	end
 end

@@ -101,7 +101,8 @@ function M.Load (view)
 	view:insert(Group)
 
 	local link_layer = display.newGroup()
-	local cont, drag = common.NewScreenSizeContainer(Group, ItemGroup, { layers = { link_layer }, offset = Offset })
+	local cparams = { layers = { link_layer }, offset = Offset }
+	local cont, drag = common.NewScreenSizeContainer(Group, ItemGroup, cparams)
 
 	drag:toBack()
 
@@ -120,63 +121,6 @@ function M.Load (view)
 	globals.Load(view)
 
 	Group.isVisible = false
-end
-
---
-local function RemoveAttachment (LS, tag_db, sbox, tag)
-	local nodes = sbox:GetLinksGroup()
-
-	for i = 1, nodes.numChildren do
-		tag = tag or tag_db:GetTag(nodes[i]:GetID()) -- TODO!
-
-		local instance = nodes[i]:GetName() -- TODO!
-
-		common.SetLabel(instance, nil) -- TODO!
-
-		tag_db:Release(tag, instance)
-		-- ^^ TODO: just a lookup by ID and then expunging it?
-	end
-
-	LS:RemoveBox(sbox)
-
-	return tag
-end
-
-local function RemoveDeadObjects (LS)
---	local tag_db = common.GetLinks():GetTagDatabase()
-
-	for _, state in objects.IterateRemovedObjects() do -- TODO: ??
-		local box, tag = state.m_box
-
-		LS:RemoveKnotList(box.m_knot_list_index)
-
-		for _, abox in box:Attachments() do
-			tag = RemoveAttachment(LS, tag_db, abox, tag) -- TODO
-		end
-
-		LS:RemoveBox(box)
-	end	
-end
-
-local function AddNewObjects (LS)
-	local links = common.GetLinks()
-	local tag_db = links:GetTagDatabase()
-
---	LastSpot = -1
-
-	for _, object in objects.IterateNewObjects() do -- TODO: ids
-		local box, name = LS:AddPrimaryBox(ItemGroup, tag_db, links:GetTag(object), object)
-
-		objects.AssociateBoxAndObject(object, box, name)
-	end
-end
-
-local function MakeConnections (LS)
-	for _, object in objects.IterateNewObjects("remove") do -- TODO: ids
-		LS:ConnectObject(object)
-	end
-
-	LS:FinishConnecting()
 end
 
 local Event = {}
@@ -207,11 +151,6 @@ end
 function LinkScene:Enter ()
 	self:Refresh()
 
-	RemoveDeadObjects(self)
-	AddNewObjects(self)
-	MakeConnections(self)
-
-	-- TODO: ^^^ stuff in sub-modules
 	Dispatch(self, "enter")
 end
 
