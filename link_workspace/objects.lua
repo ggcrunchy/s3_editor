@@ -39,6 +39,7 @@ local display = display
 
 -- Unique member keys --
 local _index = {}
+local _link_indices = {}
 local _tagged = {}
 local _to_remove = {}
 local _to_sort = {}
@@ -72,8 +73,10 @@ local function AuxRemovingIter (t, n)
 	end
 end
 
-local function SortByIndex (a, b)
-	return a.m_link_index < b.m_link_index
+local LinkIndices
+
+local function SortByIndex (id1, id2) --a, b)
+	return LinkIndices[id1] < LinkIndices[id2] -- a.m_link_index < b.m_link_index
 end
 
 --- DOCME
@@ -83,7 +86,11 @@ function M:IterateNewObjects (how)
 	if how == "remove" then
 		return AuxRemovingIter, to_sort, #to_sort
 	else
+		LinkIndices = self[_link_indices]
+
 		sort(to_sort, SortByIndex)
+
+		LinkIndices = nil
 
 		return ipairs(to_sort)
 	end
@@ -109,6 +116,28 @@ local function OnRemove (object)
 end
 
 --- DOCME
+function M:AssignObject (id)
+	self[_tagged][id] = false -- exists but no box yet (might already have links, though)
+
+	local index = self[_index]
+
+	self[_link_indices][id], self[_index] = index, index + 1
+end
+
+--- DOCME
+function M:RemoveObject (id)
+	local tagged, to_remove = self[_tagged], self[_to_remove]
+
+	to_remove[#to_remove + 1], tagged[id] = tagged[id]
+
+	self:GetLinker():RemoveGeneratedName(id, "all")
+	-- ^^^ TODO: cache?
+end
+
+
+
+
+--- DOCME
 function M.Load ()
 	Index, Tagged, ToRemove, ToSort = 1, {}, {}, {}
 
@@ -120,6 +149,10 @@ end
 
 --- DOCME
 function M:Refresh ()
+	-- TODO: is this really necessary, or can just assign to a new list and
+	-- then stitch it into tagged list already in order? Seems the point of
+	-- the stub is to filter out objects that are removed before ever giving
+	-- them an association.
 	self[_index] = 1
 
 	local to_sort = self[_to_sort]

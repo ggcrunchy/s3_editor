@@ -40,6 +40,29 @@ local UndoRedoStack = {}
 UndoRedoStack.__index = UndoRedoStack
 
 --- DOCME
+-- @see UndoRedoStack:End, UndoRedoStack:Push
+function UndoRedoStack:Begin ()
+	assert(not self.m_accumulator, "Already accumulating handler")
+end
+
+local function DoList (how, acc)
+	for i = 1, #acc, 2 do
+		acc[i](how, acc[i + 1], true)
+	end
+end
+
+--- DOCME
+-- @param arg
+-- @see UndoRedoStack:Begin, UndoRedoStack:Push
+function UndoRedoStack:End (arg)
+	local acc = assert(self.m_accumulator, "Accumulation not active")
+
+	self.m_accumulator = nil
+
+	self:Push(DoList, acc)
+end
+
+--- DOCME
 -- @treturn boolean X
 function UndoRedoStack:IsSynchronized ()
 	return self.m_stack_pos == self.m_sync
@@ -59,12 +82,15 @@ local function IncArrayPos (S)
 	return new, old
 end
 
+local function Add (arr, offset, func, object)
+	arr[offset + 1] = func
+	arr[offset + 2] = object or false
+end
+
 local function AuxPush (S, func, object)
 	local _, old = IncArrayPos(S)
-	local offset = (old - 1) * 2
 
-	S[offset + 1] = func
-	S[offset + 2] = object or false
+	Add(S, (old - 1) * 2, func, object)
 end
 
 local function PutStackPosAtEnd (S, count)
@@ -74,26 +100,33 @@ end
 --- DOCME
 -- @callable func
 -- @param[opt=false] object
+-- @see UndoRedoStack:Begin, UndoRedoStack:End
 function UndoRedoStack:Push (func, object)
-	AuxPush(self, func, object)
+	local acc = self.m_accumulator
 
-	local count, spos, sync = self.m_count, self.m_stack_pos, self.m_sync
+	if acc then
+		Add(acc, 0, func, object)
+	else
+		AuxPush(self, func, object)
 
-	if spos <= count then -- have performed some undos?
-		if sync and sync > spos then -- sync point now unreachable?
-			self.m_sync = nil
-		end
+		local count, spos, sync = self.m_count, self.m_stack_pos, self.m_sync
 
-		PutStackPosAtEnd(self, spos)
-	elseif count < self.m_size then -- room to grow?
-		PutStackPosAtEnd(self, count + 1)
-	elseif sync then -- first item evicted, so update sync point
-		sync = sync - 1
+		if spos <= count then -- have performed some undos?
+			if sync and sync > spos then -- sync point now unreachable?
+				self.m_sync = nil
+			end
 
-		if sync > 0 then -- still reachable?
-			self.m_sync = sync
-		else
-			self.m_sync = nil
+			PutStackPosAtEnd(self, spos)
+		elseif count < self.m_size then -- room to grow?
+			PutStackPosAtEnd(self, count + 1)
+		elseif sync then -- first item evicted, so update sync point
+			sync = sync - 1
+
+			if sync > 0 then -- still reachable?
+				self.m_sync = sync
+			else
+				self.m_sync = nil
+			end
 		end
 	end
 end
@@ -106,6 +139,8 @@ end
 
 --- DOCME
 function UndoRedoStack:Redo ()
+	assert(not self.m_accumulator, "Accumulation not ended")
+
 	local spos = self.m_stack_pos
 	local can_redo = spos <= self.m_count
 
@@ -127,6 +162,8 @@ end
 
 --- DOCME
 function UndoRedoStack:Undo ()
+	assert(not self.m_accumulator, "Accumulation not ended")
+
 	local spos = self.m_stack_pos
 	local can_undo = spos > 1
 

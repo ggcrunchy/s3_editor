@@ -151,14 +151,16 @@ local function NodeInfo (info, name)
 	end
 end
 
-local function PatchInBlocks (LS, group, id, blocks, info, list, indices)
-	for k, v in pairs(indices) do
-		if v == "block" then
-			local binfo, is_source, iinfo = blocks[k], NodeInfo(info, k)
+local function AddAttachmentBox (list, indices, name, box)
+	list[#list + 1] = box
+	indices[name] = #list
+end
 
-			list[#list + 1] = LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo)
-			indices[k] = #list
-		end
+local function PatchInBlocks (LS, group, id, blocks, info, list, indices)
+	for k, binfo in pairs(blocks) do
+		local is_source, iinfo = NodeInfo(info, k)
+
+		AddAttachmentBox(list, indices, k, LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo))
 	end
 end
 
@@ -170,8 +172,8 @@ local function AddAttachments (LS, group, id, info)
 		local is_source, iinfo = NodeInfo(info, name)
 		local bname = iinfo and iinfo.block
 
-		if bname then
-			blocks, list[bname] = blocks or {}, "block"
+		if bname ~= nil then
+			blocks = blocks or {}
 
 			local binfo = blocks[bname] or {}
 
@@ -180,15 +182,15 @@ local function AddAttachments (LS, group, id, info)
 			local style = (iinfo and iinfo.is_set) and "set" or "array"
 
 			indices, list = indices or {}, list or {}
-			list[#list + 1] = LS:AttachmentBox(group, id, name, is_source, style)
-			indices[name] = #list
+
+			AddAttachmentBox(list, indices, name, LS:AttachmentBox(group, id, name, is_source, style))
 		end
 	end
 
-	if blocks and indices then
+	if blocks then
+		indices, list = indices or {}, list or {}
+
 		PatchInBlocks(LS, group, id, blocks, info, list, indices)
-	elseif blocks then
-		-- pure string?
 	end
 
 	return list, indices
