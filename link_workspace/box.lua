@@ -133,7 +133,7 @@ end
 
 local function NodeInfo (info, name)
 	local iinfo = info and info[name]
-	local itype--[[, is_source]] = iinfo and type(iinfo)
+	local itype--[[, is_source]] = iinfo and type(iinfo) -- ISSOURCE
 	--, tag_db ~= nil and tag_db:ImplementedBySublink(tag, name, "event_source")
 -- ^^^ TODO: what would be the equivalent here? something like finding that it's an export
 -- and ImplementsValue()? some node pattern stuff, or what?
@@ -141,13 +141,13 @@ local function NodeInfo (info, name)
 -- actually actually, we can probably even dispense with "is_source" and just streamline all cases
 	if itype == "table" then
 --[[
-		if iinfo.is_source ~= nil then
+		if iinfo.is_source ~= nil then ISSOURCE
 			is_source = iinfo.is_source
 		end
 ]]
-		return --[[is_source, ]]iinfo, iinfo.friendly_name
+		return --[[is_source, ]]iinfo, iinfo.friendly_name -- ISSOURCE
 	else
-		return --[[is_source, ]]nil, itype == "string" and iinfo or nil
+		return --[[is_source, ]]nil, itype == "string" and iinfo or nil -- ISSOURCE
 	end
 end
 
@@ -158,9 +158,9 @@ end
 
 local function PatchInBlocks (LS, group, id, blocks, info, list, indices)
 	for k, binfo in pairs(blocks) do
-		local is_source, iinfo = NodeInfo(info, k)
+		local is_source, iinfo = NodeInfo(info, k) -- ISSOURCE
 
-		AddAttachmentBox(list, indices, k, LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo))
+		AddAttachmentBox(list, indices, k, LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo)) -- ISSOURCE
 	end
 end
 
@@ -169,7 +169,7 @@ local function AddAttachments (LS, group, id, info)
 	local node_pattern, blocks, indices, list = LS:GetNodePattern(id)
 
 	for name in node_pattern:IterTemplateNodes() do -- TODO: this will miss blocks, no?
-		local is_source, iinfo = NodeInfo(info, name)
+		local is_source, iinfo = NodeInfo(info, name) -- ISSOURCE
 		local bname = iinfo and iinfo.block
 
 		if bname ~= nil then
@@ -183,7 +183,7 @@ local function AddAttachments (LS, group, id, info)
 
 			indices, list = indices or {}, list or {}
 
-			AddAttachmentBox(list, indices, name, LS:AttachmentBox(group, id, name, is_source, style))
+			AddAttachmentBox(list, indices, name, LS:AttachmentBox(group, id, name, is_source, style)) -- ISSOURCE
 		end
 	end
 
@@ -224,7 +224,7 @@ local function AssignPositions (primary, alist, indices, positions)
 		for i = 1, #(alist or "") do
 			local abox = alist[i]
 
-			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_export and "right_of" or "left_of"))	
+			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_export and "right_of" or "left_of")) -- ISSOURCE
 		end
 	end
 end
@@ -252,17 +252,17 @@ local function PutItemsInPlace (lg, n)
 			Indices[i], Order[li.name], LinkInfoEx[i] = li.name, li, false
 		end
 
-		local li, is_source
+		local li, is_source -- ISSOURCE
 
 		for i, ginfo in ipairs(lg) do
 			if Order[ginfo] then
 				li, Order[ginfo] = Order[ginfo]
 
 				if is_source ~= nil then -- otherwise use own value
-					li.is_source = is_source
+					li.is_source = is_source -- ISSOURCE
 				end
 			else
-				li, n, is_source = InfoEntry(n + 1), n + 1
+				li, n, is_source = InfoEntry(n + 1), n + 1 -- ISSOURCE
 				Indices[n] = false -- ensure empty
 
 				for k in pairs(li) do
@@ -270,7 +270,7 @@ local function PutItemsInPlace (lg, n)
 				end
 
 				if type(ginfo) == "table" then
-					if ginfo.is_source ~= nil then
+					if ginfo.is_source ~= nil then -- ISSOURCE
 						is_source = ginfo.is_source
 					end
 
@@ -280,6 +280,7 @@ local function PutItemsInPlace (lg, n)
 				end
 
 				li.is_source = is_source ~= nil and is_source -- false or is_source
+				-- ISSOURCE
 			end
 
 			LinkInfoEx[i] = li
@@ -311,7 +312,7 @@ local function GroupLinkInfo (info, indices, node_pattern)
 -- ^^ TODO: how do we get this? SendMessageTo() with "get_link_grouping"...
 --	for _, name in tag_db:Sublinks(tag, "no_instances") do -- TODO: just iterate nodes?
 	for name in node_pattern:IterNodes() do
-		local ok, is_source, iinfo, text = true, NodeInfo(info, name)
+		local ok, is_source, iinfo, text = true, NodeInfo(info, name) -- ISSOURCE
 
 		if iinfo and iinfo.block then
 			name = iinfo.block
@@ -325,7 +326,7 @@ local function GroupLinkInfo (info, indices, node_pattern)
 
 			PopulateEntryFromInfo(li, text, iinfo)
 
-			li.is_source = is_source
+			li.is_source = is_source -- ISSOURCE
 			li.aindex, li.name, li.want_node = indices and indices[name], name, true
 		end
 	end
@@ -355,7 +356,7 @@ local function ItemNameText (group, li)
 end
 
 local function DoLinkInfo (LS, bgroup, id, li, alist)
-	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source)
+	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source) -- ISSOURCE
 	local node, iname = li.want_node and theme.Node(cur), ItemNameText(cur, li)
 
 	if li.about then
@@ -365,13 +366,13 @@ local function DoLinkInfo (LS, bgroup, id, li, alist)
 
 	--
 	local sep = theme.BoxSeparationOffset()
-	local lo, ro = box_layout.Arrange(li.is_source, sep, RowItems(node, iname, li.about))
+	local lo, ro = box_layout.Arrange(li.is_source, sep, RowItems(node, iname, li.about)) -- ISSOURCE
 
 	--
 	if li.aindex then
 		LS:LinkAttachment(node, alist[li.aindex])
 	elseif node then
-		LS:IntegrateNode(node, id, li.name, li.is_source)
+		LS:IntegrateNode(node, id, li.name, li.is_source) -- ISSOURCE
 	end
 
 	--
@@ -444,12 +445,13 @@ function Node:GetName ()
 	return self[_name]
 end
 
-function M:IntegrateNode (node, id, name, is_export, index)
-	self:AddNode(index or KnotListIndex, not is_export, node)
--- TODO: double check this, it's getting not'd both here and in AddNode()? (original is same)
+function M:IntegrateNode (node, id, name, is_export, index) -- ISSOURCE
 	node[_id], node[_name] = id, name
 
 	meta.Augment(node, Node)
+
+	self:AddNode(index or KnotListIndex--[[, not is_export]], node) -- ISSOURCE
+-- TODO: double check this, it's getting not'd both here and in AddNode()? (original is same)
 end
 
 --- DOCME

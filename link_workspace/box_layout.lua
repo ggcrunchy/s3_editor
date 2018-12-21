@@ -93,12 +93,12 @@ function M.AddLine (group, left_object, right_object, spacing, lowest)
 end
 
 --- DOCME
-function M.Arrange (is_source, offset, a, b, c, d, e, f)
+function M.Arrange (is_source, offset, a, b, c, d, e, f) -- ISSOURCE
 	local method
 
 	if not b then
 		offset = offset + a.width / 2
-		a.x = a.x + (is_source and -offset or offset)
+		a.x = a.x + (is_source and -offset or offset) -- ISSOURCE
 	elseif is_source then
 		method, offset = layout.PutLeftOf, -offset
 	else
@@ -125,13 +125,13 @@ function M.Arrange (is_source, offset, a, b, c, d, e, f)
 		method(f, e, offset)
 	end
 
-	return _LeftAndRight_(is_source, a, b, c, d, e, f)
+	return _LeftAndRight_(is_source, a, b, c, d, e, f) -- ISSOURCE
 end
 
 local LeftAndRightGroup
 
 --- DOCME
-function M.ChooseLeftOrRightGroup (bgroup, is_source)
+function M.ChooseLeftOrRightGroup (bgroup, is_source) -- ISSOURCE
 	local gi = is_source and 2 or 1
 
 	if not LeftAndRightGroup[gi] then
@@ -247,7 +247,7 @@ function M.IterateGroupsOfNodes (box)
 end
 
 --- DOCME
-function M.LeftAndRight (is_source, a, b, c, d, e, f)
+function M.LeftAndRight (is_source, a, b, c, d, e, f) -- ISSOURCE
 	local last = f or e or d or c or b or a
 
 	if is_source then

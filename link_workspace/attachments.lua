@@ -207,25 +207,25 @@ local AddName = {
 }
 
 local function AddRowToBox (LS, box, id, gend)
-	local agroup, is_export = box.parent, box.m_is_export
+	local agroup, is_export = box.parent, box.m_is_export -- ISSOURCE
 	local n, w = RowCount(agroup), theme.AttachmentRowWidth(box.width, box.m_style)
 	local ibox = ItemBox(box, agroup, n, w, box.m_style)
 	local node, hw = theme.Node(agroup.nodes), w / 2
 
-	node.x = box.x + (is_export and hw or -hw)
+	node.x = box.x + (is_export and hw or -hw) -- ISSOURCE
 	node.y = ibox.y
 
 	local delete = theme.DeleteButton(agroup.fixed, ibox)
 
 	delete:addEventListener("touch", Delete)
 
-	delete.x = box.x + (is_export and -hw or hw)
+	delete.x = box.x + (is_export and -hw or hw) -- ISSOURCE
 
 	delete.m_id, delete.m_row = id, n
 
 	AddName[box.m_style](LS, agroup, ibox, gend, id)
 
-	LS:IntegrateNode(node, id, gend, is_export, box.m_knot_list_index)
+	LS:IntegrateNode(node, id, gend, is_export, box.m_knot_list_index) -- ISSOURCE
 end
 
 local function AddSubGroups (agroup)
@@ -330,13 +330,13 @@ local function MakeBoxObjects (group, id)
 end
 
 --- DOCME
-function M:AttachmentBox (group, id, template, is_export, style)
+function M:AttachmentBox (group, id, template, is_export, style) -- ISSOURCE
 	local agroup, make, primary_node = MakeBoxObjects(group, id)
 	local sep = theme.AttachmentBoxSeparationOffset()
-	local lo, ro = box_layout.Arrange(not is_export, sep, primary_node, make)
+	local lo, ro = box_layout.Arrange(not is_export, sep, primary_node, make) -- ISSOURCE
 	local box = MakeBox(self, agroup, make, primary_node, lo, ro)
 
-	make.m_template, box.m_is_export, box.m_style = template, is_export, style
+	make.m_template, box.m_is_export, box.m_style = template, is_export, style -- ISSOURCE
 
 	return GatherAndAddRows(self, box, id, template)
 end
@@ -345,7 +345,7 @@ function GatherFilters.block (node_pattern, gend, list)
 	return list[node_pattern:GetTemplate(gend)]
 end
 
-local function AuxBlock (agroup, primary_node, make, is_export, params)
+local function AuxBlock (agroup, primary_node, make, is_export, params) -- ISSOURCE
 	local choice = table_view_patterns.Listbox(agroup, GetListboxOpts(params.get_text or DefGetText))
 	local choice_text = params.choice_text or theme.ChoiceDefaultString()
 	local ctext = display.newText(agroup, choice_text, 0, 0, theme.ChoiceTextParams())
@@ -360,7 +360,7 @@ local function AuxBlock (agroup, primary_node, make, is_export, params)
 
 	local sep = theme.BlockAttachmentBoxSeparationOffset()
 
-	if is_export then
+	if is_export then -- ISSOURCE
 		return choice, box_layout.Arrange(false, sep, primary_node, ctext, choice, make) -- TODO
 	else
 		return choice, box_layout.Arrange(false, sep, ctext, choice, make, primary_node)
@@ -368,12 +368,12 @@ local function AuxBlock (agroup, primary_node, make, is_export, params)
 end
 
 --- DOCME
-function M:BlockAttachmentBox (group, id, info, is_export, params)
+function M:BlockAttachmentBox (group, id, info, is_export, params) -- ISSOURCE
 	local agroup, make, primary_node = MakeBoxObjects(group, id)
-	local choice, lo, ro = AuxBlock(agroup, primary_node, make, is_export, params)
+	local choice, lo, ro = AuxBlock(agroup, primary_node, make, is_export, params) -- ISSOURCE
 	local box = MakeBox(self, agroup, make, primary_node, lo, ro)
 
-	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "block"
+	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "block" -- ISSOURCE
 	box.m_group_info = info -- n.b. calling code makes no more use of this
 
 	return GatherAndAddRows(self, box, id, info)

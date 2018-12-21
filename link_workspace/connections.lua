@@ -33,8 +33,7 @@ local sort = table.sort
 -- Modules --
 local box_layout = require("s3_editor.link_workspace.box_layout")
 local function_set = require("s3_editor.FunctionSet")
-local link_group = require("corona_ui.widgets.link_group")
-local objects = require("s3_editor_views.link_imp.objects")
+local node_group = require("corona_ui.widgets.node_group")
 local theme = require("s3_editor.link_workspace.theme")
 local utils = require("s3_editor_views.link_imp.utils")
 
@@ -43,7 +42,7 @@ local transition = transition
 
 -- Unique member keys --
 local _knot_lists = {}
-local _link_group = {}
+local _node_group = {}
 
 --
 --
@@ -55,10 +54,10 @@ function M:AddKnotList (id)
 end
 
 --- DOCME
-function M:AddNode (id, is_export, node)
+function M:AddNode (id, node)--is_export, node) -- ISSOURCE
 	-- TODO: could suss out `is_export` by
 	-- `GetLinker():GetNodePattern(id):HasNode(node:GetName(), "exports")`, no?
-	self[_link_group]:AddLink(id, not is_export, node)
+	self[_node_group]:AddNode(id, --[[is_export and "rhs" or "lhs"]]self:GetNodeSide(id, node:GetName()), node)
 end
 
 local function AuxAreAlreadyLinked (link, id, other)
@@ -130,7 +129,7 @@ local function Connect (LG, node1, node2, knot)
 
 	knot.m_link = links:LinkItems(node1:GetID(), node2:GetID(), node1:GetName(), node2:GetName())
 
-	local id1, id2 = link_group.GetLinkInfo(node1), link_group.GetLinkInfo(node2)
+	local id1, id2 = node_group.GetLinkInfo(node1), node_group.GetLinkInfo(node2)
 	local knot_lists = link_scene[_knot_lists]
 
 	knot.m_id1, knot_lists[id1][id2] = id1, true
@@ -158,7 +157,7 @@ local function UndoRedoBreakKnot (how)
 	end
 end
 
-local KnotTouch = link_group.BreakTouchFunc(function(knot)
+local KnotTouch = node_group.BreakTouchFunc(function(knot)
 	knot.m_link:Break()
 
 	local link_scene = utils.FindLinkScene(knot)
@@ -170,7 +169,7 @@ local KnotTouch = link_group.BreakTouchFunc(function(knot)
 end)
 
 --
-local function FindLink (box, name) -- TODO: want box id?
+local function FindNode (box, name) -- TODO: want box id?
 	for _, group in box_layout.IterateGroupsOfNodes(box) do -- TODO
 		for i = 1, group.numChildren do
 			local item = group[i]
@@ -190,7 +189,7 @@ local function AuxKnit (link, id, node1)
 
 		local link_scene, oid, oname = utils.FindLinkScene(node1), link:GetOtherItem(id)
 		local obox = link_scene:GetAssociatedBox(oid)
-		local knot = link_scene[_link_group]:ConnectObjects(node1, FindLink(obox, oname))
+		local knot = link_scene[_node_group]:ConnectObjects(node1, FindNode(obox, oname))
 
 		knot.m_link, Knitting[link] = link, true
 	end
@@ -231,8 +230,21 @@ function M:GetNodePattern (id)
 end
 
 --- DOCME
+function M:GetNodeSide (id, name, node_pattern)
+	node_pattern = node_pattern or self:GetNodePattern(id)
+
+	if node_pattern:HasNode(name, "exports") then
+		return "rhs"
+	elseif node_pattern:HasNode(name, "imports") then
+		return "lhs"
+	else
+		return "none"
+	end
+end
+
+--- DOCME
 function M:LinkAttachment (node, attachment)
-	link_group.Connect(node, attachment.primary, false, self[_link_group]:GetGroups())
+	node_group.Connect(node, attachment.primary, false, self[_node_group]:GetGroups())
 
 	local alpha = theme.AttachmentNodeAlpha()
 
@@ -308,7 +320,7 @@ end
 
 --- DOCME
 function M:LoadConnections (group)
-	self[_link_group] = link_group.LinkGroup(group, Connect, KnotTouch, LinkGroupOpts)
+	self[_node_group] = node_group.NodeGroup(group, Connect, KnotTouch, LinkGroupOpts)
 	self[_knot_lists] = {}
 end
 
@@ -319,7 +331,7 @@ function M:RemoveKnotList (id)
 
 	if list then -- attachments will share primary's list
 		for knot in pairs(list) do -- TODO: broken...
-			link_group.Break(knot)
+			node_group.Break(knot)
 		end
 	end
 
