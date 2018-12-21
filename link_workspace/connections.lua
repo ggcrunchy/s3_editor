@@ -43,6 +43,10 @@ local transition = transition
 -- Unique member keys --
 local _knot_lists = {}
 local _node_group = {}
+local _prev_id = {}
+local _prev_name = {}
+local _prev_pattern = {}
+local _prev_side = {}
 
 --
 --
@@ -54,10 +58,10 @@ function M:AddKnotList (id)
 end
 
 --- DOCME
-function M:AddNode (id, node)--is_export, node) -- ISSOURCE
-	-- TODO: could suss out `is_export` by
-	-- `GetLinker():GetNodePattern(id):HasNode(node:GetName(), "exports")`, no?
-	self[_node_group]:AddNode(id, --[[is_export and "rhs" or "lhs"]]self:GetNodeSide(id, node:GetName()), node)
+function M:AddNode (id, node)
+	local node_pattern = self:GetNodePattern(id)
+
+	self[_node_group]:AddNode(id, self:GetNodeSide(node_pattern, node:GetName()), node)
 end
 
 local function AuxAreAlreadyLinked (link, id, other)
@@ -223,16 +227,21 @@ end
 
 --- DOCME
 function M:GetNodePattern (id)
-	local linker = self:GetLinker()
-	local values = linker:GetValuesFromIdentifier(id)
+	if self[_prev_id] == id then -- avoid some redundancy
+		return self[_prev_pattern]
+	else
+		local linker = self:GetLinker()
+		local values = linker:GetValuesFromIdentifier(id)
+		local node_pattern = function_set.GetStateFromInstance(values)
 
-	return function_set.GetStateFromInstance(values)
+		self[_prev_id], self[_prev_pattern] = id, node_pattern	-- see also GetNodeSide(), but this should
+																-- be compatible with its access pattern
+
+		return node_pattern
+	end
 end
 
---- DOCME
-function M:GetNodeSide (id, name, node_pattern)
-	node_pattern = node_pattern or self:GetNodePattern(id)
-
+local function AuxGetNodeSide (node_pattern, name)
 	if node_pattern:HasNode(name, "exports") then
 		return "rhs"
 	elseif node_pattern:HasNode(name, "imports") then
@@ -240,6 +249,32 @@ function M:GetNodeSide (id, name, node_pattern)
 	else
 		return "none"
 	end
+end
+
+--- DOCME
+function M:GetNodeSide (node_pattern, name)
+	if self[_prev_pattern] == node_pattern and self[_prev_name] == name then	-- avoid some redundancy
+		return self[_prev_side]
+	else
+		name = node_pattern:GetTemplate(name) or name
+
+		local side = AuxGetNodeSide(node_pattern, name)
+
+		self[_prev_name], self[_prev_pattern], self[_prev_side] = name, node_pattern, side
+
+		return side
+	end
+end
+
+--- DOCME
+function M:GetSideOppositeNode (node_pattern, name)
+	local side = self:GetNodeSide(node_pattern, name)
+
+	if side == "lhs" or side == "rhs" then
+		side = side == "lhs" and "rhs" or "lhs"
+	end
+
+	return side
 end
 
 --- DOCME

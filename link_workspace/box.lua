@@ -133,21 +133,12 @@ end
 
 local function NodeInfo (info, name)
 	local iinfo = info and info[name]
-	local itype--[[, is_source]] = iinfo and type(iinfo) -- ISSOURCE
-	--, tag_db ~= nil and tag_db:ImplementedBySublink(tag, name, "event_source")
--- ^^^ TODO: what would be the equivalent here? something like finding that it's an export
--- and ImplementsValue()? some node pattern stuff, or what?
--- actually, already registered in NodePattern...
--- actually actually, we can probably even dispense with "is_source" and just streamline all cases
+	local itype = iinfo and type(iinfo)
+
 	if itype == "table" then
---[[
-		if iinfo.is_source ~= nil then ISSOURCE
-			is_source = iinfo.is_source
-		end
-]]
-		return --[[is_source, ]]iinfo, iinfo.friendly_name -- ISSOURCE
+		return iinfo, iinfo.friendly_name
 	else
-		return --[[is_source, ]]nil, itype == "string" and iinfo or nil -- ISSOURCE
+		return nil, itype == "string" and iinfo or nil
 	end
 end
 
@@ -158,7 +149,7 @@ end
 
 local function PatchInBlocks (LS, group, id, blocks, info, list, indices)
 	for k, binfo in pairs(blocks) do
-		local is_source, iinfo = NodeInfo(info, k) -- ISSOURCE
+		local --[[is_source, ]]iinfo = NodeInfo(info, k)
 
 		AddAttachmentBox(list, indices, k, LS:BlockAttachmentBox(group, id, binfo, is_source, iinfo)) -- ISSOURCE
 	end
@@ -169,7 +160,7 @@ local function AddAttachments (LS, group, id, info)
 	local node_pattern, blocks, indices, list = LS:GetNodePattern(id)
 
 	for name in node_pattern:IterTemplateNodes() do -- TODO: this will miss blocks, no?
-		local is_source, iinfo = NodeInfo(info, name) -- ISSOURCE
+		local iinfo = NodeInfo(info, name)
 		local bname = iinfo and iinfo.block
 
 		if bname ~= nil then
@@ -183,7 +174,7 @@ local function AddAttachments (LS, group, id, info)
 
 			indices, list = indices or {}, list or {}
 
-			AddAttachmentBox(list, indices, name, LS:AttachmentBox(group, id, name, is_source, style)) -- ISSOURCE
+			AddAttachmentBox(list, indices, name, LS:AttachmentBox(group, id, name, style))
 		end
 	end
 
@@ -203,7 +194,7 @@ local function AddBoxNameText (LS, group, id)
 	return theme.NameText(group, name)
 end
 
-local function AssignPositions (primary, alist, indices, positions)
+local function AssignPositions (LS, primary, id, alist, indices, positions)
 	local x, y
 
 	if positions then
@@ -220,12 +211,20 @@ local function AssignPositions (primary, alist, indices, positions)
 
 			cells.PutBoxAt(alist[aindex], positions[i + 1], positions[i + 2], "raw")
 		end
-	else
+	elseif alist then
+		local node_pattern = LS:GetNodePattern(id)
+
+		for name, index in pairs(indices) do
+			local abox, side = alist[index], LS:GetNodeSide(node_pattern, name)
+
+			-- TODO: put it somewhere!
+		end
+		--[[
 		for i = 1, #(alist or "") do
 			local abox = alist[i]
 
-			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_export and "right_of" or "left_of")) -- ISSOURCE
-		end
+			cells.PutBoxAt(abox, FindFreeSpot(x, abox.m_is_export and "right_of" or "left_of"))
+		end]]
 	end
 end
 
@@ -355,8 +354,9 @@ local function ItemNameText (group, li)
 	return str
 end
 
-local function DoLinkInfo (LS, bgroup, id, li, alist)
-	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, li.is_source) -- ISSOURCE
+local function DoLinkInfo (LS, bgroup, node_pattern, id, li, alist)
+	local side = LS:GetNodeSide(node_pattern, li.name)
+	local cur = box_layout.ChooseLeftOrRightGroup(bgroup, side)
 	local node, iname = li.want_node and theme.Node(cur), ItemNameText(cur, li)
 
 	if li.about then
@@ -366,13 +366,13 @@ local function DoLinkInfo (LS, bgroup, id, li, alist)
 
 	--
 	local sep = theme.BoxSeparationOffset()
-	local lo, ro = box_layout.Arrange(li.is_source, sep, RowItems(node, iname, li.about)) -- ISSOURCE
+	local lo, ro = box_layout.Arrange(side, sep, RowItems(node, iname, li.about))
 
 	--
 	if li.aindex then
 		LS:LinkAttachment(node, alist[li.aindex])
 	elseif node then
-		LS:IntegrateNode(node, id, li.name, li.is_source) -- ISSOURCE
+		LS:IntegrateNode(node, id, li.name)
 	end
 
 	--
@@ -403,9 +403,10 @@ function M:AddPrimaryBox (group, id)
 	local values = self:GetLinker():GetValuesFromIdentifier(id)
 	local info = values:SendMessage("get_node_info") -- TODO: or event
 	local alist, indices = AddAttachments(self, group, id, info)
+	local node_pattern = self:GetNodePattern(id)
 
-	for i = 1, GroupLinkInfo(info, indices, self:GetNodePattern(id)) do
-		DoLinkInfo(self, bgroup, id, LinkInfoEx[i], alist)
+	for i = 1, GroupLinkInfo(info, indices, node_pattern) do
+		DoLinkInfo(self, bgroup, node_pattern, id, LinkInfoEx[i], alist)
 	end
 
 	--
@@ -426,7 +427,7 @@ function M:AddPrimaryBox (group, id)
 
 	local linker = self:GetLinker()
 
-	AssignPositions(box, alist, indices, linker:GetPositions(id))
+	AssignPositions(self, box, id, alist, indices, linker:GetPositions(id))
 
 	return box, ntext
 end
@@ -445,13 +446,14 @@ function Node:GetName ()
 	return self[_name]
 end
 
-function M:IntegrateNode (node, id, name, is_export, index) -- ISSOURCE
+function M:IntegrateNode (node, id, name, index)
 	node[_id], node[_name] = id, name
 
 	meta.Augment(node, Node)
 
-	self:AddNode(index or KnotListIndex--[[, not is_export]], node) -- ISSOURCE
+	self:AddNode(index or KnotListIndex, node)
 -- TODO: double check this, it's getting not'd both here and in AddNode()? (original is same)
+-- not sure this is still relevant now
 end
 
 --- DOCME

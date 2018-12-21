@@ -197,7 +197,7 @@ local AddName = {
 	block = function(LS, agroup, ibox, gend, id)
 		local text = AddNameToSet(LS, agroup, ibox, gend)
 		local node_pattern = LS:GetNodePattern(id)
-		local atext = agroup:FindBox().m_group_info[node_pattern:GetTemplate(gend)]
+		local atext = agroup:FindBox().m_block_info[node_pattern:GetTemplate(gend)]
 		local about = display.newText(agroup.items, atext, 0, ibox.y, theme.AboutTextParams())
 
 		layout.PutLeftOf(about, text, theme.AboutOffset())
@@ -207,25 +207,26 @@ local AddName = {
 }
 
 local function AddRowToBox (LS, box, id, gend)
-	local agroup, is_export = box.parent, box.m_is_export -- ISSOURCE
+	local node_pattern = LS:GetNodePattern(id)
+	local agroup, side = box.parent, LS:GetNodeSide(node_pattern, gend)
 	local n, w = RowCount(agroup), theme.AttachmentRowWidth(box.width, box.m_style)
 	local ibox = ItemBox(box, agroup, n, w, box.m_style)
 	local node, hw = theme.Node(agroup.nodes), w / 2
 
-	node.x = box.x + (is_export and hw or -hw) -- ISSOURCE
+	node.x = box.x + (side == "rhs" and hw or -hw)
 	node.y = ibox.y
 
 	local delete = theme.DeleteButton(agroup.fixed, ibox)
 
 	delete:addEventListener("touch", Delete)
 
-	delete.x = box.x + (is_export and -hw or hw) -- ISSOURCE
+	delete.x = box.x + (side == "rhs" and -hw or hw)
 
 	delete.m_id, delete.m_row = id, n
 
 	AddName[box.m_style](LS, agroup, ibox, gend, id)
 
-	LS:IntegrateNode(node, id, gend, is_export, box.m_knot_list_index) -- ISSOURCE
+	LS:IntegrateNode(node, id, gend, box.m_knot_list_index)
 end
 
 local function AddSubGroups (agroup)
@@ -330,13 +331,14 @@ local function MakeBoxObjects (group, id)
 end
 
 --- DOCME
-function M:AttachmentBox (group, id, template, is_export, style) -- ISSOURCE
+function M:AttachmentBox (group, id, template, style)
 	local agroup, make, primary_node = MakeBoxObjects(group, id)
-	local sep = theme.AttachmentBoxSeparationOffset()
-	local lo, ro = box_layout.Arrange(not is_export, sep, primary_node, make) -- ISSOURCE
+	local node_pattern, sep = self:GetNodePattern(id), theme.AttachmentBoxSeparationOffset()
+	local side = self:GetSideOppositeNode(node_pattern, template)
+	local lo, ro = box_layout.Arrange(side, sep, primary_node, make)
 	local box = MakeBox(self, agroup, make, primary_node, lo, ro)
 
-	make.m_template, box.m_is_export, box.m_style = template, is_export, style -- ISSOURCE
+	make.m_template, box.m_style = template, style
 
 	return GatherAndAddRows(self, box, id, template)
 end
@@ -374,7 +376,7 @@ function M:BlockAttachmentBox (group, id, info, is_export, params) -- ISSOURCE
 	local box = MakeBox(self, agroup, make, primary_node, lo, ro)
 
 	box.m_choice, box.m_is_export, box.m_style = choice, is_export, "block" -- ISSOURCE
-	box.m_group_info = info -- n.b. calling code makes no more use of this
+	box.m_block_info = info -- n.b. calling code makes no more use of this
 
 	return GatherAndAddRows(self, box, id, info)
 end

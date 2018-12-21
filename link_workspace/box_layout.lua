@@ -93,13 +93,13 @@ function M.AddLine (group, left_object, right_object, spacing, lowest)
 end
 
 --- DOCME
-function M.Arrange (is_source, offset, a, b, c, d, e, f) -- ISSOURCE
+function M.Arrange (side, offset, a, b, c, d, e, f)
 	local method
 
 	if not b then
 		offset = offset + a.width / 2
-		a.x = a.x + (is_source and -offset or offset) -- ISSOURCE
-	elseif is_source then
+		a.x = a.x + (side == "rhs" and -offset or offset)
+	elseif side == "rhs" then
 		method, offset = layout.PutLeftOf, -offset
 	else
 		method = layout.PutRightOf
@@ -125,22 +125,20 @@ function M.Arrange (is_source, offset, a, b, c, d, e, f) -- ISSOURCE
 		method(f, e, offset)
 	end
 
-	return _LeftAndRight_(is_source, a, b, c, d, e, f) -- ISSOURCE
+	return _LeftAndRight_(side, a, b, c, d, e, f)
 end
 
 local LeftAndRightGroup
 
 --- DOCME
-function M.ChooseLeftOrRightGroup (bgroup, is_source) -- ISSOURCE
-	local gi = is_source and 2 or 1
+function M.ChooseLeftOrRightGroup (bgroup, side)
+	if not LeftAndRightGroup[side] then
+		LeftAndRightGroup[side] = display.newGroup()
 
-	if not LeftAndRightGroup[gi] then
-		LeftAndRightGroup[gi] = display.newGroup()
-
-		bgroup:insert(LeftAndRightGroup[gi])
+		bgroup:insert(LeftAndRightGroup[side])
 	end
 
-	return LeftAndRightGroup[gi]
+	return LeftAndRightGroup[side]
 end
 
 --[[
@@ -164,7 +162,7 @@ end
 
 --- DOCME
 function M.CommitLeftAndRightGroups (box, hmargin, vmargin)
-	local lgroup, rgroup = LeftAndRightGroup[1], LeftAndRightGroup[2]
+	local lgroup, rgroup = LeftAndRightGroup.lhs, LeftAndRightGroup.rhs
 	local hw, y1 = box.width / 2 - hmargin, _GetY1_(box) + vmargin
 --[[
 	TODO: unnecessary?
@@ -181,7 +179,7 @@ function M.CommitLeftAndRightGroups (box, hmargin, vmargin)
 		rgroup.anchorX = 1
 	end
 
-	LeftAndRightGroup[1], LeftAndRightGroup[2] = nil
+	LeftAndRightGroup.lhs, LeftAndRightGroup.rhs = nil
 end
 
 --- DOCME
@@ -193,7 +191,7 @@ end
 
 --- DOCME
 function M.GetSize ()
-	local lgroup, rgroup = LeftAndRightGroup[1], LeftAndRightGroup[2]
+	local lgroup, rgroup = LeftAndRightGroup.lhs, LeftAndRightGroup.rhs
 	local w, y1, y2 = lgroup and lgroup.m_w or 0, 0, 0
 
 	if lgroup and rgroup then
@@ -247,10 +245,10 @@ function M.IterateGroupsOfNodes (box)
 end
 
 --- DOCME
-function M.LeftAndRight (is_source, a, b, c, d, e, f) -- ISSOURCE
+function M.LeftAndRight (side, a, b, c, d, e, f)
 	local last = f or e or d or c or b or a
 
-	if is_source then
+	if side == "rhs" then
 		return last, a
 	else
 		return a, last
