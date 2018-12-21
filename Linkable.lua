@@ -38,7 +38,6 @@ local M = {}
 -- M.EnumNamesNotGeneratedFrom (template, list) -- "no_instances"
 -- M.ReplaceGeneratedName (list, name) -- need type?
 -- M.ReplaceNames...
--- M.RemoveGeneratedName (...) -- ????
 
 --
 --
@@ -58,21 +57,6 @@ local EnvID = node_pattern.NewEnvironment{
 function_set.New{
     _name = "Linkable",
 
-    _state = function(event)
-		event.result = {
-			nodes = node_pattern.New(EnvID),
-			-- "decoration for nodes", e.g. the "link info" and "grouping" from before
-			-- possibly different: remaps for build_link, see below
-				-- if not string would get ugly!
-			-- variable types and defaults
-				-- also ordering
-			-- probably also a text lookup section, to allow for localization
-			-- might make sense to put generated names and labels here too?
-				-- sounds like it might entail more complex fixup than now?
-			-- dependencies, e.g. remove X if Y not linked, or similar for verification
-		}
-    end,
-
 	build_link = function(event) -- entry, other, entry_name, other_name, linker, names, labels
 		if event.result == nil then -- ignore if handled in "before"
 		-- stuff from prep link helper, basically
@@ -89,7 +73,43 @@ function_set.New{
 		-- clean anything up from build_link
 		-- might not be anything in default version
 	end,
-    -- _init = ? (Add{Ex|Im}portNode, ...)
+
+	_init = function(name, def)
+		local init_nodes = def.init_nodes
+
+		if init_nodes then
+			local state = function_set.GetState(name)
+			local nodes = node_pattern.New(EnvID)
+
+			init_nodes(nodes)
+
+			state.nodes = nodes
+
+			local assign_node_info = def.assign_node_info
+
+			if assign_node_info then
+				-- info = prep
+				-- info:Reset(nodes)
+				-- assign_node_info(info)
+				-- state.node_info = info:get_info()
+				-- do something with info
+				-- do this now?
+					-- or on demand?
+			end
+		end
+
+		def.assign_node_info, def.init_nodes = nil
+	end
+
+	-- "decoration for nodes", e.g. the "link info" and "grouping" from before
+	-- possibly different: remaps for build_link, see below
+		-- if not string would get ugly!
+	-- variable types and defaults
+		-- also ordering
+	-- probably also a text lookup section, to allow for localization
+	-- might make sense to put generated names and labels here too?
+		-- sounds like it might entail more complex fixup than now?
+	-- dependencies, e.g. remove X if Y not linked, or similar for verification
 
     -- default can_link (mostly just hooking up types, with or without 1-item limit)
 		-- can_link (node, other, name, oname[, linker]) also ids

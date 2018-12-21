@@ -230,10 +230,12 @@ end
 --
 -- A **_state** function may be made available for @{GetState}.
 --
--- If an **_init** function is provided, it is called as `init(name)` once the rest of the
--- definition has been established. This might error, so the definition is not yet registered
--- (and thus available as a prototype); `GetState(name)` is allowed, though.
+-- If an **_init** function is provided, it is called as `init(name, def)` once the rest of the
+-- definition has been established. This might error, so _def_ is not yet registered (and
+-- thus available as a prototype); `GetState(name)` is allowed, though.
 -- @treturn table Set definition, suitable as a methods metatable.
+--
+-- Its contents may be modified, aside from values with reserved keys.
 -- @return _params_.**name**, as a convenience.
 function M.New (params)
 	assert(type(params) == "table", "Invalid params")
@@ -283,7 +285,7 @@ function M.New (params)
 	local init = def._init
 
 	if init then
-		local ok, err = pcall(init, name)
+		local ok, err = pcall(init, name, def)
 
 		if not ok then
 			Sets[name] = nil -- ...but remove if something went wrong

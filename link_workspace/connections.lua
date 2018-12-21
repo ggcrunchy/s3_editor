@@ -232,7 +232,7 @@ function M:GetNodePattern (id)
 	else
 		local linker = self:GetLinker()
 		local values = linker:GetValuesFromIdentifier(id)
-		local node_pattern = function_set.GetStateFromInstance(values)
+		local node_pattern = function_set.GetStateFromInstance(values).nodes
 
 		self[_prev_id], self[_prev_pattern] = id, node_pattern	-- see also GetNodeSide(), but this should
 																-- be compatible with its access pattern
