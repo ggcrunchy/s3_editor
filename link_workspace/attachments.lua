@@ -362,7 +362,10 @@ local function AuxBlock (agroup, primary_node, make, is_export, params) -- ISSOU
 
 	local sep = theme.BlockAttachmentBoxSeparationOffset()
 
-	if is_export then -- ISSOURCE
+	if is_export then	-- ISSOURCE (am I ever even doing this, i.e. do I have "blocks"?)
+						-- if not that would mean agonizing over this for nothing :P
+						-- answer: yes, dispatch_custom_event does this, for various get_TYPE*
+						-- of course, this one will probably test wildcards as well
 		return choice, box_layout.Arrange(false, sep, primary_node, ctext, choice, make) -- TODO
 	else
 		return choice, box_layout.Arrange(false, sep, ctext, choice, make, primary_node)

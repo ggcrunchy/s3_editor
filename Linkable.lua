@@ -23,6 +23,12 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
+-- Standard library imports --
+local assert = assert
+local pairs = pairs
+local rawequal = rawequal
+local setmetatable = setmetatable
+
 -- Modules --
 local function_set = require("s3_editor.FunctionSet")
 local node_pattern = require("s3_editor.NodePattern")
@@ -42,6 +48,227 @@ local M = {}
 --
 --
 --
+
+local Info = {}
+
+Info.__index = Info
+
+-- flat array of commands
+-- list of already-added nodes
+-- current cluster
+-- 
+
+local Work
+
+local GetArgs = {}
+
+local Block = {}
+
+function Info:BlockNode (name)
+	local block_linked, top = self.m_block_linked or {}, #Work
+
+	assert(not block_linked[name], "Block already linked")
+
+	self.m_block_linked, block_linked[name] = block_linked, true
+	Work[#Work + 1] = Block
+	Work[#Work + 1] = name
+
+	return top + 1
+end
+
+function GetArgs.block (work, pos)
+	return work[pos + 1]
+end
+
+local Nil = {}
+
+local function MaybeNil (arg)
+	return arg == nil and Nil or arg
+end
+
+local function Decode (arg)
+	if arg ~= Nil then
+		return arg
+	else
+		return nil
+	end
+end
+
+function Info:AddNode (name, what, text)
+	local added, top = self.m_added, #Work
+
+	assert(not added[name], "Already added")
+	assert(self.m_nodes:HasNode(name), "Invalid node")
+
+	added[name] = true
+	Work[#Work + 1] = name
+	Work[#Work + 1] = MaybeNil(what)
+	Work[#Work + 1] = MaybeNil(text)
+
+	return top + 1
+end
+
+function GetArgs.node (work, pos)
+	return work[pos], Decode(work[pos + 1]), Decode(work[pos + 2])
+end
+
+local String = {}
+
+String.__index = String
+
+function Info:AddString (text, side)
+	assert(text ~= nil, "Invalid text")
+
+	local str = self.m_string
+
+	if not str then
+		str = setmetatable({}, String)
+		self.m_string = str
+	end
+
+	local top = #Work
+
+	Work[#Work + 1] = String
+	Work[#Work + 1] = text
+	Work[#Work + 1] = side or "none"
+	Work[#Work + 1] = Nil -- color...
+	Work[#Work + 1] = Nil -- ...and font
+
+	str.m_last = #Work
+
+	return top + 1--str
+end
+
+function GetArgs.string (work, pos)
+	return work[pos + 1], work[pos + 2], Decode(work[pos + 3]), Decode(work[pos + 4])
+end
+
+function String:SetColor (color)
+	self[self.m_last - 1] = MaybeNil(color)
+end
+
+function String:SetFont (font)
+	self[self.m_last] = MaybeNil(font)
+end
+
+local Cluster = {}
+
+Cluster.__index = Cluster
+
+function Info:BeginCluster ()
+	local cluster = self.m_cluster
+
+	if not cluster then
+		cluster = setmetatable({}, Cluster)
+		self.m_cluster = cluster
+	elseif cluster.m_first then
+		cluster:Close()
+	end
+
+	local top = #Work
+
+	Work[#Work + 1] = Cluster
+	Work[#Work + 1] = Nil -- color...
+--	Work[#Work + 1] = Nil -- ...and final position
+
+	cluster.m_last = #Work
+
+	return top + 1--cluster
+end
+
+function GetArgs.begin_cluster (work, pos)
+	return Decode(work[pos + 1])
+end
+
+function Cluster:Close () -- probably not relevant in first pass
+	assert(self.m_last, "Cluster already closed")
+
+	Work[self.m_last], self.m_last = #Work -- final position belonging to this cluster
+end
+
+function Cluster:SetColor (color)
+	Work[self.m_last - 1] = MaybeNil(color)
+end
+
+local End = {}
+
+function Info:EndCluster ()
+	Work[#Work + 1] = End
+
+	return #Work--End
+end
+
+local function DefGetArgs () end
+
+local function Visit (block, work, ops, arg)
+	for i = 1, #block do
+		local pos, what = block[i]
+		local first = work[pos]
+
+		if rawequal(first, String) then
+			what = "string"
+		elseif rawequal(first, Cluster) then
+			what = "begin_cluster"
+		elseif rawequal(first, End) then
+			what = "end_cluster"
+		elseif rawequal(first, Block) then
+			what = "block"
+		else
+			what = "node"
+		end
+
+		local op = ops[what]
+
+		if op then
+			op(arg, (GetArgs[what] or DefGetArgs)(work, pos))
+		end
+	end
+end
+
+local InCluster
+
+local Validate = {
+	block = function(blocks, name)
+		assert(blocks and blocks[name], "Invalid block name")
+	end,
+
+	begin_cluster = function()
+		assert(not InCluster, "Another cluster is still open")
+
+		InCluster = true
+	end,
+
+	end_cluster = function()
+		assert(InCluster, "No cluster open")
+
+		InCluster = false
+	end
+}
+
+local function ProcessNodeInfo (assign_node_info, node_pattern)
+	Work, InCluster = {}, false
+
+	local work, info = Work, setmetatable({ m_added = {}, m_nodes = node_pattern }, Info)
+	local primary, blocks = assign_node_info(info)
+
+	Visit(primary, Work, Validate, blocks)
+
+	if blocks then
+		for _, block in pairs(blocks) do
+			Visit(block, Work, Validate, blocks)
+		end
+	end
+
+	Work = nil
+
+	return work, primary, blocks
+end
+
+local function UseNodeInfo (--[[err....]])
+	-- uh...
+--	Visit(MyOps)
+	-- this probably is an event of some sort
+end
 
 --[[
 CanLink (id1, name1, pred1, id2, name2, pred2, linker)
@@ -88,13 +315,10 @@ function_set.New{
 			local assign_node_info = def.assign_node_info
 
 			if assign_node_info then
-				-- info = prep
-				-- info:Reset(nodes)
-				-- assign_node_info(info)
-				-- state.node_info = info:get_info()
+				state.work, state.primary, state.blocks = ProcessNodeInfo(assign_node_info, nodes)
 				-- do something with info
-				-- do this now?
-					-- or on demand?
+				-- do this now? (would error early if broken...)
+					-- or on demand? (...but would get expensive if loading many object types)
 			end
 		end
 

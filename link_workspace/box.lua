@@ -402,6 +402,12 @@ function M:AddPrimaryBox (group, id)
 	--
 	local values = self:GetLinker():GetValuesFromIdentifier(id)
 	local info = values:SendMessage("get_node_info") -- TODO: or event
+-- TODO: the ideal would be for everything "non-primary" to be reusable for blocks
+-- This way blocks could also have array and set attachments (not sure any other
+-- important generalizations come up)
+-- Another thing to keep in mind is the possibility of adding / removing rows...
+-- maybe the array / set attachment logic could be generalized here?
+-- This would arise, say, from using components to modify capabilities
 	local alist, indices = AddAttachments(self, group, id, info)
 	local node_pattern = self:GetNodePattern(id)
 
@@ -429,7 +435,7 @@ function M:AddPrimaryBox (group, id)
 
 	AssignPositions(self, box, id, alist, indices, linker:GetPositions(id))
 
-	return box, ntext
+	return box--, ntext
 end
 
 local Node = {}
