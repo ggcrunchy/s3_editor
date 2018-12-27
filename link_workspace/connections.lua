@@ -286,9 +286,9 @@ function M:LinkAttachment (node, attachment)
 	node.alpha, attachment.primary.alpha = alpha, alpha
 end
 
-local LinkGroupOpts = {}
+local NodeGroupOpts = {}
 
-function LinkGroupOpts.can_link (node1, node2)
+function NodeGroupOpts.can_link (node1, node2)
 	if Knitting then -- linking programmatically, e.g. loading from a save or during a redo
 		return true
 	else
@@ -299,7 +299,7 @@ end
 
 local FadeParams = {}
 
-function LinkGroupOpts.emphasize (item, how, node, export_to_import, not_owner)
+function NodeGroupOpts.emphasize (item, how, node, export_to_import, not_owner)
 	local r, g, b = 1
 
 	if item.m_glowing then
@@ -332,7 +332,7 @@ local function SortByID (box1, box2)
 	return box1:GetID() > box2:GetID()
 end
 
-function LinkGroupOpts.gather (items)
+function NodeGroupOpts.gather (items)
 	local boxes_seen = items.m_boxes_seen or {}
 
 --	cells.GatherVisibleBoxes(Offset.x, Offset.y, boxes_seen)
@@ -355,7 +355,7 @@ end
 
 --- DOCME
 function M:LoadConnections (group)
-	self[_node_group] = node_group.NodeGroup(group, Connect, KnotTouch, LinkGroupOpts)
+	self[_node_group] = node_group.NodeGroup(group, Connect, KnotTouch, NodeGroupOpts)
 	self[_knot_lists] = {}
 end
 
