@@ -126,8 +126,8 @@ local function UndoRedoConnect (how)
 	end
 end
 
-local function Connect (LG, node1, node2, knot)
-	local link_scene = utils.FindLinkScene(LG)
+local function Connect (NG, node1, node2, knot)
+	local link_scene = utils.FindLinkScene(NG)
 	local linker = link_scene:GetLinker()
 	local links = linker:GetLinkCollection()
 
