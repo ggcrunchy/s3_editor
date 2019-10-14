@@ -51,8 +51,9 @@ require = lazy_require
 local adaptive = require("tektite_core.table.adaptive")
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
-local grid = require("s3_editor.Grid")
+local editable = require("corona_ui.patterns.editable")
 local editor_strings = require("config.EditorStrings")
+local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local layout = require("corona_ui.utils.layout")
 local object_vars = require("config.ObjectVariables")
@@ -60,7 +61,6 @@ local ops = require("s3_editor.Ops")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
-local scenes = require("corona_utils.scenes")
 local strings = require("tektite_core.var.strings")
 
 -- Corona globals --
@@ -71,14 +71,24 @@ local Runtime = Runtime
 -- Corona modules --
 local composer = require("composer")
 
+--
+--
+--
+
 -- Map editor scene --
 local Scene = composer.newScene()
 
 -- Create Scene --
 function Scene:create ()
-	scenes.Alias("Editor")
-
 	persistence.AddSaveFunc(print) -- TODO: make an option somewhere?
+
+	local handle_key = composer.getVariable("handle_key")
+
+	editable.SetKeyLogic(function(handler)
+		handle_key:Push(handler)
+	end, function()
+		handle_key:Pop()
+	end)
 end
 
 Scene:addEventListener("create")
@@ -133,15 +143,13 @@ for _, name in ipairs(Names) do
 end
 
 -- Scene listener: handles quit requests
-local function Listen (what)
-	if what == "message:wants_to_go_back" then
-		prompts.DoActionThenProceed{
-			choices = "save_and_quit",
-			needs_doing = common.IsDirty,
-			action = ops.Save_FollowUp,
-			follow_up = ops.Quit
-		}
-	end
+local function WantsToGoBack ()
+	prompts.DoActionThenProceed{
+		choices = "save_and_quit",
+		needs_doing = common.IsDirty,
+		action = ops.Save_FollowUp,
+		follow_up = ops.Quit
+	}
 end
 
 -- --
@@ -150,7 +158,8 @@ local Actions = { "Save", "Verify", "Build", "Test" }
 local BarHeight = 20
 
 local function AddCloseButton (group, help_context)
-	local close = button.Button_XY(group, 0, .5 * BarHeight, 2 * BarHeight, BarHeight - 6, scenes.WantsToGoBack, {
+	local wtgb = composer.getVariable("WantsToGoBack")
+	local close = button.Button_XY(group, 0, .5 * BarHeight, 2 * BarHeight, BarHeight - 6, wtgb, {
 		text = "x", skin = "small_text_button"
 	})
 
@@ -240,14 +249,14 @@ end
 -- Show Scene --
 function Scene:show (event)
 	if event.phase == "did" then
-		scenes.SetListenFunc(Listen)
+		composer.getVariable("wants_to_go_back"):Push(WantsToGoBack)
 
 		-- We may enter the scene one of two ways: from the editor setup menu, in which case
 		-- we use the provided scene parameters; else returning from a test, where we must
 		-- reconstruct the state from information we left behind.
-		local params
+		local came_from, params = composer.getSceneName("previous") or ""
 
-		if scenes.ComingFrom() == "Level" then
+		if came_from:ends(".Level") then
 			params = ops.Restore()
 		else
 			params = event.params
@@ -306,7 +315,7 @@ Scene:addEventListener("show")
 -- Hide Scene --
 function Scene:hide (event)
 	if event.phase == "did" then
-		scenes.SetListenFunc(nil)
+		composer.getVariable("wants_to_go_back"):Pop()
 
 		SetCurrent(nil)
 

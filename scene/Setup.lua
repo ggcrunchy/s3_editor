@@ -40,7 +40,6 @@ local editable_patterns = require("corona_ui.patterns.editable")
 local editor_config = require("config.Editor")
 local layout = require("corona_ui.utils.layout")
 local persistence = require("corona_utils.persistence")
-local scenes = require("corona_utils.scenes")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 
 -- Corona globals --
@@ -49,6 +48,10 @@ local native = native
 
 -- Corona modules --
 local composer = require("composer")
+
+--
+--
+--
 
 -- Editor setup scene --
 local Scene = composer.newScene()
@@ -73,7 +76,7 @@ local RowText = "Number of rows:"
 
 -- Create Scene --
 function Scene:create ()
-	button.Button_XY(self.view, "15%", "8.6%", "25%", "10.4%", scenes.WantsToGoBack, "Go Back")
+	button.Button_XY(self.view, "15%", "8.6%", "25%", "10.4%", composer.getVariable("WantsToGoBack"), "Go Back")
 
 	self.m_new_scene = button.Button_XY(self.view, "from_right -15%", "from_bottom_align -20", "25%", "10.4%", function()
 		local cols = tonumber(self.m_cols:GetText())
@@ -86,7 +89,9 @@ function Scene:create ()
 		if err then
 			native.showAlert("Error!", err)
 		else
-			scenes.GoToScene{ name = "s3_editor.scene.Map", params = { main = { cols, rows } } }
+			composer.gotoScene("s3_editor.scene.Map", {
+				params = { main = { cols, rows } }
+			})
 		end
 	end, "New Scene")
 
@@ -123,7 +128,9 @@ end
 -- Show Scene --
 function Scene:show (event)
 	if event.phase == "did" then
-		scenes.SetListenFunc_GoBack(editor_config.return_to)
+		composer.getVariable("wants_to_go_back"):Push(function()
+			composer.gotoScene(editor_config.return_to, "fade")
+		end)
 
 		-- Line up the text input (if on device, we use native keyboards) a little to the right
 		-- of the columns or rows text (whichever was wider).
@@ -182,7 +189,7 @@ function Scene:show (event)
 
 					params.is_loading = level.name
 
-					scenes.GoToScene{ name = "s3_editor.scene.Map", params = params }
+					composer.gotoScene("s3_editor.scene.Map", { params = params })
 				end, "Load Scene",
 
 				-- Delete Scene --
@@ -226,7 +233,7 @@ function Scene:hide (event)
 
 		CleanupLoadElements()
 	else
-		scenes.SetListenFunc(nil)
+		composer.getVariable("wants_to_go_back"):Pop()
 	end
 end
 

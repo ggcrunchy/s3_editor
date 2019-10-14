@@ -36,13 +36,12 @@ local editor_config = require("config.Editor")
 local events = require("s3_editor.Events")
 local persistence = require("corona_utils.persistence")
 local prompts = require("corona_ui.patterns.prompts")
-local scenes = require("corona_utils.scenes")
-local timers = require("corona_utils.timers")
 
 -- Corona globals --
 local native = native
 local Runtime = Runtime
 local system = system
+local timer = timer
 
 -- Cached module references --
 local _Build_
@@ -152,14 +151,19 @@ end
 
 --- DOCME
 function M.ListenForQuickTest (key_name, scene_name)
-	scenes.SetListenFunc(function(what, key)
-		if what == "message:handles_key" and key.keyName == key_name and key.phase == "down" and key.isCtrlDown then
+	local handle_key = composer.getVariable("handle_key")
+
+	handle_key:Push(function(event)
+		if event.keyName == key_name and event.phase == "down" and event.isCtrlDown then
 			local exists, data = persistence.LevelExists("?TEST?")
 
 			if exists then
-				scenes.SetListenFunc(nil)
-				scenes.GoToScene{ name = scene_name, params = data, effect = "none" }
+				handle_key:Pop()
+
+				composer.gotoScene(scene_name, { params = data })
 			end
+
+			return true
 		end
 	end)
 end
@@ -280,13 +284,13 @@ function M.Test ()
 		-- TODO?: ops.VerifyBuild(), e.g. to test for unmet link subscriptions
 		_SetTemp_(false)
 
-		timers.Defer(function()
+		timer.performWithDelay(0, function()
 			local exists, data = persistence.LevelExists(TestLevelName)
 
 			if exists then
 				RestoreState = restore
 
-				scenes.GoToScene{ name = editor_config.to_level, params = data, effect = "none" }
+				composer.gotoScene(editor_config.to_level, { params = data })
 			else
 				native.showAlert("Error!", "Failed to launch test level")
 
@@ -353,18 +357,18 @@ function M.Verify ()
 		local verify, done = { pass = 1, get_instances = GetInstances, get_label = common.GetLabel, links = common.GetLinks() }
 
 		-- If the verification takes a while, post the activity indicator.
-		timers.RepeatEx(function(event)
+		timer.performWithDelay(10, function(event)
 			if done then
 				if event.count > 3 then
 					native.setActivityIndicator(false)
 				end
 
-				return "cancel"
+				timer.cancel(event.source)
 
 			elseif event.count == 3 then
 				native.setActivityIndicator(true)
 			end
-		end, 10)
+		end, 0)
 
 		-- Run all verification listeners (performing extra passes if requested), quitting
 		-- if some issues came up.
