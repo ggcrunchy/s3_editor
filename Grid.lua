@@ -39,6 +39,10 @@ local display = display
 -- Exports --
 local M = {}
 
+--
+--
+--
+
 -- --
 local Grid
 
@@ -218,5 +222,4 @@ function M.UpdatePick (group, pick, col, row, x, y, w, h)
 	return pick
 end
 
--- Export the module.
 return M

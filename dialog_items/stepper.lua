@@ -316,5 +316,4 @@ function M.SetText_StepperAware (editable, text)
 	end
 end
 
--- Export the module.
 return M

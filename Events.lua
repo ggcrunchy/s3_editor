@@ -44,6 +44,10 @@ local _SaveValuesIntoEntry_
 -- Export --
 local M = {}
 
+--
+--
+--
+
 --- Helper to build a level-ready entry.
 -- TODO: needs some work, at very least something about instances and timing of name
 -- @ptable level Built level state. (Basically, this begins as saved level state, and
@@ -569,10 +573,8 @@ function M.VerifyValues (verify, mod, view)
 	end
 end
 
--- Cache module members.
 _CheckForNameDups_ = M.CheckForNameDups
 _LoadValuesFromEntry_ = M.LoadValuesFromEntry
 _SaveValuesIntoEntry_ = M.SaveValuesIntoEntry
 
--- Export the module.
 return M

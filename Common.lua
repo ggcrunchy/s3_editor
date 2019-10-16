@@ -60,6 +60,10 @@ local _StashAndFrame_
 -- Exports --
 local M = {}
 
+--
+--
+--
+
 --- DOCME
 function M.AddCommandsBar (params)
 	local cgroup, back, bar_height, y = _DraggableStarter_(params)
@@ -631,7 +635,6 @@ function M.Verify ()
 	IsVerified = true
 end
 
--- Cache module members.
 _AlertNameWatchers_ = M.AlertNameWatchers
 _AttachLinkInfo_ = M.AttachLinkInfo
 _BindRepAndValues_ = M.BindRepAndValues
@@ -640,5 +643,4 @@ _DraggableFinisher_ = M.DraggableFinisher
 _SetLabel_ = M.SetLabel
 _StashAndFrame_ = M.StashAndFrame
 
--- Export the module.
 return M

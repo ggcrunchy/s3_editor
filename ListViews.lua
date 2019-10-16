@@ -45,6 +45,10 @@ local transition = transition
 local M = {}
 
 --
+--
+--
+
+--
 local function AuxGetSuffix (str, _, using, prefix)
 	local begins, suffix = strings.BeginsWith_AnyCase(str, prefix, true)
 	local index = begins and tonumber(suffix)
@@ -248,5 +252,4 @@ function M.EditErase (dialog_wrapper, vtype)
 	return ListView
 end
 
--- Export the module.
 return M

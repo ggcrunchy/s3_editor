@@ -34,6 +34,10 @@ local composer = require("composer")
 local M = {}
 
 --
+--
+--
+
+--
 local function AuxChooseAudio (mode)
 	return function(button)
 		composer.showOverlay("s3_editor.overlay.ChooseAudio", {
@@ -91,5 +95,4 @@ function M:AddSoundPicker (options)
 	picker:SetText(utils.GetValue(picker) or "")
 end
 
--- Export the module.
 return M

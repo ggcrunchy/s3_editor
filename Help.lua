@@ -209,5 +209,4 @@ function M.Visit (func)
 	end
 end
 
--- Export the module.
 return M

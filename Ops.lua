@@ -23,9 +23,6 @@
 -- [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 --
 
--- Exports --
-local M = {}
-
 -- Standard library imports --
 local ipairs = ipairs
 local write = io.write
@@ -43,6 +40,9 @@ local Runtime = Runtime
 local system = system
 local timer = timer
 
+-- Corona modules --
+local composer = require("composer")
+
 -- Cached module references --
 local _Build_
 local _GetLevelName_
@@ -51,8 +51,12 @@ local _SetLevelName_
 local _SetTemp_
 local _Verify_
 
--- Corona modules --
-local composer = require("composer")
+-- Exports --
+local M = {}
+
+--
+--
+--
 
 -- Is the level being saved or built temporary? --
 local IsTemp
@@ -411,7 +415,6 @@ function M.Verify ()
 	end
 end
 
--- Cache module members.
 _Build_ = M.Build
 _GetLevelName_ = M.GetLevelName
 _Save_ = M.Save
@@ -419,5 +422,4 @@ _SetLevelName_ = M.SetLevelName
 _SetTemp_ = M.SetTemp
 _Verify_ = M.Verify
 
--- Export the module.
 return M

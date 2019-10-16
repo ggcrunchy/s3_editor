@@ -277,7 +277,6 @@ end
 -- on the other hand, maybe could keep around a temporary group for this very purpose,
 -- and hoist in and out?
 
--- Cache module members.
 _Arrange_ = M.Arrange
 _GetLineWidth_ = M.GetLineWidth
 _GetY1_ = M.GetY1

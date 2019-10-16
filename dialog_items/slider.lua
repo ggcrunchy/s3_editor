@@ -92,5 +92,4 @@ function M:AddVerticalSlider (options)
 	AuxSlider(self, options, { height = options.height or layout.ResolveY("20%"), orientation = "vertical" })
 end
 
--- Export the module.
 return M

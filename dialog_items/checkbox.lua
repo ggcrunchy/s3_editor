@@ -38,6 +38,10 @@ local native = native
 -- Exports --
 local M = {}
 
+--
+--
+--
+
 -- Bitfield checkbox response
 local function OnCheck_Field (cb, is_checked)
 	local value = utils.GetValue(cb.parent)
@@ -112,5 +116,4 @@ end
 
 -- ^^^ TODO: "widgets"...
 
--- Export the module.
 return M

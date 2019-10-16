@@ -38,6 +38,10 @@ local _Dialog_
 -- Exports --
 local M = {}
 
+--
+--
+--
+
 -- --
 local Namespace = {}
 
@@ -146,8 +150,6 @@ function M.DialogWrapper (on_editor_event)
 	end
 end
 
--- Cache module members.
 _Dialog_ = M.Dialog
 
--- Export the module.
 return M

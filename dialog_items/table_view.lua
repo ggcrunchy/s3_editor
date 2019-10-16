@@ -98,5 +98,4 @@ function M:AddListbox (options)
 	AuxListbox(self, options, options)
 end
 
--- Export the module.
 return M

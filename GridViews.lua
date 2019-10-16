@@ -55,6 +55,10 @@ local display = display
 local M = {}
 
 --
+--
+--
+
+--
 local function CircleUpdate (canvas, tile, x, y, cw, ch)
 	tile = tile or display.newCircle(canvas, 0, 0, min(cw, ch) / 2)
 
@@ -295,5 +299,4 @@ function M.EditErase (dialog_wrapper, types, palette)
 	return EditEraseGridView
 end
 
--- Export the module.
 return M

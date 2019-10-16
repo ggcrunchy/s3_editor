@@ -42,6 +42,10 @@ local display = display
 local M = {}
 
 --
+--
+--
+
+--
 local RGB = {}
 
 --
@@ -149,5 +153,4 @@ function M:StockElements (thumb)
 	self:AddString{ value_name = "name", before = "Name:", adjust_to_size = "30%" }
 end
 
--- Export the module.
 return M
