@@ -41,7 +41,7 @@ local _CheckForNameDups_
 local _LoadValuesFromEntry_
 local _SaveValuesIntoEntry_
 
--- Export --
+-- Exports --
 local M = {}
 
 --
