@@ -350,11 +350,11 @@ return M
 -- derived by:
     -- Action
         -- etc.
+    -- Block
+        -- etc.
     -- Dot
         -- etc.
     -- Enemy
-        -- etc.
-    -- EventBlock
         -- etc.
     -- Value
         -- etc.
