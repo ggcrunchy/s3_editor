@@ -73,7 +73,7 @@ local function GetLevelName (func, wip, follow_up)
 		group = View, what = "level name",
 
 		exists = function(name)
-			return persistence.LevelExists(name, wip)
+			return persistence.GetLevelData(name, wip) ~= nil
 		end,
 
 		writer = function(name)
@@ -159,9 +159,9 @@ function M.ListenForQuickTest (key_name, scene_name)
 
 	handle_key:Push(function(event)
 		if event.keyName == key_name and event.phase == "down" and event.isCtrlDown then
-			local exists, data = persistence.LevelExists("?TEST?")
+			local data = persistence.GetLevelData("?TEST?")
 
-			if exists then
+			if data then
 				handle_key:Pop()
 
 				composer.gotoScene(scene_name, { params = data })
@@ -200,7 +200,7 @@ local TestLevelName = "?TEST?"
 function M.Restore ()
 	Runtime:dispatchEvent{ name = "unloaded" }
 
-	local _, data = persistence.LevelExists(TestLevelName, true)
+	local data = persistence.GetLevelData(TestLevelName, true)
 
 	-- TODO: Doesn't exist? (Database failure?)
 
@@ -289,9 +289,9 @@ function M.Test ()
 		_SetTemp_(false)
 
 		timer.performWithDelay(0, function()
-			local exists, data = persistence.LevelExists(TestLevelName)
+			local data = persistence.GetLevelData(TestLevelName)
 
-			if exists then
+			if data then
 				RestoreState = restore
 
 				composer.gotoScene(editor_config.to_level, { params = data })
