@@ -39,9 +39,10 @@ local object_vars = require("config.ObjectVariables")
 local touch = require("corona_ui.utils.touch")
 
 -- Classes --
+--[[
 local Links = require("tektite_base_classes.Link.Links")
 local Tags = require("tektite_base_classes.Link.Tags")
-
+]]
 -- Corona globals --
 local display = display
 local native = native
