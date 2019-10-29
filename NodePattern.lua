@@ -72,10 +72,10 @@ local function GetInterfaces (env, what, which)
 
 		if interfaces then
 			for i = 1, #interfaces do
-				list = adaptive.Append(list, Mangle(interfaces[i]))
+				list = adaptive.Append(list, Mangle(which, interfaces[i]))
 			end
 		else
-			list = adaptive.Append(nil, Mangle(what))
+			list = adaptive.Append(nil, Mangle(which, what))
 		end
 
 		env.m_mangled[index], ifx_list[what] = list, index
@@ -231,7 +231,7 @@ local function MakeRule (env, what, which)
 		local other = which == "imports" and "exports" or "imports"
 		local iter, state, index = adaptive.IterArray(GetInterfaces(env, what, other))
 		local _, oifx_primary = iter(state, index) -- iterate once to get primary interface
-		local interfaces = GetInterfaces(what, which)
+		local interfaces = GetInterfaces(env, what, which)
 
 		if not IgnoredByWildcards(what, mods) then
 			interfaces = adaptive.Append(interfaces, Value)

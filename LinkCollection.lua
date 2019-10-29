@@ -1,11 +1,13 @@
---- This class provides functionality for linking nodes, cf. @{NodePattern}.
+--- Class used to maintain a set of links between objects.
+--
+-- Linkages are formed between (**ID**, **Name**) pairs, comprising an identifier (such as a
+-- unique integer) for a given object, along with the name of the endpoint to link.
+-- An object may be linked to multiple objects, or even multiple times to the same
+-- object via different endpoints.
 --
 -- The **ID** type is user-defined, but may be anything other than **nil** or NaN. Some
--- operations will use @{tostring} for ordering purposes, so care should be taken if some
--- (but not all) IDs are already strings that name clashes not arise.
---
--- This is not a singleton class. An ID may belong to multiple instances, each describing
--- a unique linking situation.
+-- operations use @{tostring} for ordering purposes, so care should be taken to
+-- avoid clashes. Any value may be used as a **Name**.
 -- @module LinkCollection
 
 --
@@ -40,6 +42,9 @@ local rawequal = rawequal
 local setmetatable = setmetatable
 local tostring = tostring
 
+-- Cookies --
+local _nan = {}
+
 -- Exports --
 local M = {}
 
@@ -61,9 +66,7 @@ local function LinkPosition (owner, link)
 	end
 end
 
---- Break this link.
---
--- If the link is no longer intact, this is a no-op.
+--- If this link is intact, break it.
 -- @see Link:IsIntact
 function Link:Break ()
 	local pair_links = self.m_owner
@@ -80,18 +83,22 @@ function Link:Break ()
 	end
 end
 
+local function SanitizeName (name)
+	return rawequal(name, _nan) and 0 / 0 or name
+end
+
 ---
 -- @treturn[1] ID ID #1...
--- @treturn[1] ID ...and #2.
--- @return[1] Node name for ID #1...
--- @return[1] ...and ID #2.
+-- @treturn[1] Name ...and name of corresponding endpoint.
+-- @treturn[1] ID ID #2...
+-- @treturn[1] Name ...ditto.
 -- @return[2] **nil**, meaning the link is no longer intact.
--- @see Link:GetOtherItem, Link:IsIntact
-function Link:GetLinkedItems ()
+-- @see Link:GetOtherPair, Link:IsIntact
+function Link:GetLinkedPairs ()
 	local pair_links = self.m_owner
 
 	if pair_links then
-		return pair_links.m_id1, pair_links.m_id2, self.m_name1, self.m_name2
+		return pair_links.m_id1, SanitizeName(self.m_name1), pair_links.m_id2, SanitizeName(self.m_name2)
 	end
 
 	return nil
@@ -100,19 +107,19 @@ end
 ---
 -- @tparam ID id
 -- @treturn[1] ID The ID paired with _id_ in this link...
--- @return[1] ...and its node name.
--- @return[2] **nil**, meaning neither linked item uses _id_ or the link is no longer intact.
--- @see LinkCollection:LinkItems, Link:GetLinkedItems, Link:IsIntact
-function Link:GetOtherItem (id)
+-- @treturn[1] Name ...and its endpoint name.
+-- @return[2] **nil**, meaning neither pair uses _id_ or the link is no longer intact.
+-- @see LinkCollection:LinkPairs, Link:GetLinkedPairs, Link:IsIntact
+function Link:GetOtherPair (id)
 	local pair_links = self.m_owner
 
 	if pair_links then
 		local id1, id2 = pair_links.id1, pair_links.id2
 
 		if rawequal(id, id1) then
-			return id2, self.m_name2
+			return id2, SanitizeName(self.m_name2)
 		elseif rawequal(id, id2) then
-			return id1, self.m_name1
+			return id1, SanitizeName(self.m_name1)
 		end
 	end
 
@@ -121,7 +128,7 @@ end
 
 ---
 -- @treturn boolean The link is still intact?
--- @see LinkCollection:LinkItems, LinkCollection:RemoveID, Link:Break
+-- @see LinkCollection:LinkPairs, LinkCollection:Remove, Link:Break
 function Link:IsIntact ()
 	return self.m_owner ~= nil
 end
@@ -136,7 +143,7 @@ end
 
 ---
 -- @tparam ID id
--- @string name
+-- @tparam Name name
 -- @treturn uint Number of links to _id_ via _name_.
 function LinkCollection:CountLinks (id, name)
 	local list, count = self[id], 0
@@ -160,10 +167,10 @@ end
 
 --- DOCME
 -- @tparam ID id
--- @param name
+-- @tparam Name name
 -- @callable func
 -- @param arg
-function LinkCollection:ForEachItemLink (id, name, func, arg)
+function LinkCollection:ForEachPairLink (id, name, func, arg)
 	local list = self[id]
 
 	if list then
@@ -216,7 +223,7 @@ end
 
 ---
 -- @tparam ID id
--- @string name
+-- @tparam Name name
 -- @treturn boolean X
 function LinkCollection:HasLinks (id, name)
 	local list = self[id]
@@ -244,7 +251,7 @@ end
 
 ---
 -- @return Iterator that supplies each **ID** involved in links.
--- @see LinkCollection:LinkItems, LinkCollection:RemoveID
+-- @see LinkCollection:LinkPairs, LinkCollection:Remove
 function LinkCollection:IterIDs ()
 	return AuxIterIDs, self, nil
 end
@@ -267,15 +274,23 @@ end
 
 --- DOCME
 -- @tparam ID id1
+-- @tparam Name name1
 -- @tparam ID id2
--- @string name1
--- @string name2
+-- @tparam Name name2
 -- @treturn[1] Link L
 -- @return[2] **nil**, indicating failure.
 -- @treturn[2] string Reason for failure.
-function LinkCollection:LinkItems (id1, id2, name1, name2)
+function LinkCollection:LinkPairs (id1, name1, id2, name2)
 	assert(id1 ~= nil and id1 == id1, "Invalid ID #1")
 	assert(id2 ~= nil and id2 == id2, "Invalid ID #2")
+
+	if name1 ~= name1 then
+		name1 = _nan
+	end
+
+	if name2 ~= name2 then
+		name2 = _nan
+	end
 
 	local sid1, sid2 = tostring(id1), tostring(id2)
 
@@ -295,7 +310,7 @@ function LinkCollection:LinkItems (id1, id2, name1, name2)
 		assert(tostring(pair_links.id2) == sid2, "Mismatch with pair ID #2")
 
 		if FindLink(pair_links, name1, name2) then
-			return nil, "IDs already linked via these nodes"
+			return nil, "IDs already linked via these endpoints"
 		end
 	else
 		pair_links = { id1 = id1, id2 = id2 }
@@ -312,7 +327,7 @@ end
 --- DOCME
 -- @tparam ID id
 -- @see Link:IsIntact
-function LinkCollection:RemoveID (id)
+function LinkCollection:Remove (id)
 	local list = self[id]
 
 	if list then
