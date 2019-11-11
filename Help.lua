@@ -27,10 +27,10 @@
 local assert = assert
 local ipairs = ipairs
 local pairs = pairs
+local setmetatable = setmetatable
 local sort = table.sort
 
 -- Modules --
-local meta = require("tektite_core.table.meta")
 local touch = require("corona_ui.utils.touch")
 
 -- Corona globals --
@@ -65,8 +65,9 @@ function M.Init ()
 	Entries, Help, MaxDepth = {}, {}, 0
 end
 
---
 local HelpContext = {}
+
+HelpContext.__index = HelpContext
 
 --- DOCME
 function HelpContext:Add (object, help)
@@ -139,11 +140,7 @@ end
 
 --- DOCME
 function M.NewContext ()
-	local context = {}
-
-	meta.Augment(context, HelpContext)
-
-	return context
+	return setmetatable(context, HelpContext)
 end
 
 -- --
