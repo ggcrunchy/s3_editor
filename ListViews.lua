@@ -32,8 +32,8 @@ local type = type
 local button = require("corona_ui.widgets.button")
 local common = require("s3_editor.Common")
 local editor_strings = require("config.EditorStrings")
+local embedded_predicate = require("tektite_core.array.embedded_predicate")
 local layout = require("corona_ui.utils.layout")
-local match_slot_id = require("tektite_core.array.match_slot_id")
 local strings = require("tektite_core.var.strings")
 local table_view_patterns = require("corona_ui.patterns.table_view")
 
@@ -169,7 +169,7 @@ function M.EditErase (dialog_wrapper, vtype)
 		layout.PutBelow(list, top)
 
 		--
-		local using = match_slot_id.Wrap{}
+		local using = embedded_predicate.Wrap{}
 		local new = button.Button_XY(group, 0, 0, "13.75%", "8.33%", function()
 			if vfunc then
 				vtype = vfunc()
