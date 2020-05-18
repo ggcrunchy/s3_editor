@@ -27,8 +27,8 @@
 local round = math.round
 
 -- Modules --
-local utils = require("corona_ui.dialog_impl.utils")
-local layout = require("corona_ui.utils.layout")
+local utils = require("solar2d_ui.dialog_impl.utils")
+local layout = require("solar2d_ui.utils.layout")
 
 -- Corona globals --
 local display = display

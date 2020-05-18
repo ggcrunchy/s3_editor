@@ -25,10 +25,10 @@
 
 -- Modules --
 local object_vars = require("config.ObjectVariables")
-local menu = require("corona_ui.widgets.menu")
+local menu = require("solar2d_ui.widgets.menu")
 local table_funcs = require("tektite_core.table.funcs")
-local table_view_patterns = require("corona_ui.patterns.table_view")
-local utils = require("corona_ui.dialog_impl.utils")
+local table_view_patterns = require("solar2d_ui.patterns.table_view")
+local utils = require("solar2d_ui.dialog_impl.utils")
 
 -- Exports --
 local M = {}

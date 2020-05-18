@@ -28,12 +28,12 @@
 local type = type
 
 -- Modules --
-local button = require("corona_ui.widgets.button")
-local color_picker = require("corona_ui.widgets.color_picker")
-local layout = require("corona_ui.utils.layout")
-local touch = require("corona_ui.utils.touch")
-local ui_color = require("corona_ui.utils.color")
-local utils = require("corona_ui.dialog_impl.utils")
+local button = require("solar2d_ui.widgets.button")
+local color_picker = require("solar2d_ui.widgets.color_picker")
+local layout = require("solar2d_ui.utils.layout")
+local touch = require("solar2d_ui.utils.touch")
+local ui_color = require("solar2d_ui.utils.color")
+local utils = require("solar2d_ui.dialog_impl.utils")
 
 -- Corona globals --
 local display = display

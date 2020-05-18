@@ -27,9 +27,9 @@
 local max = math.max
 
 -- Modules --
-local checkbox = require("corona_ui.widgets.checkbox")
-local layout = require("corona_ui.utils.layout")
-local utils = require("corona_ui.dialog_impl.utils")
+local checkbox = require("solar2d_ui.widgets.checkbox")
+local layout = require("solar2d_ui.utils.layout")
+local utils = require("solar2d_ui.dialog_impl.utils")
 
 -- Corona globals --
 local display = display

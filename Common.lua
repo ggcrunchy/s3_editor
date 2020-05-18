@@ -33,10 +33,10 @@ local type = type
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
 local config = require("config.Editor")
-local layout = require("corona_ui.utils.layout")
-local menu = require("corona_ui.widgets.menu")
+local layout = require("solar2d_ui.utils.layout")
+local menu = require("solar2d_ui.widgets.menu")
 local object_vars = require("config.ObjectVariables")
-local touch = require("corona_ui.utils.touch")
+local touch = require("solar2d_ui.utils.touch")
 
 -- Classes --
 --[[

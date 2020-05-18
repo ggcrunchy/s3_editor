@@ -33,7 +33,7 @@ local sort = table.sort
 -- Modules --
 local box_layout = require("s3_editor.link_workspace.box_layout")
 local function_set = require("s3_editor.FunctionSet")
-local node_group = require("corona_ui.widgets.node_group")
+local node_group = require("solar2d_ui.widgets.node_group")
 local theme = require("s3_editor.link_workspace.theme")
 local utils = require("s3_editor_views.link_imp.utils")
 

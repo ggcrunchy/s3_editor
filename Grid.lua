@@ -30,7 +30,7 @@ local pairs = pairs
 
 -- Modules --
 local common = require("s3_editor.Common")
-local grid2D = require("corona_ui.widgets.grid")
+local grid2D = require("solar2d_ui.widgets.grid")
 local strings = require("tektite_core.var.strings")
 
 -- Corona globals --

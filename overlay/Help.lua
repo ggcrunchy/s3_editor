@@ -28,9 +28,9 @@ local max = math.max
 
 -- Modules --
 local help = require("s3_editor.Help")
-local layout = require("corona_ui.utils.layout")
-local layout_dsl = require("corona_ui.utils.layout_dsl")
-local net = require("corona_ui.patterns.net")
+local layout = require("solar2d_ui.utils.layout")
+local layout_dsl = require("solar2d_ui.utils.layout_dsl")
+local net = require("solar2d_ui.patterns.net")
 
 -- Corona globals --
 local display = display

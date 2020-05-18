@@ -35,10 +35,10 @@ local type = type
 local round = math.round
 
 -- Modules --
-local button = require("corona_ui.widgets.button")
+local button = require("solar2d_ui.widgets.button")
 local number = require("s3_objects.grammars.number")
 local table_funcs = require("tektite_core.table.funcs")
-local utils = require("corona_ui.dialog_impl.utils")
+local utils = require("solar2d_ui.dialog_impl.utils")
 
 -- Corona globals --
 local display = display

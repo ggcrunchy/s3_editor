@@ -24,8 +24,8 @@
 --
 
 -- Modules --
-local button = require("corona_ui.widgets.button")
-local utils = require("corona_ui.dialog_impl.utils")
+local button = require("solar2d_ui.widgets.button")
+local utils = require("solar2d_ui.dialog_impl.utils")
 
 -- Corona modules --
 local composer = require("composer")

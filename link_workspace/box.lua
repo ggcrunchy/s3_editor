@@ -32,10 +32,10 @@ local type = type
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local color = require("corona_ui.utils.color")
+local color = require("solar2d_ui.utils.color")
 local meta = require("tektite_core.table.meta")
 local theme = require("s3_editor.link_workspace.theme")
-local touch = require("corona_ui.utils.touch")
+local touch = require("solar2d_ui.utils.touch")
 
 -- Corona globals --
 local display = display

@@ -24,13 +24,13 @@
 --
 
 -- Modules --
-local audio_patterns = require("corona_ui.patterns.audio")
-local button = require("corona_ui.widgets.button")
+local audio_patterns = require("solar2d_ui.patterns.audio")
+local button = require("solar2d_ui.widgets.button")
 local directories = require("config.Directories")
-local layout = require("corona_ui.utils.layout")
-local layout_dsl = require("corona_ui.utils.layout_dsl")
-local net = require("corona_ui.patterns.net")
-local touch = require("corona_ui.utils.touch")
+local layout = require("solar2d_ui.utils.layout")
+local layout_dsl = require("solar2d_ui.utils.layout_dsl")
+local net = require("solar2d_ui.patterns.net")
+local touch = require("solar2d_ui.utils.touch")
 
 -- Corona globals --
 local audio = audio

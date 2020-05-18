@@ -28,8 +28,8 @@
 local random = math.random
 
 -- Modules --
-local color = require("corona_ui.utils.color")
-local layout = require("corona_ui.utils.layout")
+local color = require("solar2d_ui.utils.color")
+local layout = require("solar2d_ui.utils.layout")
 
 -- Corona globals --
 local display = display

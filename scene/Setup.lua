@@ -35,12 +35,12 @@ local tonumber = tonumber
 
 -- Modules --
 local args = require("iterator_ops.args")
-local button = require("corona_ui.widgets.button")
-local editable_patterns = require("corona_ui.patterns.editable")
+local button = require("solar2d_ui.widgets.button")
+local editable_patterns = require("solar2d_ui.patterns.editable")
 local editor_config = require("config.Editor")
-local layout = require("corona_ui.utils.layout")
-local persistence = require("corona_utils.persistence")
-local table_view_patterns = require("corona_ui.patterns.table_view")
+local layout = require("solar2d_ui.utils.layout")
+local persistence = require("solar2d_utils.persistence")
+local table_view_patterns = require("solar2d_ui.patterns.table_view")
 
 -- Corona globals --
 local display = display

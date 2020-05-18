@@ -29,13 +29,13 @@ local tonumber = tonumber
 local type = type
 
 -- Modules --
-local button = require("corona_ui.widgets.button")
+local button = require("solar2d_ui.widgets.button")
 local common = require("s3_editor.Common")
 local editor_strings = require("config.EditorStrings")
 local embedded_predicate = require("tektite_core.array.embedded_predicate")
-local layout = require("corona_ui.utils.layout")
+local layout = require("solar2d_ui.utils.layout")
 local strings = require("tektite_core.var.strings")
-local table_view_patterns = require("corona_ui.patterns.table_view")
+local table_view_patterns = require("solar2d_ui.patterns.table_view")
 
 -- Corona globals --
 local timer = timer

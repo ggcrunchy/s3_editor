@@ -29,12 +29,12 @@ local tonumber = tonumber
 -- Modules --
 local attachment_list = require("s3_editor.link_workspace.attachment_list")
 local box_layout = require("s3_editor.link_workspace.box_layout")
-local button = require("corona_ui.widgets.button")
-local editable = require("corona_ui.patterns.editable")
-local layout = require("corona_ui.utils.layout")
-local table_view_patterns = require("corona_ui.patterns.table_view")
+local button = require("solar2d_ui.widgets.button")
+local editable = require("solar2d_ui.patterns.editable")
+local layout = require("solar2d_ui.utils.layout")
+local table_view_patterns = require("solar2d_ui.patterns.table_view")
 local theme = require("s3_editor.link_workspace.theme")
-local touch = require("corona_ui.utils.touch")
+local touch = require("solar2d_ui.utils.touch")
 local utils = require("s3_editor.link_workspace.utils")
 
 -- Corona globals --

@@ -31,7 +31,7 @@ local setmetatable = setmetatable
 local sort = table.sort
 
 -- Modules --
-local touch = require("corona_ui.utils.touch")
+local touch = require("solar2d_ui.utils.touch")
 
 -- Corona globals --
 local display = display

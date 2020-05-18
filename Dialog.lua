@@ -26,7 +26,7 @@
 -- Modules --
 local augment = require("s3_editor.Augment")
 local common = require("s3_editor.Common")
-local dialog = require("corona_ui.widgets.dialog")
+local dialog = require("solar2d_ui.widgets.dialog")
 local table_funcs = require("tektite_core.table.funcs")
 
 -- Corona globals --

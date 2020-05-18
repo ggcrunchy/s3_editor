@@ -1,12 +1,12 @@
 --- Map editor scene.
 --
 -- In this scene, users can edit and test "work in progress" levels, and build levels
--- into a form loadable by @{corona_boilerplate.game.loop.LoadLevel}.
+-- into a form loadable by @{solar2d_boilerplate.game.loop.LoadLevel}.
 --
 -- The scene expects event.params == { main = { _cols_, _rows_ }**[**, is_loading = _name_
 -- **]** }, where _cols_ and _rows_ are the tile-wise size of the level. When loading a
 -- level, you must also provide _name_, which corresponds to the _name_ argument in the
--- level-related functions in @{corona_utils.persistence} (_wip_ == **true**).
+-- level-related functions in @{solar2d_utils.persistence} (_wip_ == **true**).
 --
 -- The editor is broken up into several "views", each isolating specific features of the
 -- level. The bulk of the editor logic is implemented in these views' modules, with common
@@ -49,17 +49,17 @@ require = lazy_require
 
 -- Modules --
 local adaptive = require("tektite_core.table.adaptive")
-local button = require("corona_ui.widgets.button")
+local button = require("solar2d_ui.widgets.button")
 local common = require("s3_editor.Common")
-local editable = require("corona_ui.patterns.editable")
+local editable = require("solar2d_ui.patterns.editable")
 local editor_strings = require("config.EditorStrings")
 local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
-local layout = require("corona_ui.utils.layout")
+local layout = require("solar2d_ui.utils.layout")
 local object_vars = require("config.ObjectVariables")
 local ops = require("s3_editor.Ops")
-local persistence = require("corona_utils.persistence")
-local prompts = require("corona_ui.patterns.prompts")
+local persistence = require("solar2d_utils.persistence")
+local prompts = require("solar2d_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local strings = require("tektite_core.var.strings")
 
