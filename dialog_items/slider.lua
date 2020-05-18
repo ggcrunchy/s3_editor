@@ -30,10 +30,10 @@ local round = math.round
 local utils = require("solar2d_ui.dialog_impl.utils")
 local layout = require("solar2d_ui.utils.layout")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
--- Corona modules --
+-- Solar2D modules --
 local widget = require("widget")
 
 -- Exports --

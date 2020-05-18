@@ -37,7 +37,7 @@ local theme = require("s3_editor.link_workspace.theme")
 local touch = require("solar2d_ui.utils.touch")
 local utils = require("s3_editor.link_workspace.utils")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
 -- Exports --

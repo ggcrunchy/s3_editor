@@ -49,7 +49,7 @@ local method_augments = {
 	require("s3_editor.link_workspace.objects")
 }
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local system = system
 

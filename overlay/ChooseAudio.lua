@@ -32,12 +32,12 @@ local layout_dsl = require("solar2d_ui.utils.layout_dsl")
 local net = require("solar2d_ui.patterns.net")
 local touch = require("solar2d_ui.utils.touch")
 
--- Corona globals --
+-- Solar2D globals --
 local audio = audio
 local display = display
 local system = system
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 -- Choose audio overlay --

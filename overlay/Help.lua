@@ -32,12 +32,12 @@ local layout = require("solar2d_ui.utils.layout")
 local layout_dsl = require("solar2d_ui.utils.layout_dsl")
 local net = require("solar2d_ui.patterns.net")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 local transition = transition
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 -- Help overlay --

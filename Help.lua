@@ -33,10 +33,10 @@ local sort = table.sort
 -- Modules --
 local touch = require("solar2d_ui.utils.touch")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 -- Exports --

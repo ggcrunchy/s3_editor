@@ -31,7 +31,7 @@ local checkbox = require("solar2d_ui.widgets.checkbox")
 local layout = require("solar2d_ui.utils.layout")
 local utils = require("solar2d_ui.dialog_impl.utils")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 

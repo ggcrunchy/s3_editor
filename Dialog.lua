@@ -29,7 +29,7 @@ local common = require("s3_editor.Common")
 local dialog = require("solar2d_ui.widgets.dialog")
 local table_funcs = require("tektite_core.table.funcs")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
 -- Cached module references --

@@ -37,7 +37,7 @@ local node_group = require("solar2d_ui.widgets.node_group")
 local theme = require("s3_editor.link_workspace.theme")
 local utils = require("s3_editor_views.link_imp.utils")
 
--- Corona globals --
+-- Solar2D globals --
 local transition = transition
 
 -- Unique member keys --

@@ -31,7 +31,7 @@ local random = math.random
 local color = require("solar2d_ui.utils.color")
 local layout = require("solar2d_ui.utils.layout")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local easing = easing
 local native = native

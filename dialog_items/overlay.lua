@@ -27,7 +27,7 @@
 local button = require("solar2d_ui.widgets.button")
 local utils = require("solar2d_ui.dialog_impl.utils")
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 -- Exports --

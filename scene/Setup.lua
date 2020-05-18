@@ -42,11 +42,11 @@ local layout = require("solar2d_ui.utils.layout")
 local persistence = require("solar2d_utils.persistence")
 local table_view_patterns = require("solar2d_ui.patterns.table_view")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 --

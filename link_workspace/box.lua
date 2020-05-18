@@ -37,7 +37,7 @@ local meta = require("tektite_core.table.meta")
 local theme = require("s3_editor.link_workspace.theme")
 local touch = require("solar2d_ui.utils.touch")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
 -- Unique member keys --

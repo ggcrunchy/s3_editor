@@ -63,12 +63,12 @@ local prompts = require("solar2d_ui.patterns.prompts")
 local require_ex = require("tektite_core.require_ex")
 local strings = require("tektite_core.var.strings")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 local Runtime = Runtime
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 --

@@ -34,13 +34,13 @@ local events = require("s3_editor.Events")
 local persistence = require("solar2d_utils.persistence")
 local prompts = require("solar2d_ui.patterns.prompts")
 
--- Corona globals --
+-- Solar2D globals --
 local native = native
 local Runtime = Runtime
 local system = system
 local timer = timer
 
--- Corona modules --
+-- Solar2D modules --
 local composer = require("composer")
 
 -- Cached module references --

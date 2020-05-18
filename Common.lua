@@ -43,7 +43,7 @@ local touch = require("solar2d_ui.utils.touch")
 local Links = require("tektite_base_classes.Link.Links")
 local Tags = require("tektite_base_classes.Link.Tags")
 ]]
--- Corona globals --
+-- Solar2D globals --
 local display = display
 local native = native
 local Runtime = Runtime

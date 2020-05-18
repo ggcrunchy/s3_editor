@@ -35,7 +35,7 @@ local touch = require("solar2d_ui.utils.touch")
 local ui_color = require("solar2d_ui.utils.color")
 local utils = require("solar2d_ui.dialog_impl.utils")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
 -- Exports --

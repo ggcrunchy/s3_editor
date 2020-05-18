@@ -40,10 +40,10 @@ local number = require("s3_objects.grammars.number")
 local table_funcs = require("tektite_core.table.funcs")
 local utils = require("solar2d_ui.dialog_impl.utils")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
--- Corona modules --
+-- Solar2D modules --
 local widget = require("widget")
 
 -- Exports --

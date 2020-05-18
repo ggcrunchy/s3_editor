@@ -48,7 +48,7 @@ local grid = require("s3_editor.Grid")
 local help = require("s3_editor.Help")
 local strings = require("tektite_core.var.strings")
 
--- Corona globals --
+-- Solar2D globals --
 local display = display
 
 -- Exports --

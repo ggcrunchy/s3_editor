@@ -37,7 +37,7 @@ local layout = require("solar2d_ui.utils.layout")
 local strings = require("tektite_core.var.strings")
 local table_view_patterns = require("solar2d_ui.patterns.table_view")
 
--- Corona globals --
+-- Solar2D globals --
 local timer = timer
 local transition = transition
 
