@@ -455,7 +455,9 @@ function M.Init (ncols, nrows)
 		index = SessionLinks:CleanUp(index)
 	end, 0)
 
-	Runtime:dispatchEvent{ name = "editor_session_init", ncols = ncols, nrows = nrows, w = config.w, h = config.h }
+	-- TODO: tile_layout.SetCounts(ncols, nrows), tile_layout.SetSizes(config.w, config.h)
+
+	Runtime:dispatchEvent{ name = "editor_session_init" }
 end
 
 --- Predicate.
