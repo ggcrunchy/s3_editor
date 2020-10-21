@@ -109,6 +109,10 @@ function M.GetState (name)
 	return state
 end
 
+--
+--
+--
+
 ---
 -- @param instance
 -- @return If _instance_ has a metatable created by @{New}, the state returned by @{GetState};
@@ -123,6 +127,10 @@ function M.GetStateFromInstance (instance)
 
 	return state
 end
+
+--
+--
+--
 
 local function AddFunctionDirectly (def, name, func)
 	def[name] = func
@@ -297,6 +305,10 @@ function M.New (params)
 
 	return def, name
 end
+
+--
+--
+--
 
 _GetState_ = M.GetState
 
